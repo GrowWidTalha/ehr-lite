@@ -6,22 +6,21 @@ REM ============================================================================
 
 setlocal EnableDelayedExpansion
 
-REM Colors (Windows 10+)
-set "INFO=[91m"
-set "SUCCESS=[92m"
-set "WARNING=[93m"
-set "BLUE=[94m"
-set "CYAN=[96m"
-set "MAGENTA=[95m"
-set "RESET=[0m"
-
 echo ================================================================================
 echo EHR Lite - Production Launcher (Background Mode)
 echo ================================================================================
 echo.
 
+REM Check if PowerShell is available
+where powershell >nul 2>nul
+if %ERRORLEVEL% NEQ 0 (
+    echo ERROR: PowerShell is required but not found.
+    pause
+    exit /b 1
+)
+
 REM Check if services are already running
-tasklist /FI "IMAGENAME eq node.exe" 2>NUL | findstr /C:"node.exe" >NUL
+powershell -Command "Get-Process node -ErrorAction SilentlyContinue | Select-Object -First 1" >nul 2>&1
 if %ERRORLEVEL% EQU 0 (
     echo WARNING: Node.js processes are already running.
     echo Please run stop-services.bat to stop existing services first.
@@ -129,6 +128,7 @@ echo [5/7] Building applications ^(production mode^)...
 echo Building frontend...
 cd frontend
 if not exist ".next" (
+    echo   Running: npm run build
     call npm run build
     if %ERRORLEVEL% NEQ 0 goto :error
     echo Frontend built successfully.
@@ -163,8 +163,8 @@ if "%ERRORLEVEL%"=="0" (
     echo Iriun Webcam already running.
 ) else (
     if "!IRIUN_FOUND!"=="1" (
-        echo Starting Iriun Webcam in background...
-        start /B "" "!IRIUN_PATH!" >nul 2>&1
+        echo Starting Iriun Webcam...
+        powershell -Command "Start-Process '!IRIUN_PATH!' -WindowStyle Hidden" >nul 2>&1
         timeout /t 2 /nobreak >nul
         echo Iriun Webcam started.
     ) else (
@@ -179,21 +179,21 @@ echo.
 echo [7/7] Starting services in background...
 echo.
 
-REM Start backend
+REM Start backend using PowerShell (hidden window)
 echo Starting backend on port 4000...
-start "" /B cmd /c "cd backend && npm run dev >> ..\logs\backend.log 2>&1"
+powershell -Command "Start-Process cmd -ArgumentList '/c cd backend && npm run dev >> ..\logs\backend.log 2>&1' -WindowStyle Hidden -NoNewWindow" >nul 2>&1
+echo   Backend started in background...
 
 REM Wait for backend
-echo   Waiting for backend...
-timeout /t 3 /nobreak >nul
+timeout /t 4 /nobreak >nul
 
-REM Start frontend
+REM Start frontend using PowerShell (hidden window)
 echo Starting frontend on port 3000...
-start "" /B cmd /c "cd frontend && npm run start >> ..\logs\frontend.log 2>&1"
+powershell -Command "Start-Process cmd -ArgumentList '/c cd frontend && set PORT=3000 && npm run start >> ..\logs\frontend.log 2>&1' -WindowStyle Hidden -NoNewWindow" >nul 2>&1
+echo   Frontend started in background...
 
-REM Wait for frontend
-echo   Waiting for frontend...
-timeout /t 5 /nobreak >nul
+REM Wait for services to be ready
+timeout /t 6 /nobreak >nul
 
 echo.
 echo ================================================================================
@@ -211,6 +211,15 @@ echo.
 echo Commands:
 echo   • View logs: type logs\backend.log or type logs\frontend.log
 echo   • Stop all:  stop-services.bat
+echo.
+
+REM Verify services are running
+echo Verifying services...
+timeout /t 2 /nobreak >nul
+
+powershell -Command "try { $r = Invoke-WebRequest -Uri 'http://localhost:4000/api/patients' -TimeoutSec 2; Write-Host '   ✓ Backend is responding' } catch { Write-Host '   ✗ Backend not ready yet - check logs\backend.log' -ForegroundColor Red }" 2>nul
+powershell -Command "try { $r = Invoke-WebRequest -Uri 'http://localhost:3000' -TimeoutSec 2; Write-Host '   ✓ Frontend is responding' } catch { Write-Host '   ✗ Frontend not ready yet - check logs\frontend.log' -ForegroundColor Red }" 2>nul
+
 echo.
 
 REM Open browser
@@ -231,5 +240,11 @@ exit /b 0
 :error
 echo.
 echo ERROR: An error occurred. Please check the output above.
-timeout /t 3 /nobreak >nul
+echo.
+echo Troubleshooting:
+echo   • Make sure Node.js is installed: https://nodejs.org/
+echo   • Check that ports 3000 and 4000 are available
+echo   • Run as Administrator if needed
+echo.
+timeout /t 5 /nobreak >nul
 exit /b 1
