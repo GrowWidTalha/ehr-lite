@@ -1,8 +1,8 @@
 #!/bin/bash
 
 ##############################################################################
-# EHR Lite Application Launcher (Linux/WSL)
-# Starts both backend and frontend servers with all prerequisites
+# EHR Lite Application Launcher (Linux/WSL) - Production Mode
+# Builds and runs both backend and frontend servers in background
 ##############################################################################
 
 set -e  # Exit on error
@@ -13,21 +13,84 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
 
 # Project root directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# PID files for tracking processes
+BACKEND_PID_FILE=".backend.pid"
+FRONTEND_PID_FILE=".frontend.pid"
+
+# Function to cleanup background processes
+cleanup() {
+    echo ""
+    echo -e "${YELLOW}Stopping services...${NC}"
+
+    if [ -f "$BACKEND_PID_FILE" ]; then
+        BACKEND_PID=$(cat "$BACKEND_PID_FILE")
+        if kill -0 $BACKEND_PID 2>/dev/null; then
+            kill $BACKEND_PID 2>/dev/null || true
+            wait $BACKEND_PID 2>/dev/null || true
+        fi
+        rm -f "$BACKEND_PID_FILE"
+    fi
+
+    if [ -f "$FRONTEND_PID_FILE" ]; then
+        FRONTEND_PID=$(cat "$FRONTEND_PID_FILE")
+        if kill -0 $FRONTEND_PID 2>/dev/null; then
+            kill $FRONTEND_PID 2>/dev/null || true
+            wait $FRONTEND_PID 2>/dev/null || true
+        fi
+        rm -f "$FRONTEND_PID_FILE"
+    fi
+
+    echo -e "${GREEN}Services stopped.${NC}"
+    exit 0
+}
+
+# Trap signals for cleanup
+trap cleanup SIGINT SIGTERM
+
+# Check if services are already running
+check_running_services() {
+    if [ -f "$BACKEND_PID_FILE" ]; then
+        BACKEND_PID=$(cat "$BACKEND_PID_FILE")
+        if kill -0 $BACKEND_PID 2>/dev/null; then
+            echo -e "${YELLOW}Backend is already running (PID: $BACKEND_PID)${NC}"
+            echo "Run 'stop-services.sh' to stop it first, or kill it manually."
+            exit 1
+        else
+            rm -f "$BACKEND_PID_FILE"
+        fi
+    fi
+
+    if [ -f "$FRONTEND_PID_FILE" ]; then
+        FRONTEND_PID=$(cat "$FRONTEND_PID_FILE")
+        if kill -0 $FRONTEND_PID 2>/dev/null; then
+            echo -e "${YELLOW}Frontend is already running (PID: $FRONTEND_PID)${NC}"
+            echo "Run 'stop-services.sh' to stop it first, or kill it manually."
+            exit 1
+        else
+            rm -f "$FRONTEND_PID_FILE"
+        fi
+    fi
+}
+
 echo -e "${BLUE}================================================================================================${NC}"
-echo -e "${CYAN}EHR Lite - Local First Electronic Health Record System${NC}"
+echo -e "${CYAN}EHR Lite - Production Launcher${NC}"
 echo -e "${BLUE}================================================================================================${NC}"
 echo ""
+
+# Check if already running
+check_running_services
 
 ##############################################################################
 # 1. Check and Install Node.js
 ##############################################################################
-echo -e "${YELLOW}[1/6] Checking Node.js installation...${NC}"
+echo -e "${YELLOW}[1/7] Checking Node.js installation...${NC}"
 
 if ! command -v node &> /dev/null; then
     echo -e "${RED}Node.js is not installed. Installing Node.js...${NC}"
@@ -56,6 +119,8 @@ if ! command -v node &> /dev/null; then
         nvm use --lts
 
         echo -e "${GREEN}Node.js installed successfully!${NC}"
+        echo -e "${YELLOW}Please run this script again to continue.${NC}"
+        exit 0
     else
         echo -e "${RED}Please install Node.js manually:${NC}"
         echo "  Ubuntu/Debian: curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs"
@@ -64,88 +129,98 @@ if ! command -v node &> /dev/null; then
     fi
 else
     NODE_VERSION=$(node --version)
-    echo -e "${GREEN}Node.js is installed: $NODE_VERSION${NC}"
-fi
-
-# Check npm
-if ! command -v npm &> /dev/null; then
-    echo -e "${RED}npm is not installed. Installing npm...${NC}"
-    sudo apt-get install -y npm
-else
     NPM_VERSION=$(npm --version)
-    echo -e "${GREEN}npm is installed: $NPM_VERSION${NC}"
+    echo -e "${GREEN}Node.js: $NODE_VERSION | npm: $NPM_VERSION${NC}"
 fi
 
 ##############################################################################
 # 2. Check and Install Dependencies
 ##############################################################################
 echo ""
-echo -e "${YELLOW}[2/6] Checking and installing dependencies...${NC}"
+echo -e "${YELLOW}[2/7] Checking dependencies...${NC}"
 
 # Backend dependencies
-if [ ! -d "backend/node_modules" ] || [ ! -f "backend/package-lock.json" ]; then
+if [ ! -d "backend/node_modules" ]; then
     echo "Installing backend dependencies..."
     cd backend
-    npm install
+    npm install --silent --no-audit --no-fund
     cd "$SCRIPT_DIR"
-    echo -e "${GREEN}Backend dependencies installed.${NC}"
+    echo -e "${GREEN}✓ Backend dependencies installed${NC}"
 else
-    echo -e "${GREEN}Backend dependencies already installed.${NC}"
+    echo -e "${GREEN}✓ Backend dependencies OK${NC}"
 fi
 
 # Frontend dependencies
-if [ ! -d "frontend/node_modules" ] || [ ! -f "frontend/package-lock.json" ]; then
+if [ ! -d "frontend/node_modules" ]; then
     echo "Installing frontend dependencies..."
     cd frontend
-    npm install
+    npm install --silent --no-audit --no-fund
     cd "$SCRIPT_DIR"
-    echo -e "${GREEN}Frontend dependencies installed.${NC}"
+    echo -e "${GREEN}✓ Frontend dependencies installed${NC}"
 else
-    echo -e "${GREEN}Frontend dependencies already installed.${NC}"
+    echo -e "${GREEN}✓ Frontend dependencies OK${NC}"
 fi
 
 ##############################################################################
 # 3. Ensure Data Directory Exists
 ##############################################################################
 echo ""
-echo -e "${YELLOW}[3/6] Ensuring data directory exists...${NC}"
-mkdir -p data
+echo -e "${YELLOW}[3/7] Setting up data directories...${NC}"
 mkdir -p data/patient-images
-echo -e "${GREEN}Data directories ready.${NC}"
+mkdir -p logs
+echo -e "${GREEN}✓ Data directories ready${NC}"
 
 ##############################################################################
 # 4. Initialize Database
 ##############################################################################
 echo ""
-echo -e "${YELLOW}[4/6] Checking database...${NC}"
-cd backend
-if [ ! -f "../data/database.db" ]; then
+echo -e "${YELLOW}[4/7] Checking database...${NC}"
+if [ ! -f "data/database.db" ]; then
     echo "Creating database..."
-    npm run init-db
-    echo -e "${GREEN}Database created.${NC}"
+    cd backend
+    npm run init-db > /dev/null 2>&1
+    cd "$SCRIPT_DIR"
+    echo -e "${GREEN}✓ Database created${NC}"
 else
-    echo -e "${GREEN}Database already exists.${NC}"
+    echo -e "${GREEN}✓ Database exists${NC}"
+fi
+
+##############################################################################
+# 5. Build Applications
+##############################################################################
+echo ""
+echo -e "${YELLOW}[5/7] Building applications (production mode)...${NC}"
+
+# Build frontend
+echo "Building frontend..."
+cd frontend
+if [ ! -d ".next" ] || [ "!backend/package.json" -nt ".next" ]; then
+    echo "  → Running: npm run build"
+    npm run build --silent
+    echo -e "${GREEN}✓ Frontend built${NC}"
+else
+    echo -e "${GREEN}✓ Frontend build up to date${NC}"
 fi
 cd "$SCRIPT_DIR"
 
 ##############################################################################
-# 5. Start Iriun Webcam
+# 6. Start Iriun Webcam
 ##############################################################################
 echo ""
-echo -e "${YELLOW}[5/6] Starting Iriun Webcam...${NC}"
-
-# Check if Iriun Webcam is installed
-IRIUN_PATHS=(
-    "$HOME/.local/share/applications/iriunwebcam.desktop"
-    "/opt/iriunwebcam/iriunwebcam"
-    "/usr/bin/iriunwebcam"
-    "$HOME/iriunwebcam/iriunwebcam.AppImage"
-)
+echo -e "${YELLOW}[6/7] Starting Iriun Webcam...${NC}"
 
 IRIUN_FOUND=0
 IRIUN_CMD=""
 
-for path in "${IRIUN_PATHS[@]}"; do
+# Check common paths
+for path in \
+    "$HOME/.local/share/applications/iriunwebcam.desktop" \
+    "/opt/iriunwebcam/iriunwebcam" \
+    "/usr/bin/iriunwebcam" \
+    "$HOME/Applications/IriunWebcam.AppImage" \
+    "$HOME/Desktop/IriunWebcam.AppImage" \
+    "$HOME/Downloads/IriunWebcam.AppImage"
+do
     if [ -f "$path" ]; then
         IRIUN_FOUND=1
         IRIUN_CMD="$path"
@@ -153,28 +228,13 @@ for path in "${IRIUN_PATHS[@]}"; do
     fi
 done
 
-# Also check for AppImage in common locations
-if [ $IRIUN_FOUND -eq 0 ]; then
-    for dir in "$HOME/Applications" "$HOME/Desktop" "$HOME/Downloads" "/opt"; do
-        if [ -f "$dir/IriunWebcam.AppImage" ]; then
-            IRIUN_FOUND=1
-            IRIUN_CMD="$dir/IriunWebcam.AppImage"
-            break
-        fi
-    done
-fi
-
 if [ $IRIUN_FOUND -eq 1 ]; then
-    echo -e "${GREEN}Found Iriun Webcam at: $IRIUN_CMD${NC}"
-
-    # Check if it's already running
     if pgrep -f "iriunwebcam" > /dev/null; then
-        echo -e "${GREEN}Iriun Webcam is already running.${NC}"
+        echo -e "${GREEN}✓ Iriun Webcam already running${NC}"
     else
-        echo "Starting Iriun Webcam in background..."
+        echo "Starting Iriun Webcam..."
         chmod +x "$IRIUN_CMD" 2>/dev/null || true
 
-        # Start based on file type
         if [[ "$IRIUN_CMD" == *.AppImage ]]; then
             nohup "$IRIUN_CMD" > /dev/null 2>&1 &
         elif [[ "$IRIUN_CMD" == *.desktop ]]; then
@@ -184,127 +244,116 @@ if [ $IRIUN_FOUND -eq 1 ]; then
         fi
 
         sleep 2
-
         if pgrep -f "iriunwebcam" > /dev/null; then
-            echo -e "${GREEN}Iriun Webcam started successfully!${NC}"
+            echo -e "${GREEN}✓ Iriun Webcam started${NC}"
         else
-            echo -e "${YELLOW}Iriun Webcam was launched but may not be running yet.${NC}"
+            echo -e "${YELLOW}⚠ Iriun Webcam launched (may take a moment)${NC}"
         fi
     fi
 else
-    echo -e "${YELLOW}Iriun Webcam not found. Please install it from https://iriun.com/${NC}"
-    echo "Camera features may not work without it."
+    echo -e "${YELLOW}⚠ Iriun Webcam not found (optional)${NC}"
 fi
 
 ##############################################################################
-# 6. Start Servers
+# 7. Start Services (Background)
 ##############################################################################
 echo ""
-echo -e "${YELLOW}[6/6] Starting servers...${NC}"
-echo ""
-echo -e "${CYAN}Backend:  ${BLUE}http://localhost:4000${NC}"
-echo -e "${CYAN}Frontend: ${BLUE}http://localhost:3000${NC}"
-echo ""
-echo -e "${YELLOW}Press Ctrl+C to stop both servers${NC}"
+echo -e "${YELLOW}[7/7] Starting services in background...${NC}"
 echo ""
 
-# Function to cleanup background processes
-cleanup() {
-    echo ""
-    echo -e "${YELLOW}Stopping servers...${NC}"
-    kill $BACKEND_PID 2>/dev/null || true
-    kill $FRONTEND_PID 2>/dev/null || true
-    wait $BACKEND_PID 2>/dev/null || true
-    wait $FRONTEND_PID 2>/dev/null || true
-    echo -e "${GREEN}Servers stopped.${NC}"
-    exit 0
-}
-
-trap cleanup SIGINT SIGTERM
-
-# Start backend in background
+# Start backend
+echo "→ Starting backend on port 4000..."
 cd backend
-nohup npm run dev > ../logs/backend.log 2>&1 &
+nohup npm run dev > "$SCRIPT_DIR/logs/backend.log" 2>&1 &
 BACKEND_PID=$!
+echo $BACKEND_PID > "$SCRIPT_DIR/$BACKEND_PID_FILE"
 cd "$SCRIPT_DIR"
 
-# Wait a bit for backend to start
-sleep 3
-
-# Start frontend in background
-cd frontend
-nohup npm run dev > ../logs/frontend.log 2>&1 &
-FRONTEND_PID=$!
-cd "$SCRIPT_DIR"
-
-# Wait for frontend to be ready
-echo -e "${YELLOW}Waiting for frontend to start...${NC}"
-for i in {1..30}; do
-    if curl -s http://localhost:3000 > /dev/null 2>&1; then
+# Wait for backend to start
+echo -n "  Waiting for backend..."
+for i in {1..15}; do
+    if curl -s http://localhost:4000 > /dev/null 2>&1; then
+        echo -e " ${GREEN}✓${NC}"
         break
     fi
-    sleep 1
+    sleep 0.3
     echo -n "."
 done
 echo ""
 
-echo -e "${GREEN}================================================================================================${NC}"
-echo -e "${GREEN}Servers started successfully!${NC}"
-echo -e "${GREEN}================================================================================================${NC}"
+# Start frontend
+echo "→ Starting frontend on port 3000..."
+cd frontend
+PORT=3000 nohup npm run start > "$SCRIPT_DIR/logs/frontend.log" 2>&1 &
+FRONTEND_PID=$!
+echo $FRONTEND_PID > "$SCRIPT_DIR/$FRONTEND_PID_FILE"
+cd "$SCRIPT_DIR"
+
+# Wait for frontend to start
+echo -n "  Waiting for frontend..."
+for i in {1..20}; do
+    if curl -s http://localhost:3000 > /dev/null 2>&1; then
+        echo -e " ${GREEN}✓${NC}"
+        break
+    fi
+    sleep 0.3
+    echo -n "."
+done
 echo ""
 
-# Create logs directory if it doesn't exist
-mkdir -p logs
-
-# Show server URLs
-echo -e "${CYAN}Server Status:${NC}"
-echo -e "  Backend:  ${BLUE}http://localhost:4000${NC} ${GREEN}(PID: $BACKEND_PID)${NC}"
-echo -e "  Frontend: ${BLUE}http://localhost:3000${NC} ${GREEN}(PID: $FRONTEND_PID)${NC}"
+##############################################################################
+# Display Status
+##############################################################################
+echo ""
+echo -e "${MAGENTA}════════════════════════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}                      EHR Lite - RUNNING${NC}"
+echo -e "${MAGENTA}════════════════════════════════════════════════════════════════════════════════${NC}"
+echo ""
+echo -e "${CYAN}Services:${NC}"
+echo -e "  • Backend:  ${BLUE}http://localhost:4000${NC} ${GREEN}(PID: $BACKEND_PID)${NC}"
+echo -e "  • Frontend: ${BLUE}http://localhost:3000${NC} ${GREEN}(PID: $FRONTEND_PID)${NC}"
 echo ""
 echo -e "${CYAN}Logs:${NC}"
-echo -e "  Backend:  ${YELLOW}logs/backend.log${NC}"
-echo -e "  Frontend: ${YELLOW}logs/frontend.log${NC}"
+echo -e "  • Backend:  ${YELLOW}logs/backend.log${NC}"
+echo -e "  • Frontend: ${YELLOW}logs/frontend.log${NC}"
+echo ""
+echo -e "${CYAN}Commands:${NC}"
+echo -e "  • View logs: ${GREEN}tail -f logs/backend.log${NC} or ${GREEN}tail -f logs/frontend.log${NC}"
+echo -e "  • Stop all:  ${GREEN}./stop-services.sh${NC} or ${GREEN}Ctrl+C${NC}"
 echo ""
 
-# Open browser (works on WSL with Windows browser)
-echo -e "${YELLOW}Opening application in browser...${NC}"
-
-# Try different methods to open browser
+# Open browser
+sleep 1
+echo "Opening browser..."
 if command -v xdg-open &> /dev/null; then
-    # Linux GUI
     xdg-open http://localhost:3000 2>/dev/null || true
 elif grep -qi microsoft /proc/version 2>/dev/null; then
-    # WSL - try to open in Windows browser
     /mnt/c/Windows/System32/cmd.exe /c start http://localhost:3000 2>/dev/null || true
     powershell.exe -Command "Start-Process http://localhost:3000" 2>/dev/null || true
 elif command -v wslview &> /dev/null; then
-    # WSL with wslu installed
     wslview http://localhost:3000 2>/dev/null || true
 fi
 
 echo ""
-echo -e "${YELLOW}Running... Press Ctrl+C to stop.${NC}"
+echo -e "${GREEN}EHR Lite is running in the background!${NC}"
+echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"
 echo ""
 
-# Monitor servers - keep script running
+# Monitor services
 while true; do
-    # Check if servers are still running
-    if ! kill -0 $BACKEND_PID 2>/dev/null; then
-        echo -e "${RED}Backend server has stopped!${NC}"
-        echo "Check logs/backend.log for details."
-        break
-    fi
-
-    if ! kill -0 $FRONTEND_PID 2>/dev/null; then
-        echo -e "${RED}Frontend server has stopped!${NC}"
-        echo "Check logs/frontend.log for details."
-        break
-    fi
-
     sleep 5
-done
 
-# Wait for processes to finish
-wait $BACKEND_PID $FRONTEND_PID
+    # Check backend
+    if ! kill -0 $BACKEND_PID 2>/dev/null; then
+        echo -e "${RED}✗ Backend has stopped! Check logs/backend.log${NC}"
+        break
+    fi
+
+    # Check frontend
+    if ! kill -0 $FRONTEND_PID 2>/dev/null; then
+        echo -e "${RED}✗ Frontend has stopped! Check logs/frontend.log${NC}"
+        break
+    fi
+done
 
 cleanup
