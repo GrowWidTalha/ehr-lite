@@ -1,55 +1,183 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report:
+- Version change: Initial → 1.0.0
+- Created: New constitution for EHR Lite project
+- Templates reviewed: spec-template.md ✅, plan-template.md ✅, tasks-template.md ✅
+- No dependent template updates required at this time
+-->
+
+# EHR Lite Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Local-First Architecture
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+**Mandatory**: System MUST operate fully offline with zero cloud dependencies.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+- All patient data stored locally in SQLite database at `/data/database.db`
+- All report images stored locally at `/data/patient-images/`
+- Application MUST be functional without internet connectivity
+- Browser-based UI communicates with local backend only (localhost:4000)
+- No external APIs, telemetry, or data transmission
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+**Rationale**: Healthcare data sensitivity and clinic environments require complete data sovereignty. Offline operation ensures reliability in areas with unstable connectivity and guarantees patient privacy.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### II. Single-Click Startup
 
-### [PRINCIPLE_6_NAME]
+**Mandatory**: Application MUST start via double-click on `.bat` file.
 
+- `start-app.bat` handles all initialization automatically
+- Backend starts on `http://localhost:4000`
+- Frontend starts on `http://localhost:3000`
+- No manual command-line operations required for end users
+- Database and image directories created automatically if missing
 
-[PRINCIPLE__DESCRIPTION]
+**Rationale**: Clinic staff may not be technical. Single-click startup reduces training overhead and minimizes operational errors.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+### III. Healthcare Data Protection
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+**Mandatory**: All patient data MUST be validated, sanitized, and safely persisted.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+- Input validation using Zod schemas on all API endpoints
+- File type validation (images: jpg/png only)
+- File size limits enforced (5MB default per image)
+- SQL injection prevention through parameterized queries
+- Path traversal prevention on file operations
+- Atomic database transactions for multi-record operations
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+**Rationale**: Even in local systems, healthcare data requires rigorous protection against corruption, injection, and accidental loss.
+
+### IV. Data Portability & Backup
+
+**Mandatory**: All user data MUST be easily backupable and portable.
+
+- All persistent data contained within `/data/` folder
+- Database is a single SQLite file (portable)
+- Images use standard filesystem structure
+- User can backup by copying `/data/` folder to USB or external drive
+- No proprietary binary formats or embedded data stores
+
+**Rationale**: Clinics must protect against data loss through simple, understandable backup procedures. Portability enables data migration between systems.
+
+### V. Camera-First Documentation
+
+**Mandatory**: Report upload MUST prioritize camera capture with file upload fallback.
+
+- Primary flow: Camera capture via `navigator.mediaDevices.getUserMedia`
+- Supports: Laptop webcams, mobile browsers, tablets
+- Fallback: Standard file picker for existing images
+- Images stored in patient-specific folders by UUID
+- Database stores only file paths (not binary data)
+
+**Rationale**: Healthcare workflows often involve physical reports, prescriptions, and lab results. Camera capture is faster than scanning.
+
+### VI. Fail-Safe Error Handling
+
+**Mandatory**: All operations MUST have clear error paths with user-friendly messages.
+
+- Backend returns structured error responses
+- Frontend displays actionable error messages (no stack traces to users)
+- Database connection failures are surfaced clearly
+- File write failures prevent partial saves
+- Network errors between frontend/backend are handled gracefully
+- Operations log failures for troubleshooting
+
+**Rationale**: Medical workflows cannot afford silent failures. Clear error communication enables staff to correct issues promptly.
+
+## Technology Constraints
+
+### Mandatory Stack
+
+- **Frontend**: Next.js 14+, TypeScript, Tailwind CSS, React Hook Form, Zod
+- **Backend**: Node.js + Express
+- **Database**: SQLite with Drizzle ORM (or better-sqlite3)
+- **Platform**: Windows 10/11, 4GB RAM minimum
+
+### Prohibited
+
+- Cloud services, APIs, or SDKs (Firebase, AWS, Auth0, etc.)
+- External authentication providers
+- Telemetry or analytics services
+- Remote data synchronization
+- Docker or containerization requirements
+
+### Allowed (Optional)
+
+- Local authentication (username/password stored in database)
+- Image compression libraries (local only)
+- PDF generation for reports (local only)
+
+## Development Standards
+
+### Code Quality
+
+- TypeScript strict mode enabled
+- ESLint and Prettier configured
+- No `any` types without justification
+- Component prop validation with TypeScript or Zod
+
+### API Design
+
+- RESTful endpoints following `/api/resource/:id` pattern
+- Consistent response format: `{ data, error }`
+- HTTP status codes used correctly (200, 201, 400, 404, 500)
+- CORS configured for localhost only
+
+### Database Operations
+
+- All queries through ORM or parameterized statements
+- Transactions for multi-table operations
+- Indexes on frequently queried fields (patient name, phone, CNIC)
+- Foreign key constraints enforced
+
+## Testing Requirements
+
+### Critical Paths (Must Test)
+
+- Patient creation, retrieval, update, deletion
+- Report image upload and storage
+- Image retrieval and display
+- Database and filesystem error handling
+- Camera capture across device types
+
+### Test Organization
+
+- API contract tests for all endpoints
+- Integration tests for patient-report relationships
+- File upload/download validation tests
+- Error injection tests for failure modes
+
+## Deployment & Distribution
+
+### Runtime Requirements
+
+- Node.js must be installed on target machine
+- `start-app.bat` handles startup
+- No build process required for end users (pre-built frontend)
+- Database auto-initializes on first run
+
+### Distribution Format
+
+- Single folder containing: `start-app.bat`, `backend/`, `frontend/`, `data/`
+- Data folder initially empty (auto-created)
+- No installation wizard or registry entries
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+### Amendment Process
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+1. Any change to Core Principles requires documented ADR (Architecture Decision Record)
+2. Technology constraints may be updated with technical justification
+3. Development standards evolve with team consensus
+4. All amendments increment version per semantic versioning
+
+### Compliance
+
+- All features MUST pass Constitution Check in plan template
+- Pull requests violating principles MUST be rejected
+- Complexity justifications documented in Complexity Tracking table
+- When in doubt, favor simplicity over optimization
+
+### Version History
+
+**Version 1.0.0** (2026-02-24): Initial constitution establishing local-first architecture for EHR Lite

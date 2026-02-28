@@ -1,0 +1,1024 @@
+openapi: 3.0.3
+info:
+  title: EHR Lite API
+  description: Local-first oncology EHR backend API
+  version: 1.0.0
+  contact:
+    name: EHR Lite Team
+
+servers:
+  - url: http://localhost:4000/api
+    description: Local development server
+
+tags:
+  - name: Patients
+    description: Patient management endpoints
+  - name: Vitals
+    description: Patient vital signs
+  - name: History
+    description: Medical history management
+  - name: Habits
+    description: Patient habits tracking
+  - name: Diagnoses
+    description: Cancer diagnosis management
+  - name: Reports
+    description: Report and image management
+  - name: Search
+    description: Search endpoints
+
+paths:
+  /patients:
+    get:
+      summary: List patients
+      tags: [Patients]
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by name, phone, or CNIC
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of patients
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Patient'
+                  count:
+                    type: integer
+        '500':
+          $ref: '#/components/responses/Error'
+
+    post:
+      summary: Create new patient
+      tags: [Patients]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePatientInput'
+      responses:
+        '201':
+          description: Patient created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Patient'
+        '400':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+
+  /patients/{id}:
+    get:
+      summary: Get patient by ID
+      tags: [Patients]
+      parameters:
+        - $ref: '#/components/parameters/PatientId'
+      responses:
+        '200':
+          description: Patient details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Patient'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+
+    put:
+      summary: Update patient
+      tags: [Patients]
+      parameters:
+        - $ref: '#/components/parameters/PatientId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePatientInput'
+      responses:
+        '200':
+          description: Patient updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Patient'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+
+    delete:
+      summary: Delete patient
+      tags: [Patients]
+      parameters:
+        - $ref: '#/components/parameters/PatientId'
+      responses:
+        '200':
+          description: Patient deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+
+  /patients/{id}/vitals:
+    get:
+      summary: Get patient vitals history
+      tags: [Vitals]
+      parameters:
+        - $ref: '#/components/parameters/PatientId'
+      responses:
+        '200':
+          description: Vitals history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PatientVitals'
+        '500':
+          $ref: '#/components/responses/Error'
+
+    post:
+      summary: Record new vitals
+      tags: [Vitals]
+      parameters:
+        - $ref: '#/components/parameters/PatientId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVitalsInput'
+      responses:
+        '201':
+          description: Vitals recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/PatientVitals'
+        '400':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+
+  /patients/{id}/history:
+    get:
+      summary: Get patient medical history
+      tags: [History]
+      parameters:
+        - $ref: '#/components/parameters/PatientId'
+      responses:
+        '200':
+          description: Medical history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/PatientHistory'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+
+    put:
+      summary: Update patient history
+      tags: [History]
+      parameters:
+        - $ref: '#/components/parameters/PatientId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHistoryInput'
+      responses:
+        '200':
+          description: History updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/PatientHistory'
+        '400':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+
+  /patients/{id}/habits:
+    get:
+      summary: Get patient habits
+      tags: [Habits]
+      parameters:
+        - $ref: '#/components/parameters/PatientId'
+      responses:
+        '200':
+          description: Patient habits
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/PatientHabits'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+
+    put:
+      summary: Update patient habits
+      tags: [Habits]
+      parameters:
+        - $ref: '#/components/parameters/PatientId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHabitsInput'
+      responses:
+        '200':
+          description: Habits updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/PatientHabits'
+        '400':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+
+  /patients/{id}/diagnoses:
+    get:
+      summary: Get patient diagnoses
+      tags: [Diagnoses]
+      parameters:
+        - $ref: '#/components/parameters/PatientId'
+      responses:
+        '200':
+          description: List of diagnoses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CancerDiagnosis'
+        '500':
+          $ref: '#/components/responses/Error'
+
+    post:
+      summary: Create new diagnosis
+      tags: [Diagnoses]
+      parameters:
+        - $ref: '#/components/parameters/PatientId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDiagnosisInput'
+      responses:
+        '201':
+          description: Diagnosis created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/CancerDiagnosis'
+        '400':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+
+  /diagnoses/{id}:
+    get:
+      summary: Get diagnosis details
+      tags: [Diagnoses]
+      parameters:
+        - $ref: '#/components/parameters/DiagnosisId'
+      responses:
+        '200':
+          description: Diagnosis details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/CancerDiagnosis'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+
+    put:
+      summary: Update diagnosis
+      tags: [Diagnoses]
+      parameters:
+        - $ref: '#/components/parameters/DiagnosisId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Diagnosis updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/CancerDiagnosis'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+
+    delete:
+      summary: Delete diagnosis
+      tags: [Diagnoses]
+      parameters:
+        - $ref: '#/components/parameters/DiagnosisId'
+      responses:
+        '200':
+          description: Diagnosis deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+
+  /patients/{id}/reports:
+    get:
+      summary: Get patient reports
+      tags: [Reports]
+      parameters:
+        - $ref: '#/components/parameters/PatientId'
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [pathology, imaging, lab, consultation, other]
+          description: Filter by report type
+      responses:
+        '200':
+          description: List of reports
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Report'
+        '500':
+          $ref: '#/components/responses/Error'
+
+    post:
+      summary: Upload new report
+      tags: [Reports]
+      parameters:
+        - $ref: '#/components/parameters/PatientId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - title
+                - report_type
+                - images
+              properties:
+                title:
+                  type: string
+                report_type:
+                  type: string
+                  enum: [pathology, imaging, lab, consultation, other]
+                notes:
+                  type: string
+                report_date:
+                  type: string
+                  format: date
+                diagnosis_id:
+                  type: string
+                  format: uuid
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        '201':
+          description: Report uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Report'
+        '400':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+
+  /reports/{id}:
+    delete:
+      summary: Delete report
+      tags: [Reports]
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      responses:
+        '200':
+          description: Report deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+
+  /search:
+    get:
+      summary: Search across patients
+      tags: [Search]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [patient, diagnosis]
+          description: Search scope
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          type:
+                            type: string
+                        title:
+                          type: string
+        '400':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+
+components:
+  parameters:
+    PatientId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Patient UUID
+
+    DiagnosisId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Diagnosis UUID
+
+    ReportId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Report UUID
+
+  schemas:
+    Patient:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        registration_number:
+          type: string
+          nullable: true
+        registration_date:
+          type: string
+          format: date-time
+          nullable: true
+        full_name:
+          type: string
+        age:
+          type: integer
+          nullable: true
+        sex:
+          type: string
+          enum: [Male, Female, Other]
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        cnic:
+          type: string
+          nullable: true
+        marital_status:
+          type: string
+          nullable: true
+        education:
+          type: string
+          nullable: true
+        language:
+          type: string
+          nullable: true
+        territory:
+          type: string
+          nullable: true
+        children_count:
+          type: integer
+          default: 0
+        sibling_count:
+          type: integer
+          default: 0
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreatePatientInput:
+      type: object
+      required:
+        - full_name
+      properties:
+        full_name:
+          type: string
+          minLength: 1
+        age:
+          type: integer
+          minimum: 0
+          maximum: 150
+        sex:
+          type: string
+          enum: [Male, Female, Other]
+        phone:
+          type: string
+        cnic:
+          type: string
+        registration_number:
+          type: string
+        registration_date:
+          type: string
+          format: date
+        marital_status:
+          type: string
+        education:
+          type: string
+        language:
+          type: string
+        territory:
+          type: string
+        children_count:
+          type: integer
+          minimum: 0
+        sibling_count:
+          type: integer
+          minimum: 0
+
+    UpdatePatientInput:
+      type: object
+      properties:
+        full_name:
+          type: string
+          minLength: 1
+        age:
+          type: integer
+          minimum: 0
+          maximum: 150
+        sex:
+          type: string
+          enum: [Male, Female, Other]
+        phone:
+          type: string
+        cnic:
+          type: string
+        marital_status:
+          type: string
+        education:
+          type: string
+        language:
+          type: string
+        territory:
+          type: string
+        children_count:
+          type: integer
+        sibling_count:
+          type: integer
+
+    PatientVitals:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        patient_id:
+          type: string
+          format: uuid
+        height_cm:
+          type: number
+          nullable: true
+        weight_kg:
+          type: number
+          nullable: true
+        blood_group:
+          type: string
+          enum: [A+, A-, B+, B-, AB+, AB-, O+, O-]
+          nullable: true
+        recorded_at:
+          type: string
+          format: date-time
+
+    CreateVitalsInput:
+      type: object
+      properties:
+        height_cm:
+          type: number
+          minimum: 0
+        weight_kg:
+          type: number
+          minimum: 0
+        blood_group:
+          type: string
+          enum: [A+, A-, B+, B-, AB+, AB-, O+, O-]
+
+    PatientHistory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        patient_id:
+          type: string
+          format: uuid
+        presenting_complaint:
+          type: string
+          nullable: true
+        comorbidities:
+          type: string
+          nullable: true
+        family_cancer_history:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateHistoryInput:
+      type: object
+      properties:
+        presenting_complaint:
+          type: string
+        comorbidities:
+          type: string
+        family_cancer_history:
+          type: string
+
+    PatientHabits:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        patient_id:
+          type: string
+          format: uuid
+        smoking_status:
+          type: string
+          enum: [Never, Former, Current]
+          nullable: true
+        smoking_quantity:
+          type: string
+          nullable: true
+        pan_use:
+          type: string
+          enum: [Never, Former, Current]
+          nullable: true
+        pan_quantity:
+          type: string
+          nullable: true
+        gutka_use:
+          type: string
+          enum: [Never, Former, Current]
+          nullable: true
+        gutka_quantity:
+          type: string
+          nullable: true
+        naswar_use:
+          type: string
+          enum: [Never, Former, Current]
+          nullable: true
+        naswar_quantity:
+          type: string
+          nullable: true
+        alcohol_use:
+          type: string
+          enum: [Never, Former, Current]
+          nullable: true
+        alcohol_quantity:
+          type: string
+          nullable: true
+        other_habits:
+          type: string
+          nullable: true
+        quit_period:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateHabitsInput:
+      type: object
+      properties:
+        smoking_status:
+          type: string
+          enum: [Never, Former, Current]
+        smoking_quantity:
+          type: string
+        pan_use:
+          type: string
+          enum: [Never, Former, Current]
+        pan_quantity:
+          type: string
+        gutka_use:
+          type: string
+          enum: [Never, Former, Current]
+        gutka_quantity:
+          type: string
+        naswar_use:
+          type: string
+          enum: [Never, Former, Current]
+        naswar_quantity:
+          type: string
+        alcohol_use:
+          type: string
+          enum: [Never, Former, Current]
+        alcohol_quantity:
+          type: string
+        other_habits:
+          type: string
+        quit_period:
+          type: string
+
+    CancerDiagnosis:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        patient_id:
+          type: string
+          format: uuid
+        cancer_type:
+          type: string
+        stage:
+          type: string
+          enum: [I, II, III, IV]
+          nullable: true
+        grade:
+          type: string
+          enum: ['1', '2', '3']
+          nullable: true
+        who_classification:
+          type: string
+          nullable: true
+        diagnosis_date:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateDiagnosisInput:
+      type: object
+      required:
+        - cancer_type
+      properties:
+        cancer_type:
+          type: string
+          minLength: 1
+        stage:
+          type: string
+          enum: [I, II, III, IV]
+        grade:
+          type: string
+          enum: ['1', '2', '3']
+        who_classification:
+          type: string
+        diagnosis_date:
+          type: string
+          format: date
+
+    Report:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        patient_id:
+          type: string
+          format: uuid
+        diagnosis_id:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+        report_type:
+          type: string
+          enum: [pathology, imaging, lab, consultation, other]
+        notes:
+          type: string
+          nullable: true
+        report_date:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        image_count:
+          type: integer
+          description: Number of attached images
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Human-readable error message
+
+  responses:
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

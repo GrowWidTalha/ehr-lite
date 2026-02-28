@@ -1,0 +1,18 @@
+{
+  "name": "ehr-lite",
+  "version": "1.0.0",
+  "description": "Local-first Electronic Health Record System",
+  "scripts": {
+    "dev": "concurrently \"npm:backend:*\" \"npm:frontend:*\"",
+    "backend": "cd backend && npm run dev",
+    "frontend": "cd frontend && npm run dev",
+    "init-db": "cd backend && npm run init-db",
+    "start": "cd backend && npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": ["ehr", "healthcare", "local-first", "oncology"],
+  "author": "",
+  "license": "MIT"
+}

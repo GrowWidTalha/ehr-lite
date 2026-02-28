@@ -208,3 +208,10 @@ Wait for consent; never auto-create ADRs. Group related decisions (stacks, authe
 
 ## Code Standards
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
+
+## Active Technologies
+- TypeScript 5.3+, JavaScript ES2022+ (001-ehr-frontend)
+- No direct storage - communicates with backend API (SQLite via Express) (001-ehr-frontend)
+
+## Recent Changes
+- 001-ehr-frontend: Added TypeScript 5.3+, JavaScript ES2022+

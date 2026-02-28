@@ -31,7 +31,12 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- [ ] **Local-First**: No cloud dependencies? All data local?
+- [ ] **Single-Click Startup**: Can be started via `.bat` file?
+- [ ] **Healthcare Data Protection**: Input validation on all endpoints? File validation?
+- [ ] **Data Portability**: All data in `/data/` folder? Easy backup?
+- [ ] **Camera-First**: Camera capture prioritized? File fallback included?
+- [ ] **Fail-Safe Errors**: Clear error messages? Structured error responses?
 
 ## Project Structure
 
