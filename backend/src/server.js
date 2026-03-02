@@ -17,6 +17,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import patientRoutes from './routes/patients.js';
 import imageRoutes from './routes/images.js';
 import reportRoutes from './routes/reports.js';
+import dashboardRoutes from './routes/dashboard.js';
 
 const app = express();
 const PORT = 4000;
@@ -79,6 +80,9 @@ app.get('/api', (req, res) => {
     version: '1.0.0',
     endpoints: {
       health: '/api/health',
+      dashboard: {
+        stats: 'GET /api/dashboard/stats'
+      },
       patients: {
         list: 'GET /api/patients',
         create: 'POST /api/patients',
@@ -112,6 +116,7 @@ app.get('/api', (req, res) => {
 app.use('/api/patients', patientRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // ============================================================================
 // ERROR HANDLING

@@ -12,6 +12,8 @@ import { ViewToggle } from '@/components/patients/view-toggle';
 import { FunctionalPagination } from '@/components/patients/pagination';
 import { FilePlus, Search as SearchIcon, UserPlus, Activity, Building2, X } from 'lucide-react';
 import { LoadingSpinner } from '@/components/shared/loading-spinner';
+import { DashboardStats } from '@/components/dashboard/stats-cards';
+import { useDashboardStats } from '@/hooks/use-dashboard-stats';
 import type { PatientListView, PatientListItem } from '@/lib/db.types';
 
 const PAGE_SIZE = 50;
@@ -25,6 +27,7 @@ export default function HomePage() {
   const { data: patients, isLoading, error } = usePatientList(
     debouncedSearch ? { search: debouncedSearch } : undefined
   );
+  const { data: stats } = useDashboardStats();
 
   // Debounce search
   useEffect(() => {
@@ -136,6 +139,16 @@ export default function HomePage() {
 
         {/* Main Content Area */}
         <div className="p-6">
+          {/* Dashboard Stats */}
+          <div className="mb-6">
+            <DashboardStats
+              totalPatients={stats?.total_patients || 0}
+              activeDiagnoses={stats?.active_diagnoses || 0}
+              totalReports={stats?.total_reports || 0}
+              newThisMonth={stats?.new_this_month || 0}
+            />
+          </div>
+
           {/* Page Header */}
           <div className="mb-6">
             <h2 className="text-2xl font-semibold tracking-tight">Patients</h2>
