@@ -2,10 +2,6 @@
 .backend_deps_installed
 .frontend_deps_installed
 
-# Process IDs for background services
-.backend.pid
-.frontend.pid
-
 # Logs
 logs/
 *.log
