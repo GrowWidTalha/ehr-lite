@@ -12,6 +12,7 @@ import { ViewToggle } from '@/components/patients/view-toggle';
 import { FunctionalPagination } from '@/components/patients/pagination';
 import { FilePlus, Search as SearchIcon, UserPlus, Activity, Building2, X } from 'lucide-react';
 import { LoadingSpinner } from '@/components/shared/loading-spinner';
+import { DashboardStatsSkeleton, PatientTableSkeleton, PatientCardSkeleton } from '@/components/shared/skeleton-loader';
 import { DashboardStats } from '@/components/dashboard/stats-cards';
 import { useDashboardStats } from '@/hooks/use-dashboard-stats';
 import type { PatientListView, PatientListItem } from '@/lib/db.types';
@@ -27,7 +28,7 @@ export default function HomePage() {
   const { data: patients, isLoading, error } = usePatientList(
     debouncedSearch ? { search: debouncedSearch } : undefined
   );
-  const { data: stats } = useDashboardStats();
+  const { data: stats, isLoading: statsLoading } = useDashboardStats();
 
   // Debounce search
   useEffect(() => {
@@ -141,12 +142,16 @@ export default function HomePage() {
         <div className="p-6">
           {/* Dashboard Stats */}
           <div className="mb-6">
-            <DashboardStats
-              totalPatients={stats?.total_patients || 0}
-              activeDiagnoses={stats?.active_diagnoses || 0}
-              totalReports={stats?.total_reports || 0}
-              newThisMonth={stats?.new_this_month || 0}
-            />
+            {statsLoading ? (
+              <DashboardStatsSkeleton />
+            ) : (
+              <DashboardStats
+                totalPatients={stats?.total_patients || 0}
+                activeDiagnoses={stats?.active_diagnoses || 0}
+                totalReports={stats?.total_reports || 0}
+                newThisMonth={stats?.new_this_month || 0}
+              />
+            )}
           </div>
 
           {/* Page Header */}
@@ -191,12 +196,17 @@ export default function HomePage() {
 
           {/* Loading State */}
           {isLoading && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <LoadingSpinner />
-              <p className="text-sm text-muted-foreground mt-3">
-                {debouncedSearch ? `Searching for "${debouncedSearch}"...` : 'Loading patients...'}
-              </p>
-            </div>
+            <>
+              {view === 'card' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <PatientCardSkeleton key={i} />
+                  ))}
+                </div>
+              ) : (
+                <PatientTableSkeleton />
+              )}
+            </>
           )}
 
           {/* Error State */}
