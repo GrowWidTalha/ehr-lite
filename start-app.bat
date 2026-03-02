@@ -120,21 +120,78 @@ if not exist "..\data\database.db" (
 cd ..
 
 REM ================================================================================
-REM 5. Build Applications
+REM 5. Build Applications (Smart Build Detection)
 REM ================================================================================
 echo.
-echo [5/7] Building applications ^(production mode^)...
+echo [5/7] Checking if rebuild is needed...
 
-echo Building frontend...
+REM Check frontend build
+echo Checking frontend...
 cd frontend
+
+set "NEedsBuild=0"
+
+REM Check if .next directory exists
 if not exist ".next" (
-    echo   Running: npm run build
+    set "NeedsBuild=1"
+) else (
+    REM Check if key source files are newer than .next\BUILD_ID
+    if exist ".next\BUILD_ID" (
+        REM Compare key files with build marker
+        for %%f in (package.json next.config.js tsconfig.json tailwind.config.js app\layout.tsx app\page.tsx components\ui\button.tsx) do (
+            if exist "%%~f" (
+                powershell -Command "if ((Get-Item '%%~f').LastWriteTime -gt (Get-Item '.next\BUILD_ID').LastWriteTime) { exit 0 } else { exit 1 }" >nul 2>&1
+                if !ERRORLEVEL! EQU 0 (
+                    set "NeedsBuild=1"
+                    goto :found_changed
+                )
+            )
+        )
+        :found_changed
+    ) else (
+        set "NeedsBuild=1"
+    )
+)
+
+if "!NeedsBuild!"=="1" (
+    echo   → Source changes detected. Rebuilding frontend...
+    echo   → Running: npm run build
+
+    REM Clean previous build for fresh start
+    if exist ".next" rmdir /s /q .next 2>nul
+
     call npm run build
     if %ERRORLEVEL% NEQ 0 goto :error
-    echo Frontend built successfully.
+    echo   Frontend built successfully.
+
+    REM Create build marker
+    echo %date% %time% > .next\BUILD_ID
 ) else (
-    echo Frontend build up to date.
+    echo   Frontend build up to date.
 )
+cd ..
+
+REM Check backend dependencies
+echo Checking backend...
+cd backend
+
+if not exist "..\.backend_deps_installed" (
+    date > "..\.backend_deps_installed"
+)
+
+if exist "package.json" (
+    powershell -Command "if ((Get-Item 'package.json').LastWriteTime -gt (Get-Item '..\.backend_deps_installed').LastWriteTime) { exit 0 } else { exit 1 }" >nul 2>&1
+    if !ERRORLEVEL! EQU 0 (
+        echo   → Dependencies changed. Reinstalling...
+        call npm install --silent --no-audit --no-fund
+        if %ERRORLEVEL% NEQ 0 goto :error
+        echo   Backend dependencies updated.
+        date > "..\.backend_deps_installed"
+    ) else (
+        echo   Backend dependencies up to date.
+    )
+)
+
 cd ..
 
 REM ================================================================================

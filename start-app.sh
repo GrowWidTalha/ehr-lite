@@ -186,21 +186,91 @@ else
 fi
 
 ##############################################################################
-# 5. Build Applications
+# 5. Build Applications (Smart Build Detection)
 ##############################################################################
 echo ""
-echo -e "${YELLOW}[5/7] Building applications (production mode)...${NC}"
+echo -e "${YELLOW}[5/7] Checking if rebuild is needed...${NC}"
 
-# Build frontend
-echo "Building frontend..."
+# Function to check if rebuild is needed
+needs_rebuild() {
+    local build_dir="$1"
+    local marker_file="$2"
+    local source_files=("${@:3}")
+
+    # If build directory doesn't exist, rebuild is needed
+    if [ ! -d "$build_dir" ]; then
+        return 0
+    fi
+
+    # If marker file doesn't exist, rebuild is needed
+    if [ ! -f "$marker_file" ]; then
+        return 0
+    fi
+
+    # Check if any source file is newer than the marker file
+    for source_file in "${source_files[@]}"; do
+        if [ -f "$source_file" ] && [ "$source_file" -nt "$marker_file" ]; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+# Check frontend build
+echo "Checking frontend..."
 cd frontend
-if [ ! -d ".next" ] || [ "!backend/package.json" -nt ".next" ]; then
+
+# Key frontend files to monitor for changes
+FRONTEND_SOURCES=(
+    "package.json"
+    "next.config.js"
+    "tsconfig.json"
+    "tailwind.config.js"
+    "app/layout.tsx"
+    "app/page.tsx"
+    "components/ui/button.tsx"
+)
+
+if needs_rebuild ".next" ".next/BUILD_ID" "${FRONTEND_SOURCES[@]}"; then
+    echo -e "${YELLOW}  → Source changes detected. Rebuilding frontend...${NC}"
+
+    # Clean previous build for fresh start
+    rm -rf .next 2>/dev/null || true
+
     echo "  → Running: npm run build"
-    npm run build --silent
-    echo -e "${GREEN}✓ Frontend built${NC}"
+    if npm run build --silent; then
+        echo -e "${GREEN}✓ Frontend built successfully${NC}"
+
+        # Create build marker with current timestamp
+        date > .next/BUILD_ID
+    else
+        echo -e "${RED}✗ Frontend build failed. Check logs above.${NC}"
+        echo -e "${YELLOW}Continuing with dev mode fallback...${NC}"
+    fi
 else
     echo -e "${GREEN}✓ Frontend build up to date${NC}"
 fi
+cd "$SCRIPT_DIR"
+
+# Check backend build (if needed)
+echo "Checking backend..."
+cd backend
+
+# Backend uses dev mode, but we check if dependencies need update
+if [ "package.json" -nt "../.backend_deps_installed" ] 2>/dev/null || [ ! -f "../.backend_deps_installed" ]; then
+    if [ "package.json" -nt "node_modules/.package-lock.json" ] 2>/dev/null; then
+        echo -e "${YELLOW}  → Dependencies changed. Reinstalling...${NC}"
+        npm install --silent --no-audit --no-fund
+        date > "../.backend_deps_installed"
+        echo -e "${GREEN}✓ Backend dependencies updated${NC}"
+    else
+        date > "../.backend_deps_installed"
+    fi
+else
+    echo -e "${GREEN}✓ Backend dependencies up to date${NC}"
+fi
+
 cd "$SCRIPT_DIR"
 
 ##############################################################################

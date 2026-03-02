@@ -1,0 +1,24 @@
+# Build markers (for auto-rebuild detection)
+.backend_deps_installed
+.frontend_deps_installed
+
+# Logs
+logs/
+*.log
+
+# Data
+data/database.db
+data/database.db-shm
+data/database.db-wal
+data/patient-images/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
