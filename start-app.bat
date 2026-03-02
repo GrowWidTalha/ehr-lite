@@ -6,32 +6,25 @@ REM ============================================================================
 setlocal EnableDelayedExpansion
 
 echo ================================================================================
-echo EHR Lite - Production Launcher (Background Mode)
+echo EHR Lite - Production Launcher
 echo ================================================================================
 echo.
 
 REM Check if Node.js is available
 where node >nul 2>nul
 if %ERRORLEVEL% NEQ 0 (
-    echo ERROR: Node.js is not installed or not in PATH.
-    echo Please install Node.js from: https://nodejs.org/
-    echo.
+    echo ERROR: Node.js is not installed.
+    echo Please install from: https://nodejs.org/
     pause
     exit /b 1
 )
 
-REM Check if services are already running
-tasklist /FI "IMAGENAME eq node.exe" 2>NUL | find /I /N "node.exe">NUL
-if "%ERRORLEVEL%"=="0" (
-    echo WARNING: Node.js processes are already running.
-    echo Please run stop-services.bat to stop existing services first.
-    echo.
-    timeout /t 3 /nobreak >nul
-    exit /b 1
-)
+REM Get the script directory
+set "SCRIPT_DIR=%~dp0"
+cd /d "%SCRIPT_DIR%"
 
 REM ================================================================================
-REM 1. Install Dependencies (if needed)
+REM 1. Install Dependencies
 REM ================================================================================
 echo [1/4] Checking dependencies...
 
@@ -39,7 +32,6 @@ if not exist "backend\node_modules" (
     echo Installing backend dependencies...
     cd backend
     call npm install --silent --no-audit --no-fund
-    if %ERRORLEVEL% NEQ 0 goto :error
     cd ..
     echo Backend dependencies installed.
 ) else (
@@ -50,7 +42,6 @@ if not exist "frontend\node_modules" (
     echo Installing frontend dependencies...
     cd frontend
     call npm install --silent --no-audit --no-fund
-    if %ERRORLEVEL% NEQ 0 goto :error
     cd ..
     echo Frontend dependencies installed.
 ) else (
@@ -68,22 +59,17 @@ if not exist "logs" mkdir logs
 echo Directories ready.
 
 REM ================================================================================
-REM 3. Build Frontend (if needed)
+REM 3. Build Frontend
 REM ================================================================================
 echo.
 echo [3/4] Checking frontend build...
 cd frontend
 
-set "NEedsBuild=0"
-if not exist ".next" set "NeedsBuild=1"
-
-if "!NeedsBuild!"=="1" (
-    echo   → Frontend build needed. Building...
-    if exist ".next" rmdir /s /q .next 2>nul
+if not exist ".next" (
+    echo   → Building frontend...
     call npm run build
     if %ERRORLEVEL% NEQ 0 goto :error
     echo   Frontend built successfully.
-    echo %date% %time% > .next\BUILD_ID
 ) else (
     echo   Frontend build up to date.
 )
@@ -93,39 +79,31 @@ REM ============================================================================
 REM 4. Start Services in Background
 REM ================================================================================
 echo.
-echo [4/4] Starting services in background...
+echo [4/4] Starting services...
 echo.
 
-REM Create helper scripts for background execution
-echo @echo off > backend-start.bat
-echo cd /d "%~dp0backend" >> backend-start.bat
-echo npm run dev >> ..\logs\backend.log 2^>^&1 >> backend-start.bat
-
-echo @echo off > frontend-start.bat
-echo cd /d "%~dp0frontend" >> frontend-start.bat
-echo set PORT=3000 >> frontend-start.bat
-echo npm run start >> ..\logs\frontend.log 2^>^&1 >> frontend-start.bat
-
-REM Start backend (minimized, new window)
+REM Use PowerShell to start processes in background
+REM This creates detached processes that will keep running
 echo Starting backend on port 4000...
-start /min cmd /c "cd /d "%~cd%\backend" && npm run dev >> ..\logs\backend.log 2>&1"
-echo   Backend started...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "^
+$backendLog = Join-Path $PSScriptRoot 'logs\backend.log'; ^
+$backendDir = Join-Path $PSScriptRoot 'backend'; ^
+Start-Process -FilePath 'cmd' -ArgumentList '/c cd /d \"' + $backendDir + '\" && npm run dev 2>&1\"' -WindowStyle Minimized; ^
+Write-Host 'Backend started (logs: logs\backend.log)';"
 
-REM Wait for backend to initialize
 echo   Waiting for backend to start...
-timeout /t 5 /nobreak >nul
+timeout /t 6 /nobreak >nul
 
-REM Start frontend (minimized, new window)
 echo Starting frontend on port 3000...
-start /min cmd /c "cd /d "%~cd%\frontend" && set PORT=3000 && npm run start >> ..\logs\frontend.log 2>&1"
-echo   Frontend started...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "^
+$frontendLog = Join-Path $PSScriptRoot 'logs\frontend.log'; ^
+$frontendDir = Join-Path $PSScriptRoot 'frontend'; ^
+$env:PORT = '3000'; ^
+Start-Process -FilePath 'cmd' -ArgumentList '/c cd /d \"' + $frontendDir + '\" && set PORT=3000 && npm run start 2>&1\"' -WindowStyle Minimized; ^
+Write-Host 'Frontend started (logs: logs\frontend.log)';"
 
-REM Wait for services to be ready
+echo   Waiting for frontend to start...
 timeout /t 8 /nobreak >nul
-
-REM Clean up helper scripts
-del backend-start.bat 2>nul
-del frontend-start.bat 2>nul
 
 echo.
 echo ================================================================================
@@ -142,16 +120,25 @@ echo   • Frontend: logs\frontend.log
 echo.
 echo Commands:
 echo   • Stop all:  stop-services.bat
-echo   • View logs: type logs\backend.log or type logs\frontend.log
+echo.
+echo NOTE: Two minimized windows are running the services.
+echo       Do NOT close them - they will stay minimized.
 echo.
 
-REM Verify services
-echo Verifying services...
-timeout /t 2 /nobreak >nul
-
-powershell -Command "try { $r = Invoke-WebRequest -Uri 'http://localhost:4000/api/health' -TimeoutSec 3; Write-Host '   Backend is responding' -ForegroundColor Green } catch { Write-Host '   Backend may still be starting... check logs\backend.log' -ForegroundColor Yellow }" 2>nul
-
-powershell -Command "try { $r = Invoke-WebRequest -Uri 'http://localhost:3000' -TimeoutSec 3; Write-Host '   Frontend is responding' -ForegroundColor Green } catch { Write-Host '   Frontend may still be starting... check logs\frontend.log' -ForegroundColor Yellow }" 2>nul
+REM Verify services are responding
+powershell -NoProfile -ExecutionPolicy Bypass -Command "^
+try {
+    $r = Invoke-WebRequest -Uri 'http://localhost:4000/api/health' -TimeoutSec 5;
+    Write-Host '[OK] Backend is responding' -ForegroundColor Green;
+} catch {
+    Write-Host '[WARN] Backend still starting - check logs\backend.log' -ForegroundColor Yellow;
+}
+try {
+    $r = Invoke-WebRequest -Uri 'http://localhost:3000' -TimeoutSec 5;
+    Write-Host '[OK] Frontend is responding' -ForegroundColor Green;
+} catch {
+    Write-Host '[WARN] Frontend still starting - check logs\frontend.log' -ForegroundColor Yellow;
+}"
 
 echo.
 echo Opening browser...
@@ -159,27 +146,16 @@ timeout /t 2 /nobreak >nul
 start "" http://localhost:3000
 
 echo.
-echo ================================================================================
-echo EHR Lite is now running in the background!
-echo You can close this window - the app will continue running.
-echo To stop the app later, run: stop-services.bat
-echo ================================================================================
-echo.
-timeout /t 5 /nobreak >nul
+echo Press any key to close this window (services will continue running)...
+pause >nul
 
 exit /b 0
 
 :error
 echo.
 echo ================================================================================
-echo ERROR: An error occurred during startup.
+echo ERROR: Startup failed. Check the error messages above.
 echo ================================================================================
-echo.
-echo Troubleshooting:
-echo   • Make sure Node.js is installed: https://nodejs.org/
-echo   • Check that ports 3000 and 4000 are available
-echo   • View error logs: type logs\backend.log or type logs\frontend.log
-echo   • Run as Administrator if needed
 echo.
 pause
 exit /b 1
