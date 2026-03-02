@@ -6,49 +6,58 @@ REM ============================================================================
 
 setlocal EnableDelayedExpansion
 
-echo Stopping EHR Lite services...
+echo ================================================================================
+echo Stopping EHR Lite Services
+echo ================================================================================
 echo.
 
-set STOPPED=0
+set SERVICES_STOPPED=0
 
-REM Function to stop processes on a specific port
-echo Stopping backend service ^(port 4000^)...
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr :4000') do (
-    set BACKEND_PID=%%a
-    taskkill /F /PID !BACKEND_PID! >nul 2>&1
-    if !ERRORLEVEL! EQU 0 (
-        echo   ✓ Backend stopped ^(PID: !BACKEND_PID!^)
-        set STOPPED=1
+REM Stop Node.js processes (backend and frontend)
+echo Stopping all Node.js processes...
+tasklist /FI "IMAGENAME eq node.exe" 2>NUL | find /I /N "node.exe">NUL
+if "%ERRORLEVEL%"=="0" (
+    taskkill /F /IM node.exe >nul 2>&1
+    if %ERRORLEVEL% EQU 0 (
+        echo   Stopped Node.js processes (backend/frontend)
+        set SERVICES_STOPPED=1
     )
 )
 
-echo Stopping frontend service ^(port 3000^)...
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3000') do (
-    set FRONTEND_PID=%%a
-    taskkill /F /PID !FRONTEND_PID! >nul 2>&1
-    if !ERRORLEVEL! EQU 0 (
-        echo   ✓ Frontend stopped ^(PID: !FRONTEND_PID!^)
-        set STOPPED=1
-    )
-)
-
-REM Also use PowerShell to find and stop any node processes
-echo Checking for remaining node processes...
-powershell -Command "Get-Process node -ErrorAction SilentlyContinue | Where-Object {$_.MainWindowTitle -eq '' -or $_.MainWindowTitle -eq $null} | Stop-Process -Force" >nul 2>&1
+REM Also stop any cmd windows that might be running our services
+echo Checking for background service windows...
+wmic process where "name='cmd.exe' and commandline like '%%npm%%'" delete 2>nul >nul
 if %ERRORLEVEL% EQU 0 (
-    echo   ✓ Background node processes stopped
-    set STOPPED=1
+    echo   Stopped background service windows
+    set SERVICES_STOPPED=1
+)
+
+REM Wait a moment for processes to terminate
+timeout /t 2 /nobreak >nul
+
+REM Double check - make sure they're stopped
+tasklist /FI "IMAGENAME eq node.exe" 2>NUL | find /I /N "node.exe">NUL
+if "%ERRORLEVEL%"=="0" (
+    echo   Forcefully terminating remaining processes...
+    taskkill /F /IM node.exe >nul 2>&1
+    taskkill /F /IM cmd.exe /FI "WINDOWTITLE eq npm*" >nul 2>&1
+    set SERVICES_STOPPED=1
 )
 
 echo.
-if %STOPPED%==0 (
+if %SERVICES_STOPPED%==0 (
     echo No services were found running
 ) else (
     echo ================================================================================
     echo All services stopped successfully
     echo ================================================================================
 )
-
 echo.
+
+REM Optional: Clear logs if services were stopped
+echo NOTE: Logs are preserved in logs\ directory
+echo       To clear logs, delete files in logs\ folder manually
+echo.
+
 timeout /t 2 /nobreak >nul
 exit /b 0
