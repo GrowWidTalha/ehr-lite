@@ -1,6 +1,6 @@
 @echo off
 REM ================================================================================
-REM EHR Lite Application Launcher (Windows)
+REM EHR Lite Application Launcher (Windows) - Hidden Background Mode
 REM ================================================================================
 
 setlocal EnableDelayedExpansion
@@ -67,34 +67,34 @@ if not exist ".next" (
 cd ..
 
 REM ================================================================================
-REM 4. Start Services
+REM 4. Start Services (Hidden in Background)
 REM ================================================================================
 echo.
-echo [4/4] Starting services...
+echo [4/4] Starting services in background...
 echo.
 
-REM Create startup helper scripts
-echo @echo off > start-backend-helper.bat
-echo cd /d "%SCRIPT_DIR%backend" >> start-backend-helper.bat
-echo npm run dev >> "%SCRIPT_DIR%logs\backend.log" 2>&1 >> start-backend-helper.bat
+REM Create helper scripts that will run the services
+echo @echo off > _run_backend.bat
+echo cd /d "%SCRIPT_DIR%backend" >> _run_backend.bat
+echo npm run dev 2^>^&1 >> "%SCRIPT_DIR%logs\backend.log"
 
-echo @echo off > start-frontend-helper.bat
-echo cd /d "%SCRIPT_DIR%frontend" >> start-frontend-helper.bat
-echo set PORT=3000 >> start-frontend-helper.bat
-echo npm run start >> "%SCRIPT_DIR%logs\frontend.log" 2>&1 >> start-frontend-helper.bat
+echo @echo off > _run_frontend.bat
+echo cd /d "%SCRIPT_DIR%frontend" >> _run_frontend.bat
+echo set PORT=3000 >> _run_frontend.bat
+echo npm run start 2^>^&1 >> "%SCRIPT_DIR%logs\frontend.log"
 
-REM Start backend
+REM Start backend in hidden window
 echo Starting backend on port 4000...
-start /min "EHR Backend" cmd /c "start-backend-helper.bat"
-echo   Backend started...
+powershell -Command "Start-Process cmd -ArgumentList '/c \"%SCRIPT_DIR%_run_backend.bat\"' -WindowStyle Hidden"
+echo   Backend started in background...
 
 REM Wait for backend
 timeout /t 5 /nobreak >nul
 
-REM Start frontend
+REM Start frontend in hidden window
 echo Starting frontend on port 3000...
-start /min "EHR Frontend" cmd /c "start-frontend-helper.bat"
-echo   Frontend started...
+powershell -Command "Start-Process cmd -ArgumentList '/c \"%SCRIPT_DIR%_run_frontend.bat\"' -WindowStyle Hidden"
+echo   Frontend started in background...
 
 REM Wait for services
 timeout /t 8 /nobreak >nul
@@ -104,7 +104,7 @@ echo ===========================================================================
 echo                       EHR Lite - RUNNING
 echo ================================================================================
 echo.
-echo Services:
+echo Services are running in the background (no visible windows):
 echo   Backend:  http://localhost:4000
 echo   Frontend: http://localhost:3000
 echo.
@@ -130,11 +130,11 @@ start "" http://localhost:3000
 
 echo.
 echo Press any key to close this window...
-echo (Services will continue running in background windows)
+echo (Services will continue running in background)
 pause >nul
 
 REM Cleanup helper files
-del start-backend-helper.bat 2>nul
-del start-frontend-helper.bat 2>nul
+del _run_backend.bat 2>nul
+del _run_frontend.bat 2>nul
 
 exit /b 0
