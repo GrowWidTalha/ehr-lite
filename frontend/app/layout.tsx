@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "EHR Lite - Oncology Management System",
-  description: "Local-first electronic health record system for oncology clinics",
+  title: "JPMC - Oncology Department",
+  description: "Oncology patient management and electronic health records",
 };
 
 export default function RootLayout({
