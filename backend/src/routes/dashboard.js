@@ -9,39 +9,49 @@ import { all, get } from '../db/query.js';
 const router = express.Router();
 
 /**
+ * Helper function to safely query a table
+ */
+async function safeQuery(query, defaultValue = 0) {
+  try {
+    const [result] = await all(query);
+    return result?.count || 0;
+  } catch (error) {
+    // Table might not exist, return default value
+    return defaultValue;
+  }
+}
+
+/**
  * GET /api/dashboard/stats
  * Get dashboard statistics
  */
 router.get('/stats', async (req, res) => {
   try {
     // Get total patients
-    const [totalPatientsResult] = await all(`
+    const totalPatients = await safeQuery(`
       SELECT COUNT(*) as count
       FROM patients
     `);
-    const totalPatients = totalPatientsResult?.count || 0;
 
     // Get active diagnoses (count unique patients with at least one diagnosis)
-    const [activeDiagnosesResult] = await all(`
+    // Use safeQuery in case table doesn't exist
+    const activeDiagnoses = await safeQuery(`
       SELECT COUNT(DISTINCT patient_id) as count
       FROM diagnoses
     `);
-    const activeDiagnoses = activeDiagnosesResult?.count || 0;
 
     // Get total reports
-    const [totalReportsResult] = await all(`
+    const totalReports = await safeQuery(`
       SELECT COUNT(*) as count
       FROM reports
     `);
-    const totalReports = totalReportsResult?.count || 0;
 
     // Get new patients this month
-    const [newThisMonthResult] = await all(`
+    const newThisMonth = await safeQuery(`
       SELECT COUNT(*) as count
       FROM patients
       WHERE strftime('%Y-%m', registration_date) = strftime('%Y-%m', 'now')
     `);
-    const newThisMonth = newThisMonthResult?.count || 0;
 
     res.json({
       total_patients: totalPatients,
