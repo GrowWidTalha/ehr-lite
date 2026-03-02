@@ -8,7 +8,7 @@ import { useCreateDiagnosis } from '@/hooks/use-diagnosis';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Check, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
+import { FormProgress } from '@/components/shared/form-progress';
 import { LoadingSpinner } from '@/components/shared/loading-spinner';
 import { BasicStep } from '@/components/diagnosis/steps/basic-step';
 import { PathologyStep } from '@/components/diagnosis/steps/pathology-step';
@@ -151,8 +151,6 @@ export default function NewDiagnosisPage() {
     }
   };
 
-  const progressValue = ((currentStepIndex + 1) / STEPS.length) * 100;
-
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-3xl mx-auto">
@@ -164,38 +162,15 @@ export default function NewDiagnosisPage() {
         <Card>
           <CardHeader>
             <CardTitle>New Cancer Diagnosis</CardTitle>
-            <CardDescription>
-              Step {currentStepIndex + 1} of {STEPS.length}: {STEPS[currentStepIndex].title}
-            </CardDescription>
-            <Progress value={progressValue} className="mt-4" />
+            <CardDescription>{STEPS[currentStepIndex].description}</CardDescription>
+            <FormProgress
+              currentStep={currentStepIndex + 1}
+              totalSteps={5}
+              stepNames={['Basic', 'Pathology', 'Biomarkers', 'Imaging', 'Treatment']}
+              className="mt-4"
+            />
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Step indicators */}
-            <div className="flex justify-between hidden">
-              {STEPS.map((step, index) => (
-                <div
-                  key={step.id}
-                  className={`flex items-center gap-1 ${
-                    index < STEPS.length - 1 ? 'flex-1' : ''
-                  }`}
-                >
-                  <div
-                    className={`h-2 rounded-full ${
-                      completedSteps.includes(step.id) || currentStep === step.id
-                        ? 'bg-primary'
-                        : 'bg-muted'
-                    }`}
-                  />
-                  {index < STEPS.length - 1 && (
-                    <div
-                      className={`h-0.5 ${
-                        completedSteps.includes(step.id) ? 'bg-primary' : 'bg-muted'
-                      }`}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
 
             {/* Error message */}
             {stepErrors[currentStep] && (
@@ -281,31 +256,6 @@ export default function NewDiagnosisPage() {
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
               )}
-            </div>
-
-            {/* Step descriptions */}
-            <div className="flex justify-center gap-2 text-sm text-muted-foreground">
-              {STEPS.map((step, index) => (
-                <div
-                  key={step.id}
-                  className={`flex items-center gap-1 ${
-                    index <= currentStepIndex ? 'text-foreground' : 'text-muted-foreground'
-                  }`}
-                >
-                  <div
-                    className={`h-6 w-6 rounded-full flex items-center justify-center text-xs ${
-                      completedSteps.includes(step.id)
-                        ? 'bg-primary text-primary-foreground'
-                        : index === currentStepIndex
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                    }`}
-                  >
-                    {completedSteps.includes(step.id) ? <Check className="h-3 w-3" /> : index + 1}
-                  </div>
-                  <span className="hidden sm:inline">{step.title}</span>
-                </div>
-              ))}
             </div>
           </CardContent>
         </Card>
