@@ -37,7 +37,7 @@ router.get('/stats', async (req, res) => {
     // Use safeQuery in case table doesn't exist
     const activeDiagnoses = await safeQuery(`
       SELECT COUNT(DISTINCT patient_id) as count
-      FROM diagnoses
+      FROM cancer_diagnoses
     `);
 
     // Get total reports
