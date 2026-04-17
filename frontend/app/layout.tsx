@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { Toaster } from "sonner";
+import { BackupReminderWrapper } from "@/components/backup-reminder-wrapper";
 import "./globals.css";
 
 const inter = Inter({
@@ -23,6 +24,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
         <Providers>
+          <BackupReminderWrapper />
           <div className="min-h-screen bg-background">
             {children}
           </div>

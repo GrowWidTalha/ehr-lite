@@ -196,4 +196,62 @@ export const searchApi = {
     ),
 };
 
+// Export API
+export const exportApi = {
+  /**
+   * Export all patients to Excel file
+   * Returns a blob that triggers a download
+   */
+  patients: async (): Promise<{ success: boolean; error?: string; filename?: string }> => {
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+      const response = await fetch(`${API_BASE_URL}/export/patients`);
+
+      if (!response.ok) {
+        const data = await response.json();
+        return { success: false, error: data.error || 'Export failed' };
+      }
+
+      // Get filename from Content-Disposition header
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `ehr-export-${new Date().toISOString().split('T')[0]}.xlsx`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="(.+)"/);
+        if (match?.[1]) {
+          filename = match[1];
+        }
+      }
+
+      // Get blob and create download link
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      return { success: true, filename };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error',
+      };
+    }
+  },
+
+  /**
+   * Get export status and recent export info
+   */
+  status: () =>
+    api<{
+      today: { exportCount: number; totalPatients: number; lastExport: any };
+      format: string;
+      columns: number;
+      description: string;
+    }>('/export/status'),
+};
+
 export { api, uploadApi };

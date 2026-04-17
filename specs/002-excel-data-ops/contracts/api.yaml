@@ -1,0 +1,303 @@
+openapi: 3.0.3
+info:
+  title: EHR Lite - Excel Export & Backup API
+  description: API endpoints for Excel data export and automated backup management
+  version: 1.0.0
+  contact:
+    name: EHR Lite Development
+
+servers:
+  - url: http://localhost:4000
+    description: Local development server
+
+tags:
+  - name: Export
+    description: Excel export operations
+  - name: Backup
+    description: Backup management operations
+
+paths:
+  /api/export/patients:
+    get:
+      tags: [Export]
+      summary: Export all patients to Excel
+      description: |
+        Generates an Excel file with all patient data in the Onco format (82 columns).
+        The exported file matches the flat Excel structure used for imports.
+      operationId: exportPatients
+      responses:
+        '200':
+          description: Excel file generated successfully
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              description: File download prompt with filename
+              schema:
+                type: string
+                example: attachment; filename="ehr-export-2026-03-02-143022.xlsx"
+            X-Export-Job-Id:
+              description: Export job identifier for tracking
+              schema:
+                type: string
+                format: uuid
+        '500':
+          description: Export failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      x-codeSamples:
+        - lang: JavaScript
+          label: Frontend fetch
+          source: |
+            fetch('http://localhost:4000/api/export/patients')
+              .then(response => response.blob())
+              .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'ehr-export.xlsx';
+                a.click();
+              });
+
+  /api/backup/status:
+    get:
+      tags: [Backup]
+      summary: Get current backup status
+      description: Returns information about the last backup and current backup system state
+      operationId: getBackupStatus
+      responses:
+        '200':
+          description: Backup status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupStatus'
+        '500':
+          description: Failed to retrieve backup status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/backup/create:
+    post:
+      tags: [Backup]
+      summary: Create manual backup
+      description: |
+        Triggers an immediate backup of database and images.
+        Returns immediately with job ID; backup runs in background.
+      operationId: createBackup
+      responses:
+        '202':
+          description: Backup job accepted and running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupJob'
+        '409':
+          description: Backup already in progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Backup already in progress
+                code: BACKUP_IN_PROGRESS
+        '500':
+          description: Failed to start backup
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/backup/list:
+    get:
+      tags: [Backup]
+      summary: List available backups
+      description: Returns a list of all backups in the backups directory
+      operationId: listBackups
+      responses:
+        '200':
+          description: Backup list retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupList'
+        '500':
+          description: Failed to retrieve backup list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    BackupStatus:
+      type: object
+      description: Current state of the backup system
+      properties:
+        last_backup:
+          description: Information about the most recent backup
+          oneOf:
+            - $ref: '#/components/schemas/BackupInfo'
+            - type: null
+        next_scheduled:
+          description: Timestamp of next scheduled automatic backup
+          type: string
+          format: date-time
+          nullable: true
+        backup_enabled:
+          description: Whether automatic backup scheduling is enabled
+          type: boolean
+        in_progress:
+          description: Whether a backup is currently running
+          type: boolean
+        total_backups:
+          description: Total number of backups available
+          type: integer
+        total_size_bytes:
+          description: Total size of all backups in bytes
+          type: integer
+      required:
+        - last_backup
+        - next_scheduled
+        - backup_enabled
+        - in_progress
+        - total_backups
+        - total_size_bytes
+      example:
+        last_backup:
+          id: 550e8400-e29b-41d4-a716-446655440000
+          timestamp: 2026-03-02T02:00:00Z
+          path: /data/backups/2026-03-02/backup-020000.zip
+          size_bytes: 15728640
+          status: complete
+          type: automatic
+        next_scheduled: 2026-03-03T02:00:00Z
+        backup_enabled: true
+        in_progress: false
+        total_backups: 7
+        total_size_bytes: 110100480
+
+    BackupInfo:
+      type: object
+      description: Information about a single backup
+      properties:
+        id:
+          description: Unique backup identifier
+          type: string
+          format: uuid
+        timestamp:
+          description: When the backup was created
+          type: string
+          format: date-time
+        path:
+          description: Full file path to the backup archive
+          type: string
+        size_bytes:
+          description: Size of the backup file in bytes
+          type: integer
+        status:
+          description: Backup completion status
+          type: string
+          enum: [complete, incomplete, failed]
+        type:
+          description: How the backup was triggered
+          type: string
+          enum: [automatic, manual]
+        database_included:
+          description: Whether database.db is included
+          type: boolean
+        images_included:
+          description: Whether patient-images/ is included
+          type: boolean
+      required:
+        - id
+        - timestamp
+        - path
+        - size_bytes
+        - status
+        - type
+        - database_included
+        - images_included
+
+    BackupJob:
+      type: object
+      description: Backup job creation response
+      properties:
+        job_id:
+          description: Unique job identifier
+          type: string
+          format: uuid
+        status:
+          description: Job status
+          type: string
+          enum: [running, pending]
+        message:
+          description: Human-readable status message
+          type: string
+      required:
+        - job_id
+        - status
+        - message
+      example:
+        job_id: 660e8400-e29b-41d4-a716-446655440001
+        status: running
+        message: Backup job started
+
+    BackupList:
+      type: object
+      description: List of available backups
+      properties:
+        backups:
+          description: Array of backup information
+          type: array
+          items:
+            $ref: '#/components/schemas/BackupInfo'
+        total_count:
+          description: Number of backups
+          type: integer
+        total_size_bytes:
+          description: Total size of all backups
+          type: integer
+      required:
+        - backups
+        - total_count
+        - total_size_bytes
+
+    Error:
+      type: object
+      description: Error response
+      properties:
+        error:
+          description: Human-readable error message
+          type: string
+        code:
+          description: Machine-readable error code
+          type: string
+        details:
+          description: Additional error details
+          type: object
+      required:
+        - error
+      example:
+        error: Backup failed - insufficient disk space
+        code: INSUFFICIENT_DISK_SPACE
+        details:
+          required_bytes: 52428800
+          available_bytes: 20971520
+
+  securitySchemes:
+    LocalAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Local authentication (future enhancement - not currently implemented)
+
+security:
+  - LocalAuth: []

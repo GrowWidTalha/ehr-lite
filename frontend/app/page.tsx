@@ -10,11 +10,14 @@ import { PatientCard } from '@/components/patients/patient-card';
 import { PatientTable } from '@/components/patients/patient-table';
 import { ViewToggle } from '@/components/patients/view-toggle';
 import { FunctionalPagination } from '@/components/patients/pagination';
-import { FilePlus, Search as SearchIcon, UserPlus, Activity, Building2, X } from 'lucide-react';
+import { FilePlus, Search as SearchIcon, UserPlus, Activity, Building2, X, Settings, Upload } from 'lucide-react';
+import { ExportButton } from '@/components/export-button';
+import { ImportUpload } from '@/components/import-upload';
 import { LoadingSpinner } from '@/components/shared/loading-spinner';
 import { DashboardStatsSkeleton, PatientTableSkeleton, PatientCardSkeleton } from '@/components/shared/skeleton-loader';
 import { DashboardStats } from '@/components/dashboard/stats-cards';
 import { useDashboardStats } from '@/hooks/use-dashboard-stats';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { PatientListView, PatientListItem } from '@/lib/db.types';
 
 const PAGE_SIZE = 50;
@@ -24,6 +27,7 @@ export default function HomePage() {
   const [view, setView] = useState<PatientListView>('card');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   const { data: patients, isLoading, error } = usePatientList(
     debouncedSearch ? { search: debouncedSearch } : undefined
@@ -93,6 +97,12 @@ export default function HomePage() {
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
               <FilePlus className="h-4 w-4" />
               Add Basic Info
+            </div>
+          </Link>
+          <Link href="/settings" className="block">
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+              <Settings className="h-4 w-4" />
+              Settings
             </div>
           </Link>
         </nav>
@@ -176,6 +186,22 @@ export default function HomePage() {
                 Add Basic Info
               </Button>
             </Link>
+            <ExportButton
+              size="lg"
+              variant="outline"
+              label="Export All Patients"
+              onExportComplete={(filename) => {
+                console.log('Export completed:', filename);
+              }}
+            />
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => setShowImportDialog(true)}
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Import Excel
+            </Button>
           </div>
 
           {/* View Toggle & Count */}
@@ -276,6 +302,19 @@ export default function HomePage() {
           )}
         </div>
       </main>
+
+      {/* Import Dialog */}
+      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Import Patient Data</DialogTitle>
+            <DialogDescription>
+              Upload an Excel file with patient data to import into the system.
+            </DialogDescription>
+          </DialogHeader>
+          <ImportUpload />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
