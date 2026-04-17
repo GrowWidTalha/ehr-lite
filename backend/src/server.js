@@ -18,6 +18,9 @@ import patientRoutes from './routes/patients.js';
 import imageRoutes from './routes/images.js';
 import reportRoutes from './routes/reports.js';
 import dashboardRoutes from './routes/dashboard.js';
+import exportRoutes from './routes/export.js';
+import backupRoutes from './routes/backup.js';
+import importRoutes from './routes/import.js';
 
 const app = express();
 const PORT = 4000;
@@ -104,6 +107,24 @@ app.get('/api', (req, res) => {
         create: 'POST /api/reports',
         get: 'GET /api/reports/:id',
         delete: 'DELETE /api/reports/:id'
+      },
+      export: {
+        patients: 'GET /api/export/patients',
+        status: 'GET /api/export/status'
+      },
+      backup: {
+        status: 'GET /api/backup/status',
+        create: 'POST /api/backup/create',
+        list: 'GET /api/backup/list',
+        config: 'GET /api/backup/config',
+        setPath: 'POST /api/backup/config/path',
+        validatePath: 'POST /api/backup/config/validate',
+        reminder: 'GET /api/backup/reminder'
+      },
+      import: {
+        upload: 'POST /api/import/upload',
+        status: 'GET /api/import/status',
+        logs: 'GET /api/import/logs'
       }
     }
   });
@@ -117,6 +138,9 @@ app.use('/api/patients', patientRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/export', exportRoutes);
+app.use('/api/backup', backupRoutes);
+app.use('/api/import', importRoutes);
 
 // ============================================================================
 // ERROR HANDLING

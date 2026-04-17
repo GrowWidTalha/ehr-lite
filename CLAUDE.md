@@ -212,6 +212,7 @@ See `.specify/memory/constitution.md` for code quality, testing, performance, se
 ## Active Technologies
 - TypeScript 5.3+, JavaScript ES2022+ (001-ehr-frontend)
 - No direct storage - communicates with backend API (SQLite via Express) (001-ehr-frontend)
+- Node.js 20+ (backend), TypeScript 5.3+ (frontend) (002-excel-data-ops)
 
 ## Recent Changes
 - 001-ehr-frontend: Added TypeScript 5.3+, JavaScript ES2022+

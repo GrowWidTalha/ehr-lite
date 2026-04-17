@@ -28,8 +28,8 @@ router.get('/', async (req, res) => {
   try {
     const { search, limit, offset = 0 } = req.query;
 
-    // When searching, return all results. Otherwise use default limit of 50.
-    const actualLimit = search ? 10000 : (Number(limit) || 50);
+    // When searching or no limit specified, return all results. Otherwise use provided limit.
+    const actualLimit = Number(limit) || (search ? 10000 : 10000);
 
     let query = `
       SELECT
