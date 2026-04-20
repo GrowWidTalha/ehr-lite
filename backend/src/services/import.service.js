@@ -77,7 +77,7 @@ function mapExcelRowToDb(row) {
   const habits = {
     id: randomUUID(),
     patient_id: patient.id,
-    smoking_status: normalizeHabitStatus(row['Smoking']),
+    smoking_status: normalizeHabitStatus(row['Smoking'] || row['Smooking']),
     smoking_quantity: row['Quantity'] || '',
     pan_use: normalizeHabitStatus(row['Pan']),
     pan_quantity: row['Quantity2'] || '',
@@ -100,7 +100,7 @@ function mapExcelRowToDb(row) {
     stage: row['Stage'] || '',
     grade: row['Grade'] || '',
     who_classification: row['WHO'] || '',
-    diagnosis_date: null // Could parse from row if available
+    diagnosis_date: null
   } : null;
 
   // Pathology (if diagnosis exists AND has any pathology data)
@@ -139,8 +139,8 @@ function mapExcelRowToDb(row) {
     er_status: normalizeBiomarker(row['ER']),
     pr_status: normalizeBiomarker(row['PR']),
     her2_status: row['Her2-U'] || '',
-    ki67_percentage: row['Ki-67'] ? parseInt(row['Ki-67']) || null : null,
-    mitosis_count: row['Mitosis/10HPF'] ? parseInt(row['Mitosis/10HPF']) || null : null,
+    ki67_percentage: row['Ki-67'] ? parseKi67(row['Ki-67']) : null,
+    mitosis_count: row['Mitosis/10HPF'] ? parseInt(String(row['Mitosis/10HPF']).replace(/[^0-9]/g, '')) || null : null,
     ihc_markers: row['IHC Markers / Tumor Markers'] || ''
   } : null;
 
@@ -155,22 +155,35 @@ function mapExcelRowToDb(row) {
     previous_immunotherapy: normalizeYesNoToDb(row['Previous IT']),
     previous_surgery: row['Previous Surgery'] || '',
     second_surgery: row['2nd Surgery'] || '',
-    non_cancer_surgery: row['Surgery Other Than Cancer'] === 'Yes' ? 'Yes' : 'No'
+    non_cancer_surgery: normalizeYesNoToDb(row['Surgery Other Than Cancer'])
   } : null;
 
-  // Imaging studies (if diagnosis exists)
+  // Imaging studies — store findings text, not just boolean
   const imagingTypes = [];
   if (diagnosis) {
-    if (row['Ct Scane'] === 'Yes') imagingTypes.push({ diagnosis_id: diagnosis.id, study_type: 'ct_scan' });
-    if (row['MRI'] === 'Yes') imagingTypes.push({ diagnosis_id: diagnosis.id, study_type: 'mri' });
-    if (row['Pet Scane'] === 'Yes') imagingTypes.push({ diagnosis_id: diagnosis.id, study_type: 'pet_scan' });
-    if (row['U/Sound'] === 'Yes') imagingTypes.push({ diagnosis_id: diagnosis.id, study_type: 'ultrasound' });
-    if (row['Mammogram'] === 'Yes') imagingTypes.push({ diagnosis_id: diagnosis.id, study_type: 'mammogram' });
-    if (row['Bone Scane'] === 'Yes') imagingTypes.push({ diagnosis_id: diagnosis.id, study_type: 'bone_scan' });
-    if (row['Echo'] === 'Yes') imagingTypes.push({ diagnosis_id: diagnosis.id, study_type: 'echocardiogram' });
+    const imagingCols = [
+      { col: 'Ct Scane', type: 'ct_scan' },
+      { col: 'MRI', type: 'mri' },
+      { col: 'Pet Scane', type: 'pet_scan' },
+      { col: 'U/Sound', type: 'ultrasound' },
+      { col: 'Mammogram', type: 'mammogram' },
+      { col: 'Bone Scane', type: 'bone_scan' },
+      { col: 'Echo', type: 'echocardiogram' },
+      { col: 'BSC', type: 'bsc' }
+    ];
+    for (const { col, type } of imagingCols) {
+      const val = row[col];
+      if (val && !isNAorEmpty(val)) {
+        imagingTypes.push({
+          diagnosis_id: diagnosis.id,
+          study_type: type,
+          findings: String(val)
+        });
+      }
+    }
   }
 
-  // Treatment plan (if diagnosis exists AND has any treatment data)
+  // Treatment plan — store actual text values, not just Yes/No
   const hasTreatmentPlan = diagnosis && (
     row['Plan'] || row['Surgery'] || row['Radical'] || row['Pallative'] ||
     row['Neo ADJ'] || row['ADJ'] || row['Induction Chemo']
@@ -180,13 +193,77 @@ function mapExcelRowToDb(row) {
     id: randomUUID(),
     diagnosis_id: diagnosis.id,
     plan_type: row['Plan'] || '',
-    surgery_planned: normalizeYesNoToDb(row['Surgery']),
-    radical_surgery: normalizeYesNoToDb(row['Radical']),
-    palliative_surgery: normalizeYesNoToDb(row['Pallative']),
-    neoadjuvant_chemo: normalizeYesNoToDb(row['Neo ADJ']),
-    adjuvant_chemo: normalizeYesNoToDb(row['ADJ']),
-    induction_chemo: normalizeYesNoToDb(row['Induction Chemo'])
+    surgery_planned: normalizeTreatmentField(row['Surgery']),
+    radical_surgery: normalizeTreatmentField(row['Radical']),
+    palliative_surgery: normalizeTreatmentField(row['Pallative']),
+    neoadjuvant_chemo: normalizeTreatmentField(row['Neo ADJ']),
+    adjuvant_chemo: normalizeTreatmentField(row['ADJ']),
+    induction_chemo: normalizeTreatmentField(row['Induction Chemo'])
   } : null;
+
+  // Treatment sessions — store chemo/RT/hormonal/targeted/brachy/immuno details
+  const treatmentSessions = [];
+  if (diagnosis) {
+    if (row['Chemotherapy'] && !isNAorEmpty(row['Chemotherapy'])) {
+      treatmentSessions.push({
+        id: randomUUID(),
+        diagnosis_id: diagnosis.id,
+        plan_id: treatmentPlan?.id || null,
+        treatment_type: 'chemotherapy',
+        chemo_regimen: String(row['Chemotherapy']),
+        notes: ''
+      });
+    }
+    if (row['Radio Therapy'] && !isNAorEmpty(row['Radio Therapy'])) {
+      treatmentSessions.push({
+        id: randomUUID(),
+        diagnosis_id: diagnosis.id,
+        plan_id: treatmentPlan?.id || null,
+        treatment_type: 'radiotherapy',
+        rt_dose: String(row['Radio Therapy']),
+        notes: ''
+      });
+    }
+    if (row['Hormonal Therapy'] && !isNAorEmpty(row['Hormonal Therapy'])) {
+      treatmentSessions.push({
+        id: randomUUID(),
+        diagnosis_id: diagnosis.id,
+        plan_id: treatmentPlan?.id || null,
+        treatment_type: 'hormonal',
+        hormonal_agent: String(row['Hormonal Therapy']),
+        notes: ''
+      });
+    }
+    if (row['Targeted Therapy / TKI'] && !isNAorEmpty(row['Targeted Therapy / TKI'])) {
+      treatmentSessions.push({
+        id: randomUUID(),
+        diagnosis_id: diagnosis.id,
+        plan_id: treatmentPlan?.id || null,
+        treatment_type: 'targeted',
+        targeted_agent: String(row['Targeted Therapy / TKI']),
+        notes: ''
+      });
+    }
+    if (row['Brachy Therapy'] && !isNAorEmpty(row['Brachy Therapy'])) {
+      treatmentSessions.push({
+        id: randomUUID(),
+        diagnosis_id: diagnosis.id,
+        plan_id: treatmentPlan?.id || null,
+        treatment_type: 'brachytherapy',
+        notes: String(row['Brachy Therapy'])
+      });
+    }
+    if (row['Immuno Theray'] && !isNAorEmpty(row['Immuno Theray'])) {
+      treatmentSessions.push({
+        id: randomUUID(),
+        diagnosis_id: diagnosis.id,
+        plan_id: treatmentPlan?.id || null,
+        treatment_type: 'immunotherapy',
+        immunotherapy_agent: String(row['Immuno Theray']),
+        notes: ''
+      });
+    }
+  }
 
   return {
     patient,
@@ -198,7 +275,8 @@ function mapExcelRowToDb(row) {
     biomarkers,
     previousTreatments,
     imagingStudies: imagingTypes,
-    treatmentPlan
+    treatmentPlan,
+    treatmentSessions
   };
 }
 
@@ -206,8 +284,24 @@ function mapExcelRowToDb(row) {
  * Helper functions for data normalization
  */
 
+function isNAorEmpty(val) {
+  if (!val) return true;
+  const v = String(val).trim().toLowerCase();
+  return v === '' || v === 'n/a' || v === 'na' || v === 'n.a' || v === 'n/.a' || v === '-';
+}
+
 function parseDate(dateStr) {
   if (!dateStr) return null;
+  // Handle Excel serial date numbers
+  if (typeof dateStr === 'number') {
+    // Excel serial date: days since Jan 1, 1900 (with Excel's leap year bug)
+    const epoch = new Date(1899, 11, 30);
+    const date = new Date(epoch.getTime() + dateStr * 86400000);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0];
+    }
+    return null;
+  }
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return null;
@@ -262,6 +356,30 @@ function normalizeYesNoToDb(val) {
   const v = val.toString().toLowerCase();
   if (v === 'yes' || v === 'y') return 'Yes';
   return 'No';
+}
+
+/**
+ * Normalize treatment plan fields.
+ * If value is Yes/No → store as Yes/No.
+ * If value is actual text like "Radical", "MRM", "Neo Adj" → store the text.
+ * If value is N/A or empty → store as empty string.
+ */
+function normalizeTreatmentField(val) {
+  if (!val || isNAorEmpty(val)) return '';
+  const v = String(val).trim();
+  const vl = v.toLowerCase();
+  if (vl === 'yes' || vl === 'y') return 'Yes';
+  if (vl === 'no' || vl === 'n') return 'No';
+  // Store the actual text value (e.g. "Radical", "MRM", "Neo Adj", "Carbo + Pacli")
+  return v;
+}
+
+function parseKi67(val) {
+  if (!val) return null;
+  // Handle values like "20 %", "20 5", "60 %"
+  const str = String(val).replace(/%/g, '').trim();
+  const num = parseInt(str);
+  return isNaN(num) ? null : num;
 }
 
 /**
@@ -426,13 +544,13 @@ async function importPatient(row) {
         );
       }
 
-      // Insert imaging studies
+      // Insert imaging studies (with findings text)
       for (const imaging of data.imagingStudies) {
         const imagingId = randomUUID();
         await run(`
-          INSERT INTO imaging_studies (id, diagnosis_id, study_type, study_date)
-          VALUES (?, ?, ?, ?)
-        `, imagingId, imaging.diagnosis_id, imaging.study_type, null);
+          INSERT INTO imaging_studies (id, diagnosis_id, study_type, study_date, findings)
+          VALUES (?, ?, ?, ?, ?)
+        `, imagingId, imaging.diagnosis_id, imaging.study_type, null, imaging.findings);
       }
 
       // Insert treatment plan
@@ -452,6 +570,28 @@ async function importPatient(row) {
           data.treatmentPlan.neoadjuvant_chemo,
           data.treatmentPlan.adjuvant_chemo,
           data.treatmentPlan.induction_chemo
+        );
+      }
+
+      // Insert treatment sessions
+      for (const session of data.treatmentSessions) {
+        await run(`
+          INSERT INTO treatment_sessions (
+            id, diagnosis_id, plan_id, session_date, treatment_type,
+            chemo_regimen, rt_dose, hormonal_agent, targeted_agent, immunotherapy_agent, notes
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+          session.id,
+          session.diagnosis_id,
+          session.plan_id,
+          null,
+          session.treatment_type,
+          session.chemo_regimen || null,
+          session.rt_dose || null,
+          session.hormonal_agent || null,
+          session.targeted_agent || null,
+          session.immunotherapy_agent || null,
+          session.notes || null
         );
       }
     }

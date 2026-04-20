@@ -181,8 +181,7 @@ export default function SettingsPage() {
               <input
                 ref={folderInputRef}
                 type="file"
-                webkitdirectory
-                directory
+                {...({ webkitdirectory: "true", directory: "true" } as React.InputHTMLAttributes<HTMLInputElement>)}
                 className="hidden"
                 onChange={handleFolderSelect}
               />

@@ -69,49 +69,96 @@ cd /d "%ROOT%"
 echo [%TIMESTAMP%] Database migrations complete >> "%LOG%" 2>&1
 
 REM ================================================================================
-REM 5. Git Change Detection & Auto-Rebuild
+REM 5. Build Frontend (always ensure valid build exists)
+REM ================================================================================
+echo [%TIMESTAMP%] Checking frontend build... >> "%LOG%" 2>&1
+
+set "NEED_BUILD=0"
+
+REM Check if BUILD_ID is missing or empty
+set "BUILD_ID_CONTENT="
+if exist "%ROOT%\frontend\.next\BUILD_ID" (
+    set /p BUILD_ID_CONTENT=<"%ROOT%\frontend\.next\BUILD_ID"
+)
+if "%BUILD_ID_CONTENT%"=="" set "NEED_BUILD=1"
+
+REM Also check if .next directory is missing entirely
+if not exist "%ROOT%\frontend\.next" set "NEED_BUILD=1"
+
+if "%NEED_BUILD%"=="1" (
+    echo [%TIMESTAMP%] Frontend build needed, building... >> "%LOG%" 2>&1
+    cd /d "%ROOT%\frontend"
+    if exist ".next" rmdir /s /q ".next" 2>nul
+    call npm run build >> "%LOG%" 2>&1
+    if %ERRORLEVEL% NEQ 0 (
+        echo [%TIMESTAMP%] ERROR: Frontend build failed >> "%LOG%" 2>&1
+        if exist ".next" rmdir /s /q ".next" 2>nul
+        cd /d "%ROOT%"
+        echo [%TIMESTAMP%] Retrying build... >> "%LOG%" 2>&1
+        cd /d "%ROOT%\frontend"
+        call npm run build >> "%LOG%" 2>&1
+        if %ERRORLEVEL% NEQ 0 (
+            echo [%TIMESTAMP%] FATAL: Frontend build failed twice >> "%LOG%" 2>&1
+            cd /d "%ROOT%"
+            exit /b 1
+        )
+    )
+    cd /d "%ROOT%"
+    echo [%TIMESTAMP%] Frontend build complete >> "%LOG%" 2>&1
+) else (
+    echo [%TIMESTAMP%] Frontend build up to date >> "%LOG%" 2>&1
+)
+
+REM ================================================================================
+REM 6. Git Change Detection (for future rebuilds)
 REM ================================================================================
 echo [%TIMESTAMP%] Checking for code changes... >> "%LOG%" 2>&1
 
-set "REBUILD_FRONTEND=0"
-set "REBUILD_BACKEND=0"
+REM Try to get current git hash
 set "CURRENT_HASH="
-set "LAST_HASH="
+for /f "tokens=*" %%h in ('git -C "%ROOT%" rev-parse HEAD 2^>nul') do set "CURRENT_HASH=%%h"
 
-if exist "%ROOT%\.last-build-hash" set /p LAST_HASH=<"%ROOT%\.last-build-hash"
-for /f "tokens=*" %%h in ('git -C "%ROOT%" rev-parse HEAD 2^>nul') do set CURRENT_HASH=%%h
-
-if not defined CURRENT_HASH (
+if "%CURRENT_HASH%"=="" (
     echo [%TIMESTAMP%] Not a git repo, skipping change detection >> "%LOG%" 2>&1
-    goto :skip_git
+    goto :start_services
 )
 
-if not defined LAST_HASH (
-    echo [%TIMESTAMP%] First run, building everything >> "%LOG%" 2>&1
-    set "REBUILD_FRONTEND=1"
-    set "REBUILD_BACKEND=1"
-    goto :do_build
+set "LAST_HASH="
+if exist "%ROOT%\.last-build-hash" set /p LAST_HASH=<"%ROOT%\.last-build-hash"
+
+if "%LAST_HASH%"=="" (
+    echo [%TIMESTAMP%] First run, saving current hash >> "%LOG%" 2>&1
+    echo %CURRENT_HASH%> "%ROOT%\.last-build-hash"
+    goto :start_services
 )
 
 if "%LAST_HASH%"=="%CURRENT_HASH%" (
     echo [%TIMESTAMP%] No git changes detected (%CURRENT_HASH:~0,8%) >> "%LOG%" 2>&1
-    goto :skip_build
+    goto :start_services
 )
 
 echo [%TIMESTAMP%] Git changes detected: %LAST_HASH:~0,8% =^> %CURRENT_HASH:~0,8% >> "%LOG%" 2>&1
 
+REM Check if frontend files changed
 for /f %%c in ('git -C "%ROOT%" diff --name-only "%LAST_HASH%" "%CURRENT_HASH%" -- frontend/ 2^>nul ^| find /c /v ""') do set FE_CHANGED=%%c
 if %FE_CHANGED% GTR 0 (
-    echo [%TIMESTAMP%] Frontend changes detected (%FE_CHANGED% files) >> "%LOG%" 2>&1
-    set "REBUILD_FRONTEND=1"
+    echo [%TIMESTAMP%] Frontend changes detected (%FE_CHANGED% files), rebuilding... >> "%LOG%" 2>&1
+    cd /d "%ROOT%\frontend"
+    if exist ".next" rmdir /s /q ".next" 2>nul
+    call npm run build >> "%LOG%" 2>&1
+    cd /d "%ROOT%"
 )
 
+REM Check if backend files changed
 for /f %%c in ('git -C "%ROOT%" diff --name-only "%LAST_HASH%" "%CURRENT_HASH%" -- backend/ 2^>nul ^| find /c /v ""') do set BE_CHANGED=%%c
 if %BE_CHANGED% GTR 0 (
-    echo [%TIMESTAMP%] Backend changes detected (%BE_CHANGED% files) >> "%LOG%" 2>&1
-    set "REBUILD_BACKEND=1"
+    echo [%TIMESTAMP%] Backend changes detected (%BE_CHANGED% files), reinstalling... >> "%LOG%" 2>&1
+    cd /d "%ROOT%\backend"
+    call npm install --no-audit --no-fund >> "%LOG%" 2>&1
+    cd /d "%ROOT%"
 )
 
+REM Check if schema changed
 for /f %%c in ('git -C "%ROOT%" diff --name-only "%LAST_HASH%" "%CURRENT_HASH%" -- backend/src/db/ 2^>nul ^| find /c /v ""') do set DB_CHANGED=%%c
 if %DB_CHANGED% GTR 0 (
     echo [%TIMESTAMP%] Database schema changes detected, re-running migrations >> "%LOG%" 2>&1
@@ -120,40 +167,12 @@ if %DB_CHANGED% GTR 0 (
     cd /d "%ROOT%"
 )
 
-:do_build
-if "%REBUILD_FRONTEND%"=="1" (
-    echo [%TIMESTAMP%] Rebuilding frontend... >> "%LOG%" 2>&1
-    cd /d "%ROOT%\frontend"
-    if exist ".next" rmdir /s /q ".next" 2>nul
-    call npm run build >> "%LOG%" 2>&1
-    cd /d "%ROOT%"
-    echo [%TIMESTAMP%] Frontend build complete >> "%LOG%" 2>&1
-)
-
-if "%REBUILD_BACKEND%"=="1" (
-    echo [%TIMESTAMP%] Reinstalling backend dependencies... >> "%LOG%" 2>&1
-    cd /d "%ROOT%\backend"
-    call npm install --no-audit --no-fund >> "%LOG%" 2>&1
-    cd /d "%ROOT%"
-    echo [%TIMESTAMP%] Backend deps updated >> "%LOG%" 2>&1
-)
-
-:skip_git
-REM Always check if frontend build exists
-if not exist "%ROOT%\frontend\.next\BUILD_ID" (
-    echo [%TIMESTAMP%] No valid frontend build found, building... >> "%LOG%" 2>&1
-    cd /d "%ROOT%\frontend"
-    if exist ".next" rmdir /s /q ".next" 2>nul
-    call npm run build >> "%LOG%" 2>&1
-    cd /d "%ROOT%"
-)
-
-:skip_build
-if defined CURRENT_HASH echo %CURRENT_HASH%> "%ROOT%\.last-build-hash"
+echo %CURRENT_HASH%> "%ROOT%\.last-build-hash"
 
 REM ================================================================================
-REM 6. Create helper scripts for hidden service launch
+REM 7. Create helper scripts for hidden service launch
 REM ================================================================================
+:start_services
 echo [%TIMESTAMP%] Creating service launchers... >> "%LOG%" 2>&1
 
 echo @echo off > "%ROOT%\logs\_run_backend.bat"
@@ -166,7 +185,7 @@ echo set PORT=3000 >> "%ROOT%\logs\_run_frontend.bat"
 echo call npm run start >> "%ROOT%\logs\frontend.log" 2>&1 >> "%ROOT%\logs\_run_frontend.bat"
 
 REM ================================================================================
-REM 7. Start Services (Completely Hidden - No Windows)
+REM 8. Start Services (Completely Hidden - No Windows)
 REM ================================================================================
 echo [%TIMESTAMP%] Starting backend... >> "%LOG%" 2>&1
 powershell -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList '/c \"%ROOT%\logs\_run_backend.bat\"' -WindowStyle Hidden" >> "%LOG%" 2>&1
@@ -207,7 +226,7 @@ for /L %%i in (1,1,30) do (
 if %FE_READY%==0 echo [%TIMESTAMP%] WARNING: Frontend did not start within 30s >> "%LOG%" 2>&1
 
 REM ================================================================================
-REM 8. Open Browser
+REM 9. Open Browser
 REM ================================================================================
 echo [%TIMESTAMP%] Opening browser... >> "%LOG%" 2>&1
 start "" "http://localhost:3000"
