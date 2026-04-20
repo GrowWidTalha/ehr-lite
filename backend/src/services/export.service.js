@@ -140,11 +140,11 @@ export async function fetchAllPatientsForExport() {
         `, diagnosis.id);
       }
 
-      // Get imaging studies
+      // Get imaging studies (with findings)
       let imagingStudies = [];
       if (diagnosis) {
         imagingStudies = await all(`
-          SELECT study_type
+          SELECT study_type, findings
           FROM imaging_studies
           WHERE diagnosis_id = ?
         `, diagnosis.id);
@@ -155,6 +155,7 @@ export async function fetchAllPatientsForExport() {
       if (diagnosis) {
         const plans = await all(`
           SELECT
+            id,
             plan_type,
             surgery_planned, radical_surgery, palliative_surgery,
             neoadjuvant_chemo, adjuvant_chemo, induction_chemo,
@@ -164,6 +165,20 @@ export async function fetchAllPatientsForExport() {
           LIMIT 1
         `, diagnosis.id);
         treatmentPlan = plans[0] || null;
+      }
+
+      // Get treatment sessions
+      let treatmentSessions = [];
+      if (diagnosis) {
+        treatmentSessions = await all(`
+          SELECT
+            treatment_type,
+            chemo_regimen, rt_dose,
+            hormonal_agent, targeted_agent, immunotherapy_agent,
+            notes
+          FROM treatment_sessions
+          WHERE diagnosis_id = ?
+        `, diagnosis.id);
       }
 
       return {
@@ -176,7 +191,8 @@ export async function fetchAllPatientsForExport() {
         biomarkers: biomarkers || {},
         previousTreatments,
         imagingStudies,
-        treatmentPlan: treatmentPlan || {}
+        treatmentPlan: treatmentPlan || {},
+        treatmentSessions
       };
     })
   );
@@ -250,8 +266,7 @@ export function patientToExcelRow(patient) {
   row['Grade'] = getVal(patient.diagnosis, 'grade');
   row['WHO'] = getVal(patient.diagnosis, 'who_classification');
 
-  // Map previous treatments (check for existence)
-  // The previous_treatments table has one row per diagnosis with boolean columns
+  // Map previous treatments
   const prevTx = patient.previousTreatments?.[0] || {};
 
   row['Previous Chemo'] = normalizeYesNo(getVal(prevTx, 'previous_chemo'));
@@ -282,47 +297,53 @@ export function patientToExcelRow(patient) {
   row['Her2-U'] = getVal(patient.biomarkers, 'her2_status');
   row['Ki-67'] = getVal(patient.biomarkers, 'ki67_percentage');
   row['Mitosis/10HPF'] = getVal(patient.biomarkers, 'mitosis_count');
-  // Combine ihc_markers and tumor_markers
   const ihcMarkers = getVal(patient.biomarkers, 'ihc_markers');
   const tumorMarkers = getVal(patient.biomarkers, 'tumor_markers');
   row['IHC Markers / Tumor Markers'] = [ihcMarkers, tumorMarkers].filter(Boolean).join('; ') || '';
 
-  // Map imaging studies
-  const hasCT = patient.imagingStudies?.some(i => i.study_type === 'ct_scan');
-  const hasMRI = patient.imagingStudies?.some(i => i.study_type === 'mri');
-  const hasPET = patient.imagingStudies?.some(i => i.study_type === 'pet_scan');
-  const hasUS = patient.imagingStudies?.some(i => i.study_type === 'ultrasound');
-  const hasMammogram = patient.imagingStudies?.some(i => i.study_type === 'mammogram');
-  const hasBoneScan = patient.imagingStudies?.some(i => i.study_type === 'bone_scan');
-  const hasEcho = patient.imagingStudies?.some(i => i.study_type === 'echocardiogram');
-  const hasBSC = patient.imagingStudies?.some(i => i.study_type === 'bsc');
+  // Map imaging studies — output findings text if present, otherwise Yes/No
+  const imagingMap = {};
+  for (const img of (patient.imagingStudies || [])) {
+    if (img.findings) {
+      imagingMap[img.study_type] = img.findings;
+    } else {
+      imagingMap[img.study_type] = 'Yes';
+    }
+  }
 
-  row['Ct Scane'] = booleanToYes(hasCT);
-  row['MRI'] = booleanToYes(hasMRI);
-  row['Pet Scane'] = booleanToYes(hasPET);
-  row['U/Sound'] = booleanToYes(hasUS);
-  row['Mammogram'] = booleanToYes(hasMammogram);
-  row['Bone Scane'] = booleanToYes(hasBoneScan);
-  row['Echo'] = booleanToYes(hasEcho);
-  row['BSC'] = booleanToYes(hasBSC);
+  row['Ct Scane'] = imagingMap.ct_scan || '';
+  row['MRI'] = imagingMap.mri || '';
+  row['Pet Scane'] = imagingMap.pet_scan || '';
+  row['U/Sound'] = imagingMap.ultrasound || '';
+  row['Mammogram'] = imagingMap.mammogram || '';
+  row['Bone Scane'] = imagingMap.bone_scan || '';
+  row['Echo'] = imagingMap.echocardiogram || '';
+  row['BSC'] = imagingMap.bsc || '';
 
   // Map treatment plan
   row['Plan'] = getVal(patient.treatmentPlan, 'plan_type');
-  row['Surgery'] = normalizeYesNo(getVal(patient.treatmentPlan, 'surgery_planned'));
-  row['Radical'] = normalizeYesNo(getVal(patient.treatmentPlan, 'radical_surgery'));
-  row['Pallative'] = normalizeYesNo(getVal(patient.treatmentPlan, 'palliative_surgery'));
-  row['Neo ADJ'] = normalizeYesNo(getVal(patient.treatmentPlan, 'neoadjuvant_chemo'));
-  row['ADJ'] = normalizeYesNo(getVal(patient.treatmentPlan, 'adjuvant_chemo'));
-  row['Induction Chemo'] = normalizeYesNo(getVal(patient.treatmentPlan, 'induction_chemo'));
-  // Note: Chemo regimen, hormonal/targeted/radiation/brachy/immunotherapy details
-  // are stored in treatment_sessions table, not treatment_plans
-  // For now, these will be empty
-  row['Chemotherapy'] = '';
-  row['Hormonal Therapy'] = '';
-  row['Targeted Therapy / TKI'] = '';
-  row['Radio Therapy'] = '';
-  row['Brachy Therapy'] = '';
-  row['Immuno Theray'] = '';
+  row['Surgery'] = exportTreatmentField(getVal(patient.treatmentPlan, 'surgery_planned'));
+  row['Radical'] = exportTreatmentField(getVal(patient.treatmentPlan, 'radical_surgery'));
+  row['Pallative'] = exportTreatmentField(getVal(patient.treatmentPlan, 'palliative_surgery'));
+  row['Neo ADJ'] = exportTreatmentField(getVal(patient.treatmentPlan, 'neoadjuvant_chemo'));
+  row['ADJ'] = exportTreatmentField(getVal(patient.treatmentPlan, 'adjuvant_chemo'));
+  row['Induction Chemo'] = exportTreatmentField(getVal(patient.treatmentPlan, 'induction_chemo'));
+
+  // Map treatment sessions
+  const sessions = patient.treatmentSessions || [];
+  const chemoSession = sessions.find(s => s.treatment_type === 'chemotherapy');
+  const rtSession = sessions.find(s => s.treatment_type === 'radiotherapy');
+  const hormonalSession = sessions.find(s => s.treatment_type === 'hormonal');
+  const targetedSession = sessions.find(s => s.treatment_type === 'targeted');
+  const brachySession = sessions.find(s => s.treatment_type === 'brachytherapy');
+  const immunoSession = sessions.find(s => s.treatment_type === 'immunotherapy');
+
+  row['Chemotherapy'] = chemoSession ? (chemoSession.chemo_regimen || chemoSession.notes || '') : '';
+  row['Hormonal Therapy'] = hormonalSession ? (hormonalSession.hormonal_agent || hormonalSession.notes || '') : '';
+  row['Targeted Therapy / TKI'] = targetedSession ? (targetedSession.targeted_agent || targetedSession.notes || '') : '';
+  row['Radio Therapy'] = rtSession ? (rtSession.rt_dose || rtSession.notes || '') : '';
+  row['Brachy Therapy'] = brachySession ? (brachySession.notes || '') : '';
+  row['Immuno Theray'] = immunoSession ? (immunoSession.immunotherapy_agent || immunoSession.notes || '') : '';
 
   return row;
 }
@@ -369,6 +390,15 @@ function normalizeYesNo(val) {
   if (v === 'true' || v === '1' || v === 'yes' || v === 'y') return 'Yes';
   if (v === 'false' || v === '0' || v === 'no' || v === 'n') return 'No';
   return val;
+}
+
+/**
+ * Export treatment field — preserves text values, converts Yes/No as-is.
+ * Empty stays empty.
+ */
+function exportTreatmentField(val) {
+  if (!val) return '';
+  return String(val);
 }
 
 /**
