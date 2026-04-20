@@ -256,7 +256,7 @@ export function ImportUpload() {
                 <div className="text-sm text-green-800 dark:text-green-200 space-y-1">
                   <p>Total rows: <strong>{result.data?.stats.total}</strong></p>
                   <p>Successfully imported: <strong>{result.data?.stats.successCount}</strong></p>
-                  {result.data?.stats.errorCount > 0 && (
+                  {(result.data?.stats.errorCount ?? 0) > 0 && (
                     <p>Skipped/Errors: <strong>{result.data?.stats.errorCount}</strong></p>
                   )}
                   <p className="text-xs">Duration: {result.data?.stats.duration}</p>
