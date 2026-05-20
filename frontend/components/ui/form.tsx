@@ -60,7 +60,7 @@ const useFormField = () => {
     name: fieldContext.name,
     formItemId: `${id}-form-item`,
     formDescriptionId: `${id}-form-item-description`,
-    formMessageId: `${id}-form-item-message`,
+    formMessAgeId: `${id}-form-item-message`,
     ...fieldState,
   }
 }
@@ -105,7 +105,7 @@ function FormLabel({
 }
 
 function FormControl({ ...props }: React.ComponentProps<typeof Slot.Root>) {
-  const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
+  const { error, formItemId, formDescriptionId, formMessAgeId } = useFormField()
 
   return (
     <Slot.Root
@@ -114,7 +114,7 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot.Root>) {
       aria-describedby={
         !error
           ? `${formDescriptionId}`
-          : `${formDescriptionId} ${formMessageId}`
+          : `${formDescriptionId} ${formMessAgeId}`
       }
       aria-invalid={!!error}
       {...props}
@@ -135,8 +135,8 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
   )
 }
 
-function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
-  const { error, formMessageId } = useFormField()
+function FormMessAge({ className, ...props }: React.ComponentProps<"p">) {
+  const { error, formMessAgeId } = useFormField()
   const body = error ? String(error?.message ?? "") : props.children
 
   if (!body) {
@@ -146,7 +146,7 @@ function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   return (
     <p
       data-slot="form-message"
-      id={formMessageId}
+      id={formMessAgeId}
       className={cn("text-destructive text-sm", className)}
       {...props}
     >
@@ -162,6 +162,6 @@ export {
   FormLabel,
   FormControl,
   FormDescription,
-  FormMessage,
+  FormMessAge,
   FormField,
 }

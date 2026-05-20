@@ -29,7 +29,7 @@ interface DiagnosesTabProps {
 
 export function DiagnosesTab({ patientId }: DiagnosesTabProps) {
   const router = useRouter();
-  const { data: diagnoses, isLoading } = useDiagnoses(patientId);
+  const { data: diagnoses, isLoading } = useDiagnoses(parseInt(patientId));
   const deleteDiagnosis = useDeleteDiagnosis();
   const [selectedDiagnosis, setSelectedDiagnosis] = useState<CancerDiagnosis | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -52,7 +52,7 @@ export function DiagnosesTab({ patientId }: DiagnosesTabProps) {
     if (!deleteId) return;
 
     try {
-      await deleteDiagnosis.mutateAsync({ patientId, id: deleteId });
+      await deleteDiagnosis.mutateAsync({ patientId: parseInt(patientId) });
       toast.success('Diagnosis deleted successfully');
       setDeleteId(null);
       if (selectedDiagnosis?.id === deleteId) {

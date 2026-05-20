@@ -1,40 +1,60 @@
-// React Query hooks for history operations
+// React Query hook for patient family history - New Schema
 'use client';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { historyApi } from '@/lib/api';
-import type { PatientHistory, CreateHistoryInput } from '@/lib/db.types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { patientApi } from '@/lib/api';
+import type { PatientLifestyle } from '@/lib/db.types';
 
 // Query keys
 export const historyKeys = {
   all: ['history'] as const,
-  detail: (patientId: string) => [...historyKeys.all, patientId] as const,
+  detail: (id: number) => [...historyKeys.all, id] as const,
 };
 
-// Get patient history
-export function usePatientHistory(patientId: string) {
+// History input for update
+export interface UpdateHistoryInput {
+  PresentingComplaint?: string;
+  Comorbidities?: string;
+  FamilyCancerHistory?: string;
+}
+
+// Get patient family history (from patient record)
+export function usePatientHistory(id: number) {
   return useQuery({
-    queryKey: historyKeys.detail(patientId),
-    queryFn: () => historyApi.get(patientId).then((res) =>
-      res.success ? res.data : null
-    ),
-    enabled: !!patientId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    queryKey: historyKeys.detail(id),
+    queryFn: () => patientApi.get(id).then((res) => {
+      if (res.success) {
+        const patient = res.data;
+        return {
+          PresentingComplaint: patient.PresentingComplaint || undefined,
+          Comorbidities: patient.Comorbidities || undefined,
+          FamilyCancerHistory: patient.FamilyCancerHistory || undefined,
+        };
+      }
+      return {
+        PresentingComplaint: undefined,
+        Comorbidities: undefined,
+        FamilyCancerHistory: undefined,
+      };
+    }),
+    enabled: !!id && !isNaN(id),
+    staleTime: 5 * 60 * 1000,
   });
 }
 
-// Update patient history
+// Update patient family history (via patient update)
 export function useUpdateHistory() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ patientId, data }: { patientId: string; data: CreateHistoryInput }) =>
-      historyApi.update(patientId, data).then((res) =>
+    mutationFn: ({ patientId, data }: { patientId: number; data: UpdateHistoryInput }) =>
+      patientApi.update(patientId, data).then((res) =>
         res.success ? res.data : Promise.reject(new Error(res.error))
       ),
-    onSuccess: (data, variables) => {
-      // Update history in cache with response data
-      queryClient.setQueryData(historyKeys.detail(variables.patientId), data);
+    onSuccess: (_, variables) => {
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: historyKeys.detail(variables.patientId) });
+      queryClient.invalidateQueries({ queryKey: ['lifestyle', variables.patientId] });
     },
   });
 }

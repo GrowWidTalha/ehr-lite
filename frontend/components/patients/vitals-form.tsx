@@ -24,7 +24,7 @@ import { useCreateVitals } from '@/hooks/use-vitals';
 import { toast } from 'sonner';
 
 interface VitalsFormProps {
-  patientId: string;
+  patientId: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }

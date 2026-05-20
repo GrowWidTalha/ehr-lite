@@ -20,7 +20,7 @@ import { toast } from 'sonner';
 type DiagnosisStep = 'basic' | 'pathology' | 'biomarker' | 'imaging' | 'treatment';
 
 const STEPS: { id: DiagnosisStep; title: string; description: string }[] = [
-  { id: 'basic', title: 'Basic', description: 'Cancer type, stage, grade' },
+  { id: 'basic', title: 'Basic', description: 'Cancer type, stAge, grade' },
   { id: 'pathology', title: 'Pathology', description: 'Tumor details' },
   { id: 'biomarker', title: 'Biomarkers', description: 'ER, PR, HER2' },
   { id: 'imaging', title: 'Imaging', description: 'CT, MRI, PET' },
@@ -48,7 +48,7 @@ export default function EditDiagnosisPage() {
   const patientId = params.id as string;
   const diagnosisId = params.diagnosisId as string;
 
-  const { data: diagnosis, isLoading } = useDiagnosis(diagnosisId, patientId);
+  const { data: diagnosis, isLoading } = useDiagnosis(parseInt(patientId));
   const updateDiagnosis = useUpdateDiagnosis();
 
   const [currentStep, setCurrentStep] = useState<DiagnosisStep>('basic');
@@ -64,7 +64,7 @@ export default function EditDiagnosisPage() {
   const [formData, setFormData] = useState({
     // Basic (Required: cancer_type)
     cancer_type: '',
-    stage: '',
+    stAge: '',
     grade: '',
     who_classification: '',
     diagnosis_date: '',
@@ -78,11 +78,11 @@ export default function EditDiagnosisPage() {
     nodes_involved: '',
     // Biomarkers (Optional)
     er_status: '',
-    er_percentage: '',
+    er_percentAge: '',
     pr_status: '',
-    pr_percentage: '',
+    pr_percentAge: '',
     her2_status: '',
-    ki67_percentage: '',
+    ki67_percentAge: '',
     // Imaging (Optional)
     study_type: '',
     study_date: '',
@@ -96,33 +96,33 @@ export default function EditDiagnosisPage() {
 
   // Load existing diagnosis data
   useEffect(() => {
-    if (diagnosis) {
+    if (diagnosis && 'cancer_type' in diagnosis) {
       setFormData({
-        cancer_type: diagnosis.cancer_type || '',
-        stage: diagnosis.stage || '',
-        grade: diagnosis.grade || '',
-        who_classification: diagnosis.who_classification || '',
-        diagnosis_date: diagnosis.diagnosis_date?.split('T')[0] || '',
-        tumor_size: diagnosis.tumor_size || '',
-        depth: diagnosis.depth || '',
-        margins: diagnosis.margins || '',
-        lvi: diagnosis.lvi || '',
-        pni: diagnosis.pni || '',
-        nodes_recovered: diagnosis.nodes_recovered?.toString() || '',
-        nodes_involved: diagnosis.nodes_involved?.toString() || '',
-        er_status: diagnosis.er_status || '',
-        er_percentage: diagnosis.er_percentage || '',
-        pr_status: diagnosis.pr_status || '',
-        pr_percentage: diagnosis.pr_percentage || '',
-        her2_status: diagnosis.her2_status || '',
-        ki67_percentage: diagnosis.ki67_percentage || '',
-        study_type: diagnosis.study_type || '',
-        study_date: diagnosis.study_date?.split('T')[0] || '',
-        findings: diagnosis.findings || '',
-        indication: diagnosis.indication || '',
-        plan_type: diagnosis.plan_type || '',
-        surgery_planned: diagnosis.surgery_planned || '',
-        neoadjuvant_chemo: diagnosis.neoadjuvant_chemo || '',
+        cancer_type: (diagnosis as any).cancer_type || '',
+        stAge: (diagnosis as any).stAge || '',
+        grade: (diagnosis as any).grade || '',
+        who_classification: (diagnosis as any).who_classification || '',
+        diagnosis_date: (diagnosis as any).diagnosis_date?.split('T')[0] || '',
+        tumor_size: (diagnosis as any).tumor_size || '',
+        depth: (diagnosis as any).depth || '',
+        margins: (diagnosis as any).margins || '',
+        lvi: (diagnosis as any).lvi || '',
+        pni: (diagnosis as any).pni || '',
+        nodes_recovered: (diagnosis as any).nodes_recovered?.toString() || '',
+        nodes_involved: (diagnosis as any).nodes_involved?.toString() || '',
+        er_status: (diagnosis as any).er_status || '',
+        er_percentAge: (diagnosis as any).er_percentAge || '',
+        pr_status: (diagnosis as any).pr_status || '',
+        pr_percentAge: (diagnosis as any).pr_percentAge || '',
+        her2_status: (diagnosis as any).her2_status || '',
+        ki67_percentAge: (diagnosis as any).ki67_percentAge || '',
+        study_type: (diagnosis as any).study_type || '',
+        study_date: (diagnosis as any).study_date?.split('T')[0] || '',
+        findings: (diagnosis as any).findings || '',
+        indication: (diagnosis as any).indication || '',
+        plan_type: (diagnosis as any).plan_type || '',
+        surgery_planned: (diagnosis as any).surgery_planned || '',
+        neoadjuvant_chemo: (diagnosis as any).neoadjuvant_chemo || '',
       });
     }
   }, [diagnosis]);
@@ -175,8 +175,7 @@ export default function EditDiagnosisPage() {
 
     try {
       await updateDiagnosis.mutateAsync({
-        patientId,
-        id: diagnosisId,
+        patientId: parseInt(patientId),
         data: formData as any,
       });
 

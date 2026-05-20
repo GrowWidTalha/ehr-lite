@@ -27,7 +27,7 @@ export function ensureImagesDir() {
  * Get patient image directory path
  */
 export function getPatientImageDir(patientId) {
-  const dir = path.join(imagesDir, patientId);
+  const dir = path.join(imagesDir, String(patientId));
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -52,7 +52,7 @@ export function saveImage(patientId, filename, buffer) {
 
   fs.writeFileSync(filepath, buffer);
 
-  return `/patient-images/${patientId}/${filename}`;
+  return `/patient-images/${String(patientId)}/${filename}`;
 }
 
 /**

@@ -111,12 +111,12 @@ async function initDatabase() {
     const buffer = fs.readFileSync(dbPath);
     db = new SQL.Database(buffer);
 
-    // Check if tables already exist
+    // Check if Patient table exists (new schema indicator)
     try {
-      const result = db.exec(`SELECT name FROM sqlite_master WHERE type='table' LIMIT 1`);
+      const result = db.exec(`SELECT name FROM sqlite_master WHERE type='table' AND name='Patient'`);
       if (result.length > 0 && result[0].values.length > 0) {
         tablesAlreadyExist = true;
-        console.log('Tables already exist, skipping schema creation...');
+        console.log('Patient table already exists, skipping schema creation...');
       }
     } catch (e) {
       // Database exists but is empty

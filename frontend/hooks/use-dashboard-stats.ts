@@ -1,23 +1,38 @@
 import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
 
 interface DashboardStats {
-  total_patients: number;
-  active_diagnoses: number;
-  total_reports: number;
-  new_this_month: number;
+  totalPatients: number;
+  todayRegistrations: number;
+  followUpPatients: number;
+  activeDiagnoses: number;
+  totalReports: number;
+  cancerTypeBreakdown: {
+    brainTumor: number;
+    headAndNeck: number;
+    breastCancer: number;
+    genitourinary: number;
+    gynecological: number;
+    lungsCancer: number;
+    giTumor: number;
+    skinTumor: number;
+    hematological: number;
+    sarcoma: number;
+    carcinoma: number;
+  };
 }
 
 export function useDashboardStats() {
   return useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/dashboard/stats`);
-      if (!res.ok) {
-        throw new Error('Failed to fetch dashboard stats');
+      const res = await api<any>('/dashboard/stats');
+      if (!res.success) {
+        throw new Error(res.error || 'Failed to fetch dashboard stats');
       }
-      return res.json();
+      return res.data;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     retry: 1,
   });
 }

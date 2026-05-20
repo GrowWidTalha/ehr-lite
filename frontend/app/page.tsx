@@ -18,9 +18,9 @@ import { DashboardStatsSkeleton, PatientTableSkeleton, PatientCardSkeleton } fro
 import { DashboardStats } from '@/components/dashboard/stats-cards';
 import { useDashboardStats } from '@/hooks/use-dashboard-stats';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import type { PatientListView, PatientListItem } from '@/lib/db.types';
+import type { PatientListView, PaginatedResponse } from '@/lib/db.types';
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 20; // Match backend default
 
 export default function HomePage() {
   const [search, setSearch] = useState('');
@@ -47,15 +47,11 @@ export default function HomePage() {
     setCurrentPage(1);
   }, [debouncedSearch]);
 
-  // Use patients directly - backend handles search
-  const filteredPatients = patients || [];
-
-  // Pagination
-  const totalPages = Math.ceil(filteredPatients.length / PAGE_SIZE);
-  const paginatedPatients = filteredPatients.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  );
+  // Extract paginated response from backend
+  const response = patients;
+  const patientList = response?.patients || [];
+  const totalPages = response?.totalPages || 1;
+  const total = response?.total || 0;
 
   return (
     <div className="min-h-screen flex">
@@ -156,10 +152,10 @@ export default function HomePage() {
               <DashboardStatsSkeleton />
             ) : (
               <DashboardStats
-                totalPatients={stats?.total_patients || 0}
-                activeDiagnoses={stats?.active_diagnoses || 0}
-                totalReports={stats?.total_reports || 0}
-                newThisMonth={stats?.new_this_month || 0}
+                totalPatients={stats?.totalPatients || 0}
+                activeDiagnoses={stats?.activeDiagnoses || 0}
+                totalReports={stats?.totalReports || 0}
+                newThisMonth={stats?.todayRegistrations || 0}
               />
             )}
           </div>
@@ -168,7 +164,7 @@ export default function HomePage() {
           <div className="mb-6">
             <h2 className="text-2xl font-semibold tracking-tight">Patients</h2>
             <p className="text-muted-foreground">
-              Manage patient records, diagnoses, and treatment plans
+              ManAge patient records, diagnoses, and treatment plans
             </p>
           </div>
 
@@ -209,11 +205,11 @@ export default function HomePage() {
             <p className="text-sm text-muted-foreground">
               {debouncedSearch ? (
                 <>
-                  <span className="font-medium text-foreground">{filteredPatients.length}</span> patient{filteredPatients.length !== 1 ? 's' : ''} found for &quot;<span className="font-medium text-foreground">{debouncedSearch}</span>&quot;
+                  <span className="font-medium text-foreground">{total}</span> patient{total !== 1 ? 's' : ''} found for &quot;<span className="font-medium text-foreground">{debouncedSearch}</span>&quot;
                 </>
               ) : (
                 <>
-                  <span className="font-medium text-foreground">{filteredPatients.length}</span> patient{filteredPatients.length !== 1 ? 's' : ''} total
+                  <span className="font-medium text-foreground">{total}</span> patient{total !== 1 ? 's' : ''} total
                 </>
               )}
             </p>
@@ -243,7 +239,7 @@ export default function HomePage() {
           )}
 
           {/* Empty State */}
-          {!isLoading && filteredPatients.length === 0 && (
+          {!isLoading && total === 0 && (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                 <SearchIcon className="h-8 w-8 text-muted-foreground" />
@@ -273,17 +269,17 @@ export default function HomePage() {
           )}
 
           {/* Patient List */}
-          {!isLoading && filteredPatients.length > 0 && (
+          {!isLoading && total > 0 && (
             <>
               {view === 'card' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in" key={debouncedSearch || 'all'}>
-                  {paginatedPatients.map((patient) => (
-                    <PatientCard key={patient.id} patient={patient} />
+                  {patientList.map((patient) => (
+                    <PatientCard key={patient.PatientID} patient={patient} />
                   ))}
                 </div>
               ) : (
                 <div className="animate-fade-in" key={debouncedSearch || 'all'}>
-                  <PatientTable patients={paginatedPatients} />
+                  <PatientTable patients={patientList} />
                 </div>
               )}
 
@@ -292,7 +288,7 @@ export default function HomePage() {
                 <FunctionalPagination
                   currentPage={currentPage}
                   totalPages={totalPages}
-                  totalItems={filteredPatients.length}
+                  totalItems={total}
                   pageSize={PAGE_SIZE}
                   onPageChange={setCurrentPage}
                   className="mt-8"

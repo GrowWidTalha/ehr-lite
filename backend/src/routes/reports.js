@@ -31,6 +31,27 @@ const upload = multer({
 // ============================================================================
 
 /**
+ * GET /api/reports/types
+ * Get available report types (from TypeOfSamples table)
+ */
+router.get('/types', async (req, res) => {
+  try {
+    const types = await all(`SELECT ID, TypeOfSample as report_type FROM TypeOfSamples ORDER BY TypeOfSample`);
+
+    res.json({
+      success: true,
+      data: types
+    });
+  } catch (error) {
+    console.error('Error fetching report types:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * GET /api/reports
  * List reports with optional filters
  * Query: patient_id, diagnosis_id, report_type, limit, offset
@@ -144,13 +165,6 @@ router.post('/', async (req, res) => {
       });
     }
 
-    if (!title) {
-      return res.status(400).json({
-        success: false,
-        error: 'title is required'
-      });
-    }
-
     if (!report_type) {
       return res.status(400).json({
         success: false,
@@ -159,7 +173,7 @@ router.post('/', async (req, res) => {
     }
 
     // Verify patient exists
-    const patient = await get(`SELECT id FROM patients WHERE id = ?`, patient_id);
+    const patient = await get(`SELECT PatientID FROM Patient WHERE PatientID = ?`, patient_id);
     if (!patient) {
       return res.status(404).json({
         success: false,
@@ -167,24 +181,14 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // If diagnosis_id provided, verify it exists and belongs to patient
-    if (diagnosis_id) {
-      const diagnosis = await get('SELECT patient_id FROM cancer_diagnoses WHERE id = ?', diagnosis_id);
-      if (!diagnosis || diagnosis.patient_id !== patient_id) {
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid diagnosis_id'
-        });
-      }
-    }
-
     const reportId = generateId();
     const now = new Date().toISOString();
+    const finalTitle = title || report_type;
 
     await run(`
       INSERT INTO reports (id, patient_id, diagnosis_id, title, report_type, notes, report_date, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `, reportId, patient_id, diagnosis_id || null, title, report_type, notes || null, report_date || null, now);
+    `, reportId, patient_id, diagnosis_id || null, finalTitle, report_type, notes || null, report_date || null, now);
 
     const report = await get(`SELECT * FROM reports WHERE id = ?`, reportId);
 

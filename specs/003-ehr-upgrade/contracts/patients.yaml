@@ -1,0 +1,464 @@
+openapi: 3.0.0
+info:
+  title: EHR Lite Patient API
+  version: 2.0.0
+  description: Patient CRUD endpoints for new schema
+
+servers:
+  - url: http://localhost:4000/api
+
+paths:
+  /patients:
+    get:
+      summary: List patients with pagination and search
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Searches PatientName, RegistrationNo, ContactNo
+      responses:
+        '200':
+          description: Patient list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  patients:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PatientListItem'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  totalPages:
+                    type: integer
+
+    post:
+      summary: Create new patient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePatientInput'
+      responses:
+        '200':
+          description: Created patient
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+
+  /patients/{id}:
+    get:
+      summary: Get patient by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Patient details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientDetail'
+
+    put:
+      summary: Update patient
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePatientInput'
+      responses:
+        '200':
+          description: Updated patient
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+
+    delete:
+      summary: Delete patient
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Delete confirmation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  /patients/{id}/labs:
+    get:
+      summary: Get all lab results for patient
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lab results grouped by type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientLabs'
+
+  /patients/{id}/imaging:
+    get:
+      summary: Get all imaging for patient
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Imaging grouped by type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientImaging'
+
+  /patients/{id}/treatments:
+    get:
+      summary: Get all treatments for patient
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Treatments grouped by type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientTreatments'
+
+  /patients/{id}/pathology:
+    get:
+      summary: Get pathology for patient
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Pathology results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientPathology'
+
+  /patients/{id}/lifestyle:
+    get:
+      summary: Get lifestyle data for patient
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lifestyle data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientLifestyle'
+
+components:
+  schemas:
+    PatientListItem:
+      type: object
+      properties:
+        PatientID:
+          type: integer
+        RegistrationNo:
+          type: string
+          nullable: true
+        PatientName:
+          type: string
+        Age:
+          type: integer
+          nullable: true
+        Gender:
+          type: string
+          nullable: true
+        ContactNo:
+          type: string
+          nullable: true
+        RegistrationDate:
+          type: string
+          format: date-time
+          nullable: true
+        ExaminationDate:
+          type: string
+          format: date-time
+          nullable: true
+        DoctorName:
+          type: string
+          nullable: true
+        BloodGroup:
+          type: string
+          nullable: true
+        HospitalName:
+          type: string
+          nullable: true
+        FollowUp:
+          type: integer
+
+    PatientDetail:
+      allOf:
+        - $ref: '#/components/schemas/PatientListItem'
+        - type: object
+          properties:
+            # All Patient fields (60+)
+            BloodGroupName:
+              type: string
+              nullable: true
+            QualificationName:
+              type: string
+              nullable: true
+            OccupationName:
+              type: string
+              nullable: true
+            # ... other lookup name fields
+
+    CreatePatientInput:
+      type: object
+      required:
+        - PatientName
+      properties:
+        PatientName:
+          type: string
+        Age:
+          type: integer
+        Gender:
+          type: string
+        ContactNo:
+          type: string
+        CNICNo:
+          type: string
+        RegistrationNo:
+          type: string
+        RegistrationDate:
+          type: string
+          format: date-time
+        BloodGroup:
+          type: integer
+          description: ID referencing BloodGroups table
+        Hospital:
+          type: integer
+          description: ID referencing Hospitals table
+        Qualifications:
+          type: integer
+        Occupation:
+          type: integer
+        MotherTongue:
+          type: integer
+        PlaceOfBirth:
+          type: integer
+        Sports:
+          type: integer
+        # ... all other Patient fields
+
+    UpdatePatientInput:
+      type: object
+      properties:
+        PatientName:
+          type: string
+        Age:
+          type: integer
+        # ... any Patient field (partial update)
+
+    PatientLabs:
+      type: object
+      properties:
+        cbc:
+          type: array
+          items:
+            $ref: '#/components/schemas/LabResult'
+        lft:
+          type: array
+          items:
+            $ref: '#/components/schemas/LabResult'
+        bloodSugar:
+          type: array
+          items:
+            $ref: '#/components/schemas/LabResult'
+        # ... all lab types
+
+    LabResult:
+      type: object
+      properties:
+        RowID:
+          type: integer
+        PatientID:
+          type: integer
+        Laboratory:
+          type: integer
+          nullable: true
+        TestDate:
+          type: string
+          format: date-time
+          nullable: true
+        # ... test-specific fields
+
+    PatientImaging:
+      type: object
+      properties:
+        xray:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImagingResult'
+        ctScan:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImagingResult'
+        # ... all imaging types
+
+    ImagingResult:
+      type: object
+      properties:
+        RowID:
+          type: integer
+        PatientID:
+          type: integer
+        TestDate:
+          type: string
+          format: date-time
+          nullable: true
+        # ... imaging-specific fields
+
+    PatientTreatments:
+      type: object
+      properties:
+        chemo:
+          type: array
+          items:
+            $ref: '#/components/schemas/TreatmentResult'
+        radio:
+          type: array
+          items:
+            $ref: '#/components/schemas/TreatmentResult'
+        # ... all treatment types
+
+    TreatmentResult:
+      type: object
+      properties:
+        RowID:
+          type: integer
+        PatientID:
+          type: integer
+        TreatmentDate:
+          type: string
+          format: date-time
+          nullable: true
+        # ... treatment-specific fields
+
+    PatientPathology:
+      type: object
+      properties:
+        boneMarrow:
+          type: array
+          items:
+            $ref: '#/components/schemas/PathologyResult'
+        cytogenetics:
+          type: array
+          items:
+            $ref: '#/components/schemas/PathologyResult'
+        immunophenotyping:
+          type: array
+          items:
+            $ref: '#/components/schemas/PathologyResult'
+        molecular:
+          type: array
+          items:
+            $ref: '#/components/schemas/PathologyResult'
+        imagingFooter:
+          type: object
+
+    PatientLifestyle:
+      type: object
+      properties:
+        addictions:
+          type: array
+          items:
+            $ref: '#/components/schemas/LifestyleResult'
+        drinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/LifestyleResult'
+        foods:
+          type: array
+          items:
+            $ref: '#/components/schemas/LifestyleResult'
+        familyHistory:
+          type: array
+          items:
+            $ref: '#/components/schemas/FamilyHistoryResult'
+
+    LifestyleResult:
+      type: object
+      properties:
+        RowID:
+          type: integer
+        PatientID:
+          type: integer
+        # Foreign key to lookup table
+        Addiction:
+          type: integer
+          nullable: true
+
+    FamilyHistoryResult:
+      type: object
+      properties:
+        RowID:
+          type: integer
+        PatientID:
+          type: integer
+        Relation:
+          type: integer
+        Disease:
+          type: integer

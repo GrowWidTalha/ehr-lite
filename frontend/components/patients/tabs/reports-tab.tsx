@@ -28,33 +28,26 @@ interface ReportsTabProps {
 }
 
 export function ReportsTab({ patientId }: ReportsTabProps) {
-  const { data: reports, isLoading } = useReports(patientId);
+  const { data: reports, isLoading } = useReports(parseInt(patientId));
   const deleteReport = useDeleteReport();
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImages, setLightboxImages] = useState<{ url: string; title?: string }[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const handleViewImages = (report: any) => {
-    // Debug logging
-    console.log('Report object:', report);
-    console.log('Report images:', report.images);
-
-    // Extract images from report - adjust based on actual API response structure
-    const images = report.images?.map((img: any, index: number) => {
-      console.log(`Mapping image ${index}:`, img, 'img.url:', img.url);
-      return {
-        url: img.url,
-        title: report.title,
-      };
-    }) || [];
-
-    console.log('Mapped images:', images);
+    // Extract images from report
+    const images = report.images?.map((img: any) => ({
+      url: img.url,
+      title: report.title,
+    })) || [];
 
     if (images.length > 0) {
       setLightboxImages(images);
       setLightboxIndex(0);
       setLightboxOpen(true);
+    } else {
+      toast.error('No images available for this report');
     }
   };
 
@@ -200,7 +193,7 @@ export function ReportsTab({ patientId }: ReportsTabProps) {
 
       {/* Image Lightbox */}
       <ImageLightbox
-        images={lightboxImages}
+        imAges={lightboxImages}
         initialIndex={lightboxIndex}
         open={lightboxOpen}
         onOpenChange={setLightboxOpen}
@@ -239,7 +232,7 @@ function ReportCard({
   onView: () => void;
   onDelete: () => void;
 }) {
-  const hasImages = report.images?.length > 0 || report.file_url;
+  const hasImages = report.images?.length > 0;
 
   return (
     <Card className="border hover:shadow-md transition-shadow">
@@ -252,12 +245,7 @@ function ReportCard({
               onClick={onView}
             >
               <img
-                src={
-                  report.images?.[0]?.url ||
-                  report.images?.[0] ||
-                  report.file_url ||
-                  report.thumbnail_url
-                }
+                src={report.images?.[0]?.url}
                 alt={report.title}
                 className="w-full h-full object-cover"
               />

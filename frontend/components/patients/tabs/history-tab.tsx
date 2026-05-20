@@ -15,22 +15,22 @@ interface HistoryTabProps {
 }
 
 export function HistoryTab({ patientId }: HistoryTabProps) {
-  const { data: history, isLoading } = usePatientHistory(patientId);
+  const { data: history, isLoading } = usePatientHistory(parseInt(patientId));
   const updateHistory = useUpdateHistory();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    presenting_complaint: '',
-    comorbidities: '',
-    family_cancer_history: '',
+    PresentingComplaint: '',
+    Comorbidities: '',
+    FamilyCancerHistory: '',
   });
 
   // Update form data when history loads
   useEffect(() => {
     if (history) {
       setFormData({
-        presenting_complaint: history.presenting_complaint || '',
-        comorbidities: history.comorbidities || '',
-        family_cancer_history: history.family_cancer_history || '',
+        PresentingComplaint: history.PresentingComplaint || '',
+        Comorbidities: history.Comorbidities || '',
+        FamilyCancerHistory: history.FamilyCancerHistory || '',
       });
     }
   }, [history]);
@@ -46,7 +46,7 @@ export function HistoryTab({ patientId }: HistoryTabProps) {
   const handleSave = async () => {
     try {
       await updateHistory.mutateAsync({
-        patientId,
+        patientId: parseInt(patientId),
         data: formData,
       });
 
@@ -62,9 +62,9 @@ export function HistoryTab({ patientId }: HistoryTabProps) {
     // Reset form to original data
     if (history) {
       setFormData({
-        presenting_complaint: history.presenting_complaint || '',
-        comorbidities: history.comorbidities || '',
-        family_cancer_history: history.family_cancer_history || '',
+        PresentingComplaint: history.PresentingComplaint || '',
+        Comorbidities: history.Comorbidities || '',
+        FamilyCancerHistory: history.FamilyCancerHistory || '',
       });
     }
     setIsEditing(false);
@@ -89,23 +89,23 @@ export function HistoryTab({ patientId }: HistoryTabProps) {
         {isEditing ? (
           <>
             <div className="space-y-2">
-              <Label htmlFor="presenting_complaint">Presenting Complaint</Label>
+              <Label htmlFor="PresentingComplaint">Presenting Complaint</Label>
               <Textarea
-                id="presenting_complaint"
-                value={formData.presenting_complaint}
-                onChange={(e) => setFormData({ ...formData, presenting_complaint: e.target.value })}
+                id="PresentingComplaint"
+                value={formData.PresentingComplaint}
+                onChange={(e) => setFormData({ ...formData, PresentingComplaint: e.target.value })}
                 placeholder="Enter the patient's presenting complaint..."
                 rows={3}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="comorbidities">Comorbidities</Label>
+              <Label htmlFor="Comorbidities">Comorbidities</Label>
               <Textarea
-                id="comorbidities"
-                value={formData.comorbidities}
-                onChange={(e) => setFormData({ ...formData, comorbidities: e.target.value })}
-                placeholder="Enter any comorbidities..."
+                id="Comorbidities"
+                value={formData.Comorbidities}
+                onChange={(e) => setFormData({ ...formData, Comorbidities: e.target.value })}
+                placeholder="Enter any Comorbidities..."
                 rows={3}
               />
             </div>
@@ -114,8 +114,8 @@ export function HistoryTab({ patientId }: HistoryTabProps) {
               <Label htmlFor="family_history">Family Cancer History</Label>
               <Textarea
                 id="family_history"
-                value={formData.family_cancer_history}
-                onChange={(e) => setFormData({ ...formData, family_cancer_history: e.target.value })}
+                value={formData.FamilyCancerHistory}
+                onChange={(e) => setFormData({ ...formData, FamilyCancerHistory: e.target.value })}
                 placeholder="Enter any family history of cancer..."
                 rows={3}
               />
@@ -145,21 +145,21 @@ export function HistoryTab({ patientId }: HistoryTabProps) {
             <div>
               <h4 className="text-sm font-medium mb-2">Presenting Complaint</h4>
               <p className="text-sm text-muted-foreground">
-                {history?.presenting_complaint || 'No presenting complaint recorded'}
+                {history?.PresentingComplaint || 'No presenting complaint recorded'}
               </p>
             </div>
 
             <div>
               <h4 className="text-sm font-medium mb-2">Comorbidities</h4>
               <p className="text-sm text-muted-foreground">
-                {history?.comorbidities || 'No comorbidities recorded'}
+                {history?.Comorbidities || 'No Comorbidities recorded'}
               </p>
             </div>
 
             <div>
               <h4 className="text-sm font-medium mb-2">Family Cancer History</h4>
               <p className="text-sm text-muted-foreground">
-                {history?.family_cancer_history || 'No family history recorded'}
+                {history?.FamilyCancerHistory || 'No family history recorded'}
               </p>
             </div>
           </>

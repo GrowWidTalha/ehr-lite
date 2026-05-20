@@ -21,7 +21,7 @@ export default function SettingsPage() {
   const { config, setBackupPath: setBackupPathHook, createBackup, backupInProgress, refetch } = useBackup();
   const [backupPath, setBackupPathInput] = useState(config?.backupPath || '');
   const [isSaving, setIsSaving] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessAge, setErrorMessAge] = useState('');
   const folderInputRef = useRef<HTMLInputElement>(null);
 
   // Check if File System Access API is supported
@@ -73,7 +73,7 @@ export default function SettingsPage() {
     }
 
     setIsSaving(true);
-    setErrorMessage('');
+    setErrorMessAge('');
 
     const result = await setBackupPathHook(backupPath);
 
@@ -81,13 +81,13 @@ export default function SettingsPage() {
 
     if (result.success) {
       toast.success('Backup path saved successfully');
-      setErrorMessage('');
+      setErrorMessAge('');
       refetch();
     } else {
       const errorMsg = result.hint
         ? `${result.error}. ${result.hint}`
         : result.error || 'Failed to save backup path';
-      setErrorMessage(errorMsg);
+      setErrorMessAge(errorMsg);
       toast.error(errorMsg);
     }
   };
@@ -194,7 +194,7 @@ export default function SettingsPage() {
                     value={backupPath}
                     onChange={(e) => {
                       setBackupPathInput(e.target.value);
-                      setErrorMessage('');
+                      setErrorMessAge('');
                     }}
                     className="flex-1 font-mono text-sm"
                   />
@@ -212,9 +212,9 @@ export default function SettingsPage() {
                     )}
                   </Button>
                 </div>
-                {errorMessage && (
+                {errorMessAge && (
                   <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                    <p className="text-sm text-destructive">{errorMessage}</p>
+                    <p className="text-sm text-destructive">{errorMessAge}</p>
                   </div>
                 )}
               </div>
@@ -266,7 +266,7 @@ export default function SettingsPage() {
                 )}
               </Button>
               <p className="text-xs text-muted-foreground mt-2 text-center">
-                This will create a backup of your database and patient images
+                This will create a backup of your database and patient imAges
               </p>
             </div>
           </CardContent>
@@ -278,7 +278,7 @@ export default function SettingsPage() {
             <CardTitle>Backup Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>• Backups include: patient database and all report images</p>
+            <p>• Backups include: patient database and all report imAges</p>
             <p>• Recommended: Connect an external hard drive and set it as your backup location</p>
             <p>• Backup files are named: ehr-backup-YYYY-MM-DD-HHMMSS.zip</p>
             <p>• You'll see a reminder banner if your last backup is more than 7 days old</p>

@@ -1,4 +1,4 @@
-// React Query hooks for patient operations
+// React Query hooks for patient operations - New Schema (PascalCase/Integer)
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -9,6 +9,11 @@ import type {
   PatientListItem,
   UpdatePatientInput,
   PatientSearchParams,
+  PatientLabs,
+  PatientImaging,
+  PatientTreatments,
+  PatientPathology,
+  PatientLifestyle,
 } from '@/lib/db.types';
 
 // Query keys
@@ -17,7 +22,12 @@ export const patientKeys = {
   lists: () => [...patientKeys.all, 'list'] as const,
   list: (params: PatientSearchParams) => [...patientKeys.lists(), params] as const,
   details: () => [...patientKeys.all, 'detail'] as const,
-  detail: (id: string) => [...patientKeys.details(), id] as const,
+  detail: (id: number) => [...patientKeys.details(), id] as const,
+  labs: (id: number) => [...patientKeys.all, 'labs', id] as const,
+  imaging: (id: number) => [...patientKeys.all, 'imaging', id] as const,
+  treatments: (id: number) => [...patientKeys.all, 'treatments', id] as const,
+  pathology: (id: number) => [...patientKeys.all, 'pathology', id] as const,
+  lifestyle: (id: number) => [...patientKeys.all, 'lifestyle', id] as const,
 };
 
 // Get patient list
@@ -25,20 +35,20 @@ export function usePatientList(params?: PatientSearchParams) {
   return useQuery({
     queryKey: patientKeys.list(params || {}),
     queryFn: () => patientApi.list(params).then((res) =>
-      res.success ? res.data : []
+      res.success ? res.data : { patients: [], total: 0, page: 1, limit: 20, totalPages: 0 }
     ),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
 // Get single patient
-export function usePatient(id: string) {
+export function usePatient(id: number) {
   return useQuery({
     queryKey: patientKeys.detail(id),
     queryFn: () => patientApi.get(id).then((res) =>
       res.success ? res.data : null
     ),
-    enabled: !!id,
+    enabled: !!id && !isNaN(id),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -56,7 +66,7 @@ export function useCreatePatient() {
       // Invalidate patient list queries
       queryClient.invalidateQueries({ queryKey: patientKeys.lists() });
       // Add new patient to cache
-      queryClient.setQueryData(patientKeys.detail(data.id), data);
+      queryClient.setQueryData(patientKeys.detail(data.PatientID), data);
     },
   });
 }
@@ -66,13 +76,13 @@ export function useUpdatePatient() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdatePatientInput }) =>
+    mutationFn: ({ id, data }: { id: number; data: UpdatePatientInput }) =>
       patientApi.update(id, data).then((res) =>
         res.success ? res.data : Promise.reject(new Error(res.error))
       ),
     onSuccess: (data) => {
       // Update patient in cache
-      queryClient.setQueryData(patientKeys.detail(data.id), data);
+      queryClient.setQueryData(patientKeys.detail(data.PatientID), data);
       // Invalidate list queries
       queryClient.invalidateQueries({ queryKey: patientKeys.lists() });
     },
@@ -84,7 +94,7 @@ export function useDeletePatient() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) =>
+    mutationFn: (id: number) =>
       patientApi.delete(id).then((res) =>
         res.success ? true : Promise.reject(new Error(res.error))
       ),
@@ -97,38 +107,79 @@ export function useDeletePatient() {
   });
 }
 
-// Get patient history
-export function usePatientHistory(patientId: string) {
+// Get patient labs
+export function usePatientLabs(id: number) {
   return useQuery({
-    queryKey: ['patient-history', patientId],
-    queryFn: () => patientApi.get(patientId).then((res: any) => {
-      // Extract history from patient data or fetch separately
-      // For now, return a mock history object
-      return {
-        presenting_complaint: res.data?.presenting_complaint || null,
-        comorbidities: res.data?.comorbidities || null,
-        family_cancer_history: res.data?.family_cancer_history || null,
-      };
-    }),
-    enabled: !!patientId,
+    queryKey: patientKeys.labs(id),
+    queryFn: () => patientApi.getLabs(id).then((res) =>
+      res.success ? res.data : {
+        cbc: [], lft: [], bloodSugar: [], bloodUrea: [], electrolytes: [],
+        tumorMarkers: [], pt: [], esr: [], ldh: [], calcium: [], uricAcid: [],
+        bloodLipids: [], bicarbonate: [], tport: [], antiHCV: [],
+        hbsag: [], urine: [], urineDR2: [], otherTests: []
+      }
+    ),
+    enabled: !!id && !isNaN(id),
     staleTime: 5 * 60 * 1000,
   });
 }
 
-// Get patient habits
-export function usePatientHabits(patientId: string) {
+// Get patient imaging
+export function usePatientImaging(id: number) {
   return useQuery({
-    queryKey: ['patient-habits', patientId],
-    queryFn: () => patientApi.get(patientId).then((res: any) => {
-      // Extract habits from patient data or fetch separately
-      // For now, return a mock habits object
-      return {
-        smoking_status: res.data?.smoking_status || null,
-        smoking_quantity: res.data?.smoking_quantity || null,
-        alcohol_use: res.data?.alcohol_use || null,
-      };
-    }),
-    enabled: !!patientId,
+    queryKey: patientKeys.imaging(id),
+    queryFn: () => patientApi.getImaging(id).then((res) =>
+      res.success ? res.data : {
+        xray: [], ctScan: [], mri: [], ultrasound: [], petScan: [],
+        boneScan: [], mammography: [], doppler: [], endoscopy: [],
+        bronchoscopy: [], laproscopy: [], ecg: [], echocardiography: [],
+        srs: [], otherTests: []
+      }
+    ),
+    enabled: !!id && !isNaN(id),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// Get patient treatments
+export function usePatientTreatments(id: number) {
+  return useQuery({
+    queryKey: patientKeys.treatments(id),
+    queryFn: () => patientApi.getTreatments(id).then((res) =>
+      res.success ? res.data : {
+        chemo: [], radio: [], hormonal: [], targeted: [],
+        surgery: [], leukemia: [], chronicLeukemia: [], myeloma: []
+      }
+    ),
+    enabled: !!id && !isNaN(id),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// Get patient pathology
+export function usePatientPathology(id: number) {
+  return useQuery({
+    queryKey: patientKeys.pathology(id),
+    queryFn: () => patientApi.getPathology(id).then((res) =>
+      res.success ? res.data : {
+        boneMarrow: [], cytogenetics: [], immunophenotyping: [], molecular: [], imagingFooter: null
+      }
+    ),
+    enabled: !!id && !isNaN(id),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// Get patient lifestyle
+export function usePatientLifestyle(id: number) {
+  return useQuery({
+    queryKey: patientKeys.lifestyle(id),
+    queryFn: () => patientApi.getLifestyle(id).then((res) =>
+      res.success ? res.data : {
+        addictions: [], drinks: [], foods: [], familyHistory: []
+      }
+    ),
+    enabled: !!id && !isNaN(id),
     staleTime: 5 * 60 * 1000,
   });
 }

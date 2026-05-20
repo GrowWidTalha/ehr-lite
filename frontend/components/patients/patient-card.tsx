@@ -1,4 +1,4 @@
-// Patient card component - User Story 1
+// Patient card component - New Schema (PascalCase/Integer)
 'use client';
 
 import Link from 'next/link';
@@ -14,7 +14,7 @@ interface PatientCardProps {
 
 export function PatientCard({ patient }: PatientCardProps) {
   return (
-    <Link href={`/patients/${patient.id}`}>
+    <Link href={`/patients/${patient.PatientID}`}>
       <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
@@ -24,10 +24,10 @@ export function PatientCard({ patient }: PatientCardProps) {
               </div>
               <div>
                 <CardTitle className="text-lg leading-tight">
-                  {patient.full_name}
+                  {patient.PatientName}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  {patient.age ? `${patient.age} years` : 'Age unknown'} • {patient.sex || 'Unknown'}
+                  {patient.Age ? `${patient.Age} years` : 'Age unknown'} • {patient.Gender || 'Unknown'}
                 </p>
               </div>
             </div>
@@ -36,12 +36,12 @@ export function PatientCard({ patient }: PatientCardProps) {
         <CardContent className="space-y-2">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <User className="h-3.5 w-3.5" />
-            <span>{patient.phone || 'No phone'}</span>
+            <span>{patient.ContactNo || 'No ContactNo'}</span>
           </div>
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-3.5 w-3.5" />
-            <span>Reg: {patient.registration_date ? formatDate(patient.registration_date) : 'Unknown'}</span>
+            <span>Reg: {patient.RegistrationDate ? formatDate(patient.RegistrationDate) : 'Unknown'}</span>
           </div>
 
           <div className="flex items-center gap-2 pt-2">
@@ -49,11 +49,6 @@ export function PatientCard({ patient }: PatientCardProps) {
               <FileText className="h-3 w-3" />
               {patient.report_count || 0} Reports
             </Badge>
-            {patient.diagnosis_count !== undefined && patient.diagnosis_count > 0 && (
-              <Badge variant="secondary">
-                {patient.diagnosis_count} Diagnosis{patient.diagnosis_count > 1 ? 'es' : ''}
-              </Badge>
-            )}
           </div>
         </CardContent>
       </Card>

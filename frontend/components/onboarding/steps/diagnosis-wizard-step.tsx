@@ -19,7 +19,7 @@ import { CANCER_TYPES, CANCER_STAGES, CANCER_GRADES, STUDY_TYPES, YES_NO_OPTIONS
 type DiagnosisInnerStep = 'basic' | 'pathology' | 'biomarker' | 'imaging' | 'treatment';
 
 const DIAGNOSIS_STEPS: { id: DiagnosisInnerStep; title: string; description: string }[] = [
-  { id: 'basic', title: 'Basic', description: 'Cancer type, stage, grade' },
+  { id: 'basic', title: 'Basic', description: 'Cancer type, stAge, grade' },
   { id: 'pathology', title: 'Pathology', description: 'Tumor details' },
   { id: 'biomarker', title: 'Biomarkers', description: 'ER, PR, HER2' },
   { id: 'imaging', title: 'Imaging', description: 'CT, MRI, PET' },
@@ -109,18 +109,18 @@ export function DiagnosisWizardStep({ formData, onChange, error }: DiagnosisWiza
 
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="stage">Stage</Label>
+              <Label htmlFor="stAge">StAge</Label>
               <Select
-                value={diagnosis.stage}
-                onValueChange={(value) => updateDiagnosis({ stage: value })}
+                value={diagnosis.stAge}
+                onValueChange={(value) => updateDiagnosis({ stAge: value })}
               >
-                <SelectTrigger id="stage">
-                  <SelectValue placeholder="Stage..." />
+                <SelectTrigger id="stAge">
+                  <SelectValue placeholder="StAge..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {CANCER_STAGES.map((stage) => (
-                    <SelectItem key={stage} value={stage}>
-                      Stage {stage}
+                  {CANCER_STAGES.map((stAge) => (
+                    <SelectItem key={stAge} value={stAge}>
+                      StAge {stAge}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -276,12 +276,12 @@ export function DiagnosisWizardStep({ formData, onChange, error }: DiagnosisWiza
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="er_percentage">ER Percentage</Label>
+              <Label htmlFor="er_percentAge">ER PercentAge</Label>
               <Input
-                id="er_percentage"
+                id="er_percentAge"
                 type="number"
-                value={diagnosis.er_percentage}
-                onChange={(e) => updateDiagnosis({ er_percentage: e.target.value })}
+                value={diagnosis.er_percentAge}
+                onChange={(e) => updateDiagnosis({ er_percentAge: e.target.value })}
                 placeholder="%"
               />
             </div>
@@ -303,12 +303,12 @@ export function DiagnosisWizardStep({ formData, onChange, error }: DiagnosisWiza
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="pr_percentage">PR Percentage</Label>
+              <Label htmlFor="pr_percentAge">PR PercentAge</Label>
               <Input
-                id="pr_percentage"
+                id="pr_percentAge"
                 type="number"
-                value={diagnosis.pr_percentage}
-                onChange={(e) => updateDiagnosis({ pr_percentage: e.target.value })}
+                value={diagnosis.pr_percentAge}
+                onChange={(e) => updateDiagnosis({ pr_percentAge: e.target.value })}
                 placeholder="%"
               />
             </div>
@@ -332,12 +332,12 @@ export function DiagnosisWizardStep({ formData, onChange, error }: DiagnosisWiza
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="ki67_percentage">Ki-67 Percentage</Label>
+              <Label htmlFor="ki67_percentAge">Ki-67 PercentAge</Label>
               <Input
-                id="ki67_percentage"
+                id="ki67_percentAge"
                 type="number"
-                value={diagnosis.ki67_percentage}
-                onChange={(e) => updateDiagnosis({ ki67_percentage: e.target.value })}
+                value={diagnosis.ki67_percentAge}
+                onChange={(e) => updateDiagnosis({ ki67_percentAge: e.target.value })}
                 placeholder="%"
               />
             </div>

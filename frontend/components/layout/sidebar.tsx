@@ -27,7 +27,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Header */}
       <div className="p-4 border-b">
         <h1 className="text-xl font-bold text-foreground">EHR Lite</h1>
-        <p className="text-sm text-muted-foreground">Oncology Management</p>
+        <p className="text-sm text-muted-foreground">Oncology ManAgement</p>
       </div>
 
       {/* Offline Indicator */}

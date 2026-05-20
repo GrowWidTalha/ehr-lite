@@ -1,0 +1,674 @@
+/**
+ * Patient Routes - New Schema (PascalCase/Integer)
+ * API endpoints for patient management using Patient table
+ */
+
+import express from 'express';
+import multer from 'multer';
+import { all, get, run } from '../db/query.js';
+import { generateId } from '../utils/uuid.js';
+import * as imageHandler from '../utils/imageHandler.js';
+
+const router = express.Router();
+
+// ============================================================================
+// PATIENT CRUD
+// ============================================================================
+
+/**
+ * GET /api/patients
+ * List patients with pagination and search
+ */
+router.get('/', async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search } = req.query;
+    const offset = (Number(page) - 1) * Number(limit);
+
+    // Count total matching patients
+    let countQuery = 'SELECT COUNT(*) as count FROM vw_patient_list';
+    let countParams = [];
+    if (search) {
+      countQuery += ' WHERE PatientName LIKE ? OR RegistrationNo LIKE ? OR ContactNo LIKE ?';
+      countParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+    const totalResult = await get(countQuery, ...countParams);
+    const total = totalResult.count;
+
+    // Get paginated patients
+    let query = 'SELECT * FROM vw_patient_list';
+    let params = [];
+    if (search) {
+      query += ' WHERE PatientName LIKE ? OR RegistrationNo LIKE ? OR ContactNo LIKE ?';
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+    query += ' ORDER BY RegistrationDate DESC LIMIT ? OFFSET ?';
+    params.push(Number(limit), Number(offset));
+
+    const patients = await all(query, ...params);
+    const totalPages = Math.ceil(total / Number(limit));
+
+    res.json({
+      success: true,
+      data: {
+        patients,
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching patients:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/patients/:id
+ * Get single patient by ID (integer)
+ */
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const patientId = Number(id);
+
+    if (isNaN(patientId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Patient ID must be a number'
+      });
+    }
+
+    const patient = await get('SELECT * FROM vw_patient_detail WHERE PatientID = ?', patientId);
+
+    if (!patient) {
+      return res.status(404).json({
+        success: false,
+        error: 'Patient not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: patient
+    });
+  } catch (error) {
+    console.error('Error fetching patient:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/patients
+ * Create new patient
+ */
+router.post('/', async (req, res) => {
+  try {
+    const data = req.body;
+    const now = new Date().toISOString();
+
+    // Validation
+    if (!data.PatientName) {
+      return res.status(400).json({
+        success: false,
+        error: 'PatientName is required'
+      });
+    }
+
+    // Set RegistrationDate if not provided
+    if (!data.RegistrationDate) {
+      data.RegistrationDate = now;
+    }
+
+    // Build column and value lists
+    const columns = [];
+    const placeholders = [];
+    const values = [];
+
+    // All Patient fields that can be inserted
+    const patientFields = [
+      'RegistrationNo', 'RegistrationDate', 'PatientName', 'WOSODO', 'RelativeName',
+      'Age', 'Height', 'HScale', 'Weight', 'WScale', 'Gender', 'MaritalStatus',
+      'NoOfChidren', 'NoOfSibling', 'BloodGroup', 'ContactNo', 'CNICNo',
+      'Educated', 'Qualifications', 'Occupation', 'Years', 'MonthlyIncome',
+      'WaterUsage', 'MotherTongue', 'PlaceOfBirth', 'DoSports', 'Sports',
+      'HowOften', 'DoExercise', 'Exercise', 'Durantion', 'PresentAddress',
+      'PermanentAddress', 'TreatedBefore', 'AlternativeNameDuration',
+      'MedicalTreatmentSpecify', 'PreviousTreatment', 'ModeOfPresentation',
+      'PresentedWith', 'TreatmentOfferedAtJPMC', 'OutComeOfTreatment',
+      'ProposedTreatment', 'PlanOfTreatment', 'SurgicalProcedure', 'SurgicalDate',
+      'Hospital', 'TNM', 'Margins', 'LVI', 'PNI', 'EGFR', 'EGFR2', 'ENE',
+      'ECE', 'NodesDisected', 'NodesInvolved', 'Metastasis', 'SitesOfMetastasis',
+      'TumorLateralityRL', 'Quadrant', 'TumorSize', 'TumorDepth',
+      'TumorResponseToChemo', 'Grade', 'RadioTherapy', 'Dose', 'ResponseR',
+      'ChemoRegimen', 'Cycles', 'ResponseC', 'SurgicalOutCome',
+      'SurgicalPathalogy', 'StatingTest', 'BrainTumor', 'HeadAndNeck',
+      'BreastCancer', 'Genitourinary', 'Gyneacological', 'LungsCancer',
+      'GITumor', 'SkinTumor', 'Hematological', 'Sarcoma', 'Carcinoma',
+      'FollowUp', 'ExaminationDate', 'DoctorName'
+    ];
+
+    for (const field of patientFields) {
+      if (data[field] !== undefined) {
+        columns.push(field);
+        placeholders.push('?');
+        values.push(data[field] === null ? null : data[field]);
+      }
+    }
+
+    const query = `
+      INSERT INTO Patient (${columns.join(', ')})
+      VALUES (${placeholders.join(', ')})
+    `;
+
+    const result = await run(query, ...values);
+    const patientId = result.lastInsertRowid;
+
+    const patient = await get('SELECT * FROM vw_patient_detail WHERE PatientID = ?', patientId);
+
+    res.status(201).json({
+      success: true,
+      data: patient
+    });
+  } catch (error) {
+    console.error('Error creating patient:', error);
+
+    if (error.message.includes('UNIQUE')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Registration number already exists'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * PUT /api/patients/:id
+ * Update patient (partial update supported)
+ */
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const patientId = Number(id);
+
+    if (isNaN(patientId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Patient ID must be a number'
+      });
+    }
+
+    // Check if patient exists
+    const existing = await get('SELECT PatientID FROM Patient WHERE PatientID = ?', patientId);
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        error: 'Patient not found'
+      });
+    }
+
+    const data = req.body;
+
+    // Field name mapping (snake_case from frontend → PascalCase columns)
+    const fieldMapping = {
+      height_cm: 'Height',
+      weight_kg: 'Weight',
+      blood_group: 'BloodGroup',
+      diagnosis_date: 'ExaminationDate',
+      stAge: 'StAge',
+      tumor_size: 'TumorSize',
+      depth: 'TumorDepth'
+    };
+
+    // Apply field mapping
+    const mappedData = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (key === 'cancer_type') {
+        // Map cancer_type to specific cancer column based on value
+        const cancerType = value?.toLowerCase();
+        if (cancerType?.includes('brain')) mappedData.BrainTumor = value;
+        else if (cancerType?.includes('head') || cancerType?.includes('neck')) mappedData.HeadAndNeck = value;
+        else if (cancerType?.includes('breast')) mappedData.BreastCancer = value;
+        else if (cancerType?.includes('genitourinary')) mappedData.Genitourinary = value;
+        else if (cancerType?.includes('gynecological')) mappedData.Gyneacological = value;
+        else if (cancerType?.includes('lung')) mappedData.LungsCancer = value;
+        else if (cancerType?.includes('gi') || cancerType?.includes('gastro')) mappedData.GITumor = value;
+        else if (cancerType?.includes('skin')) mappedData.SkinTumor = value;
+        else if (cancerType?.includes('hematological') || cancerType?.includes('blood')) mappedData.Hematological = value;
+        else if (cancerType?.includes('sarcoma')) mappedData.Sarcoma = value;
+        else if (cancerType?.includes('carcinoma')) mappedData.Carcinoma = value;
+      } else {
+        const mappedKey = fieldMapping[key] || key;
+        mappedData[mappedKey] = value;
+      }
+    }
+
+    // Build dynamic update query
+    const updates = [];
+    const values = [];
+
+    // All updatable Patient fields (exclude PatientID and auto-managed fields)
+    // Only include fields that actually exist in the Patient table schema
+    const updatableFields = [
+      'RegistrationNo', 'RegistrationDate', 'PatientName', 'WOSODO', 'RelativeName',
+      'Age', 'Height', 'HScale', 'Weight', 'WScale', 'Gender', 'MaritalStatus',
+      'NoOfChidren', 'NoOfSibling', 'BloodGroup', 'ContactNo', 'CNICNo',
+      'Educated', 'Qualifications', 'Occupation', 'Years', 'MonthlyIncome',
+      'WaterUsage', 'MotherTongue', 'PlaceOfBirth', 'DoSports', 'Sports',
+      'HowOften', 'DoExercise', 'Exercise', 'Durantion', 'PresentAddress',
+      'PermanentAddress', 'TreatedBefore', 'AlternativeNameDuration',
+      'MedicalTreatmentSpecify', 'PreviousTreatment', 'ModeOfPresentation',
+      'PresentedWith', 'TreatmentOfferedAtJPMC', 'OutComeOfTreatment',
+      'ProposedTreatment', 'PlanOfTreatment', 'SurgicalProcedure', 'SurgicalDate',
+      'Hospital', 'TNM', 'Margins', 'LVI', 'PNI', 'EGFR', 'EGFR2', 'ENE',
+      'ECE', 'NodesDisected', 'NodesInvolved', 'Metastasis', 'SitesOfMetastasis',
+      'TumorLateralityRL', 'Quadrant', 'TumorSize', 'TumorDepth',
+      'TumorResponseToChemo', 'Grade', 'RadioTherapy', 'Dose', 'ResponseR',
+      'ChemoRegimen', 'Cycles', 'ResponseC', 'SurgicalOutCome',
+      'SurgicalPathalogy', 'StatingTest', 'BrainTumor', 'HeadAndNeck',
+      'BreastCancer', 'Genitourinary', 'Gyneacological', 'LungsCancer',
+      'GITumor', 'SkinTumor', 'Hematological', 'Sarcoma', 'Carcinoma',
+      'FollowUp', 'ExaminationDate', 'DoctorName',
+      'PresentingComplaint', 'Comorbidities', 'FamilyCancerHistory'
+    ];
+
+    for (const field of updatableFields) {
+      if (mappedData[field] !== undefined) {
+        updates.push(`${field} = ?`);
+        values.push(mappedData[field] === null ? null : mappedData[field]);
+      }
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No fields to update'
+      });
+    }
+
+    values.push(patientId);
+    const query = `UPDATE Patient SET ${updates.join(', ')} WHERE PatientID = ?`;
+    await run(query, ...values);
+
+    // Handle habits data (smoking, pan, gutka, naswar, alcohol)
+    const habitsFields = ['smoking_status', 'smoking_quantity', 'pan_use', 'pan_quantity',
+                          'gutka_use', 'gutka_quantity', 'naswar_use', 'naswar_quantity',
+                          'alcohol_use', 'alcohol_quantity', 'other_habits', 'quit_period'];
+
+    const hasHabitsData = habitsFields.some(field => data[field] !== undefined && data[field] !== '');
+
+    if (hasHabitsData) {
+      // Delete existing records
+      await run('DELETE FROM PatientAddictions WHERE PatientID = ?', patientId);
+      await run('DELETE FROM PatientDrinks WHERE PatientID = ?', patientId);
+
+      // Map habit names to addiction IDs
+      const addictionMap = {
+        'smoking': 'Smoking',
+        'pan': 'Pan',
+        'gutka': 'Gutka',
+        'naswar': 'Naswar'
+      };
+
+      // Get addiction IDs from lookups
+      const addictions = await all('SELECT * FROM Addictions');
+      const addictionIds = {};
+      addictions.forEach(a => {
+        if (a.Addiction === 'Smoking') addictionIds.smoking = a.ID;
+        if (a.Addiction === 'Pan') addictionIds.pan = a.ID;
+        if (a.Addiction === 'Gutka') addictionIds.gutka = a.ID;
+        if (a.Addiction === 'Naswar') addictionIds.naswar = a.ID;
+        if (a.Addiction === 'Other Habits') addictionIds.other = a.ID;
+      });
+
+      // Insert addictions
+      if (data.smoking_status || data.pan_use || data.gutka_use || data.naswar_use) {
+        const addictionFields = [];
+        const addictionValues = [];
+        const addictionParams = [];
+
+        if (data.smoking_status) {
+          addictionFields.push('AddictionID');
+          addictionValues.push(addictionIds.smoking);
+          addictionParams.push('?');
+        }
+        if (data.pan_use) {
+          addictionFields.push('AddictionID');
+          addictionValues.push(addictionIds.pan);
+          addictionParams.push('?');
+        }
+        // Add other addictions similarly...
+
+        if (addictionFields.length > 0) {
+          await run(
+            `INSERT INTO PatientAddictions (PatientID, ${addictionFields.join(', ')}) VALUES (${Array(addictionFields.length + 1).fill('?').join(', ')})`,
+            patientId, ...addictionValues
+          );
+        }
+      }
+
+      // Insert alcohol drinks
+      if (data.alcohol_use) {
+        const drinks = await all('SELECT * FROM Drinks LIMIT 1');
+        if (drinks.length > 0) {
+          await run(
+            'INSERT INTO PatientDrinks (PatientID, DrinkID, Cup) VALUES (?, ?, ?)',
+            patientId, drinks[0].ID, data.alcohol_quantity || 1
+          );
+        }
+      }
+    }
+
+    const patient = await get('SELECT * FROM vw_patient_detail WHERE PatientID = ?', patientId);
+
+    res.json({
+      success: true,
+      data: patient
+    });
+  } catch (error) {
+    console.error('Error updating patient:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/patients/:id
+ * Delete patient (cascade deletes all related records)
+ */
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const patientId = Number(id);
+
+    if (isNaN(patientId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Patient ID must be a number'
+      });
+    }
+
+    await run('DELETE FROM Patient WHERE PatientID = ?', patientId);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting patient:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// ============================================================================
+// PATIENT SUB-RESOURCES
+// ============================================================================
+
+/**
+ * GET /api/patients/:id/labs
+ * Get all lab results for patient grouped by type
+ */
+router.get('/:id/labs', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const patientId = Number(id);
+
+    const result = {
+      cbc: await all('SELECT * FROM LabTestCBCHB WHERE PatientID = ?', patientId),
+      lft: await all('SELECT * FROM LFT WHERE PatientID = ?', patientId),
+      bloodSugar: await all('SELECT * FROM BloodSugar WHERE PatientID = ?', patientId),
+      bloodUrea: await all('SELECT * FROM BloodUrea WHERE PatientID = ?', patientId),
+      electrolytes: await all('SELECT * FROM Electrolytes WHERE PatientID = ?', patientId),
+      tumorMarkers: await all('SELECT * FROM TumorMarkers WHERE PatientID = ?', patientId),
+      pt: await all('SELECT * FROM PT WHERE PatientID = ?', patientId),
+      esr: await all('SELECT * FROM ESR WHERE PatientID = ?', patientId),
+      ldh: await all('SELECT * FROM LDH WHERE PatientID = ?', patientId),
+      calcium: await all('SELECT * FROM Calcium WHERE PatientID = ?', patientId),
+      uricAcid: await all('SELECT * FROM UricAcid WHERE PatientID = ?', patientId),
+      bloodLipids: await all('SELECT * FROM BloodLipids WHERE PatientID = ?', patientId),
+      bicarbonate: await all('SELECT * FROM Bicarbonate WHERE PatientID = ?', patientId),
+      tport: await all('SELECT * FROM TPort WHERE PatientID = ?', patientId),
+      antiHCV: await all('SELECT * FROM AntiHCV WHERE PatientID = ?', patientId),
+      hbsag: await all('SELECT * FROM HBSag WHERE PatientID = ?', patientId),
+      urine: await all('SELECT * FROM Urine WHERE PatientID = ?', patientId),
+      urineDR2: await all('SELECT * FROM UrineDR2 WHERE PatientID = ?', patientId),
+      otherTests: await all('SELECT * FROM LabOtherTests WHERE PatientID = ?', patientId)
+    };
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Error fetching labs:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/patients/:id/imaging
+ * Get all imaging for patient grouped by type
+ */
+router.get('/:id/imaging', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const patientId = Number(id);
+
+    const result = {
+      xray: await all('SELECT * FROM xRay WHERE PatientID = ?', patientId),
+      ctScan: await all('SELECT * FROM CTScan WHERE PatientID = ?', patientId),
+      mri: await all('SELECT * FROM MRI WHERE PatientID = ?', patientId),
+      ultrasound: await all('SELECT * FROM UltraSound WHERE PatientID = ?', patientId),
+      petScan: await all('SELECT * FROM PetScan WHERE PatientID = ?', patientId),
+      boneScan: await all('SELECT * FROM BoneScan WHERE PatientID = ?', patientId),
+      mammography: await all('SELECT * FROM Mammography WHERE PatientID = ?', patientId),
+      doppler: await all('SELECT * FROM Doppler WHERE PatientID = ?', patientId),
+      endoscopy: await all('SELECT * FROM Endoscopy WHERE PatientID = ?', patientId),
+      bronchoscopy: await all('SELECT * FROM Bronchoscopy WHERE PatientID = ?', patientId),
+      laproscopy: await all('SELECT * FROM Laproscopy WHERE PatientID = ?', patientId),
+      ecg: await all('SELECT * FROM ECG WHERE PatientID = ?', patientId),
+      echocardiography: await all('SELECT * FROM Echocardiography WHERE PatientID = ?', patientId),
+      srs: await all('SELECT * FROM SRS WHERE PatientID = ?', patientId),
+      otherTests: await all('SELECT * FROM OtherTests WHERE PatientID = ?', patientId)
+    };
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Error fetching imaging:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/patients/:id/treatments
+ * Get all treatments for patient grouped by type
+ */
+router.get('/:id/treatments', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const patientId = Number(id);
+
+    const result = {
+      chemo: await all('SELECT * FROM ChemoTherapy WHERE PatientID = ?', patientId),
+      radio: await all('SELECT * FROM RadioTherapy WHERE PatientID = ?', patientId),
+      hormonal: await all('SELECT * FROM HormonalTherapy WHERE PatientID = ?', patientId),
+      targeted: await all('SELECT * FROM TargettedTherapy WHERE PatientID = ?', patientId),
+      surgery: await all('SELECT * FROM Surgery WHERE PatientID = ?', patientId),
+      leukemia: await all('SELECT * FROM Leukemia WHERE PatientID = ?', patientId),
+      chronicLeukemia: await all('SELECT * FROM ChronicLeukemia WHERE PatientID = ?', patientId),
+      myeloma: await all('SELECT * FROM Myeloma WHERE PatientID = ?', patientId)
+    };
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Error fetching treatments:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/patients/:id/pathology
+ * Get pathology results for patient
+ */
+router.get('/:id/pathology', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const patientId = Number(id);
+
+    const result = {
+      boneMarrow: await all('SELECT * FROM BoneMarrowBiopsy WHERE PatientID = ?', patientId),
+      cytogenetics: await all('SELECT * FROM Cytogenetics WHERE PatientID = ?', patientId),
+      immunophenotyping: await all('SELECT * FROM immunophenotyping WHERE PatientID = ?', patientId),
+      molecular: await all('SELECT * FROM MolecularTest WHERE PatientID = ?', patientId),
+      imagingFooter: await get('SELECT * FROM ImagingTestFooter WHERE PatientID = ?', patientId)
+    };
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Error fetching pathology:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/patients/:id/lifestyle
+ * Get lifestyle data for patient (addictions, drinks, foods, family history)
+ */
+router.get('/:id/lifestyle', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const patientId = Number(id);
+
+    const result = {
+      addictions: await all(`
+        SELECT pa.*, a.Addiction
+        FROM PatientAddictions pa
+        LEFT JOIN Addictions a ON pa.AddictionID = a.ID
+        WHERE pa.PatientID = ?
+      `, patientId),
+      drinks: await all(`
+        SELECT pd.*, d.Drinks
+        FROM PatientDrinks pd
+        LEFT JOIN Drinks d ON pd.DrinkID = d.ID
+        WHERE pd.PatientID = ?
+      `, patientId),
+      foods: await all(`
+        SELECT pf.*, f.Food
+        FROM PatientFoods pf
+        LEFT JOIN Foods f ON pf.FoodID = f.ID
+        WHERE pf.PatientID = ?
+      `, patientId),
+      familyHistory: await all(`
+        SELECT fh.*, d.Diseases, r.Relations
+        FROM FamilyHistory fh
+        LEFT JOIN Diseases d ON fh.Diseas = d.ID
+        LEFT JOIN Relations r ON fh.Relation = r.ID
+        WHERE fh.PatientID = ?
+      `, patientId)
+    };
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Error fetching lifestyle:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// ============================================================================
+// REPORTS - Convenience route for patient reports
+// ============================================================================
+
+/**
+ * POST /api/patients/:id/reports
+ * Create report for a specific patient (convenience wrapper)
+ */
+router.post('/:id/reports', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const patientId = Number(id);
+
+    if (isNaN(patientId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Patient ID must be a number'
+      });
+    }
+
+    const { title, report_type, notes, report_date } = req.body;
+
+    // Validate report_type
+    if (!report_type) {
+      return res.status(400).json({
+        success: false,
+        error: 'report_type is required'
+      });
+    }
+
+    // Use report_type as title if title not provided
+    const finalTitle = title || report_type;
+
+    const reportId = generateId();
+    const now = new Date().toISOString();
+
+    await run(
+      `INSERT INTO reports (id, patient_id, title, report_type, notes, report_date, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [reportId, patientId, finalTitle, report_type, notes || null, report_date || null, now]
+    );
+
+    const report = await get('SELECT * FROM reports WHERE id = ?', reportId);
+
+    res.status(201).json({
+      success: true,
+      data: report
+    });
+  } catch (error) {
+    console.error('Error creating patient report:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+export default router;

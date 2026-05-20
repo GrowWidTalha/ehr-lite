@@ -3,7 +3,8 @@
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User, Mail, Phone, IdCard, Calendar } from 'lucide-react';
+import { User, Mail, Phone, IdCard, Calendar, Loader2 } from 'lucide-react';
+import { useLookups } from '@/hooks/use-lookups';
 
 interface BasicInfoStepProps {
   formData: any;
@@ -12,6 +13,8 @@ interface BasicInfoStepProps {
 }
 
 export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps) {
+  const { data: lookups, isLoading: lookupsLoading } = useLookups();
+
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
@@ -28,45 +31,45 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
         <div className="grid gap-4 md:grid-cols-2">
           {/* Full Name - Required */}
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="full_name" className="text-sm font-medium">
+            <Label htmlFor="PatientName" className="text-sm font-medium">
               Full Name <span className="text-destructive">*</span>
             </Label>
             <Input
-              id="full_name"
-              value={formData.full_name}
-              onChange={(e) => onChange({ ...formData, full_name: e.target.value })}
+              id="PatientName"
+              value={formData.PatientName}
+              onChange={(e) => onChange({ ...formData, PatientName: e.target.value })}
               placeholder="Enter patient's full name"
-              className={error && !formData.full_name ? 'border-destructive focus-visible:ring-destructive' : ''}
+              className={error && !formData.PatientName ? 'border-destructive focus-visible:ring-destructive' : ''}
             />
-            {error && !formData.full_name && (
+            {error && !formData.PatientName && (
               <p className="text-xs text-destructive">Full name is required</p>
             )}
           </div>
 
           {/* Age */}
           <div className="space-y-2">
-            <Label htmlFor="age" className="text-sm font-medium">Age</Label>
+            <Label htmlFor="Age" className="text-sm font-medium">Age</Label>
             <Input
-              id="age"
+              id="Age"
               type="number"
-              value={formData.age}
-              onChange={(e) => onChange({ ...formData, age: e.target.value })}
+              value={formData.Age}
+              onChange={(e) => onChange({ ...formData, Age: e.target.value })}
               placeholder="Years"
               min="0"
               max="150"
             />
-            <p className="text-xs text-muted-foreground">Patient&apos;s age in years</p>
+            <p className="text-xs text-muted-foreground">Patient&apos;s Age in years</p>
           </div>
 
           {/* Sex */}
           <div className="space-y-2">
-            <Label htmlFor="sex" className="text-sm font-medium">Sex</Label>
+            <Label htmlFor="Gender" className="text-sm font-medium">Sex</Label>
             <Select
-              value={formData.sex}
-              onValueChange={(value) => onChange({ ...formData, sex: value })}
+              value={formData.Gender}
+              onValueChange={(value) => onChange({ ...formData, Gender: value })}
             >
-              <SelectTrigger id="sex">
-                <SelectValue placeholder="Select sex" />
+              <SelectTrigger id="Gender">
+                <SelectValue placeholder="Select Gender" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Male">Male</SelectItem>
@@ -76,14 +79,40 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
             </Select>
           </div>
 
+          {/* Blood Group */}
+          <div className="space-y-2">
+            <Label htmlFor="BloodGroup" className="text-sm font-medium">Blood Group</Label>
+            <Select
+              value={formData.BloodGroup?.toString() || ''}
+              onValueChange={(value) => onChange({ ...formData, BloodGroup: value ? parseInt(value) : undefined })}
+              disabled={lookupsLoading}
+            >
+              <SelectTrigger id="BloodGroup">
+                <SelectValue placeholder="Select Blood Group" />
+              </SelectTrigger>
+              <SelectContent>
+                {lookupsLoading && (
+                  <div className="flex items-center justify-center p-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                )}
+                {!lookupsLoading && lookups?.bloodGroups?.map((bg) => (
+                  <SelectItem key={bg.ID} value={bg.ID.toString()}>
+                    {bg.BloodGroup}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Marital Status */}
           <div className="space-y-2">
-            <Label htmlFor="marital_status" className="text-sm font-medium">Marital Status</Label>
+            <Label htmlFor="MaritalStatus" className="text-sm font-medium">Marital Status</Label>
             <Select
-              value={formData.marital_status}
-              onValueChange={(value) => onChange({ ...formData, marital_status: value })}
+              value={formData.MaritalStatus}
+              onValueChange={(value) => onChange({ ...formData, MaritalStatus: value })}
             >
-              <SelectTrigger id="marital_status">
+              <SelectTrigger id="MaritalStatus">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
@@ -95,16 +124,108 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
             </Select>
           </div>
 
-          {/* Education */}
+          {/* Qualification */}
           <div className="space-y-2">
-            <Label htmlFor="education" className="text-sm font-medium">Education</Label>
-            <Input
-              id="education"
-              value={formData.education}
-              onChange={(e) => onChange({ ...formData, education: e.target.value })}
-              placeholder="e.g., Bachelor's, High School"
-            />
-            <p className="text-xs text-muted-foreground">Highest education level completed</p>
+            <Label htmlFor="Qualifications" className="text-sm font-medium">Qualification</Label>
+            <Select
+              value={formData.Qualifications?.toString() || ''}
+              onValueChange={(value) => onChange({ ...formData, Qualifications: value ? parseInt(value) : undefined })}
+              disabled={lookupsLoading}
+            >
+              <SelectTrigger id="Qualifications">
+                <SelectValue placeholder="Select Qualification" />
+              </SelectTrigger>
+              <SelectContent>
+                {lookupsLoading && (
+                  <div className="flex items-center justify-center p-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                )}
+                {!lookupsLoading && lookups?.qualifications?.map((q) => (
+                  <SelectItem key={q.ID} value={q.ID.toString()}>
+                    {q.QLevel}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Occupation */}
+          <div className="space-y-2">
+            <Label htmlFor="Occupation" className="text-sm font-medium">Occupation</Label>
+            <Select
+              value={formData.Occupation?.toString() || ''}
+              onValueChange={(value) => onChange({ ...formData, Occupation: value ? parseInt(value) : undefined })}
+              disabled={lookupsLoading}
+            >
+              <SelectTrigger id="Occupation">
+                <SelectValue placeholder="Select Occupation" />
+              </SelectTrigger>
+              <SelectContent>
+                {lookupsLoading && (
+                  <div className="flex items-center justify-center p-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                )}
+                {!lookupsLoading && lookups?.occupations?.map((o) => (
+                  <SelectItem key={o.ID} value={o.ID.toString()}>
+                    {o.Occupation}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Mother Tongue */}
+          <div className="space-y-2">
+            <Label htmlFor="MotherTongue" className="text-sm font-medium">Mother Tongue</Label>
+            <Select
+              value={formData.MotherTongue?.toString() || ''}
+              onValueChange={(value) => onChange({ ...formData, MotherTongue: value ? parseInt(value) : undefined })}
+              disabled={lookupsLoading}
+            >
+              <SelectTrigger id="MotherTongue">
+                <SelectValue placeholder="Select Mother Tongue" />
+              </SelectTrigger>
+              <SelectContent>
+                {lookupsLoading && (
+                  <div className="flex items-center justify-center p-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                )}
+                {!lookupsLoading && lookups?.motherTongues?.map((m) => (
+                  <SelectItem key={m.ID} value={m.ID.toString()}>
+                    {m.MotherTongue}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Place of Birth */}
+          <div className="space-y-2">
+            <Label htmlFor="PlaceOfBirth" className="text-sm font-medium">Place of Birth (District)</Label>
+            <Select
+              value={formData.PlaceOfBirth?.toString() || ''}
+              onValueChange={(value) => onChange({ ...formData, PlaceOfBirth: value ? parseInt(value) : undefined })}
+              disabled={lookupsLoading}
+            >
+              <SelectTrigger id="PlaceOfBirth">
+                <SelectValue placeholder="Select District" />
+              </SelectTrigger>
+              <SelectContent>
+                {lookupsLoading && (
+                  <div className="flex items-center justify-center p-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                )}
+                {!lookupsLoading && lookups?.districts?.map((d) => (
+                  <SelectItem key={d.ID} value={d.ID.toString()}>
+                    {d.District}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
@@ -119,12 +240,12 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
         <div className="grid gap-4 md:grid-cols-2">
           {/* Phone */}
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="phone" className="text-sm font-medium">Phone Number</Label>
+            <Label htmlFor="ContactNo" className="text-sm font-medium">Phone Number</Label>
             <Input
-              id="phone"
+              id="ContactNo"
               type="tel"
-              value={formData.phone}
-              onChange={(e) => onChange({ ...formData, phone: e.target.value })}
+              value={formData.ContactNo}
+              onChange={(e) => onChange({ ...formData, ContactNo: e.target.value })}
               placeholder="e.g., 0300-1234567"
             />
             <p className="text-xs text-muted-foreground">Primary contact number for appointments</p>
@@ -132,27 +253,15 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
 
           {/* CNIC */}
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="cnic" className="text-sm font-medium">CNIC Number</Label>
+            <Label htmlFor="CNICNo" className="text-sm font-medium">CNIC Number</Label>
             <Input
-              id="cnic"
-              value={formData.cnic}
-              onChange={(e) => onChange({ ...formData, cnic: e.target.value })}
+              id="CNICNo"
+              value={formData.CNICNo}
+              onChange={(e) => onChange({ ...formData, CNICNo: e.target.value })}
               placeholder="xxxxx-xxxxxxx-x"
               maxLength={15}
             />
             <p className="text-xs text-muted-foreground">13-digit CNIC (optional but recommended)</p>
-          </div>
-
-          {/* Territory/Region */}
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="territory" className="text-sm font-medium">Territory/Region</Label>
-            <Input
-              id="territory"
-              value={formData.territory}
-              onChange={(e) => onChange({ ...formData, territory: e.target.value })}
-              placeholder="e.g., Lahore, Karachi"
-            />
-            <p className="text-xs text-muted-foreground">City or region of residence</p>
           </div>
         </div>
       </div>
@@ -167,11 +276,11 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
         <div className="grid gap-4 md:grid-cols-2">
           {/* Registration Number */}
           <div className="space-y-2">
-            <Label htmlFor="registration_number" className="text-sm font-medium">Registration Number</Label>
+            <Label htmlFor="RegistrationNo" className="text-sm font-medium">Registration Number</Label>
             <Input
-              id="registration_number"
-              value={formData.registration_number}
-              onChange={(e) => onChange({ ...formData, registration_number: e.target.value })}
+              id="RegistrationNo"
+              value={formData.RegistrationNo}
+              onChange={(e) => onChange({ ...formData, RegistrationNo: e.target.value })}
               placeholder="Leave blank for auto"
             />
             <p className="text-xs text-muted-foreground">Leave blank for automatic generation</p>
@@ -179,17 +288,43 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
 
           {/* Registration Date */}
           <div className="space-y-2">
-            <Label htmlFor="registration_date" className="text-sm font-medium">Registration Date</Label>
+            <Label htmlFor="RegistrationDate" className="text-sm font-medium">Registration Date</Label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
-                id="registration_date"
+                id="RegistrationDate"
                 type="date"
-                value={formData.registration_date}
-                onChange={(e) => onChange({ ...formData, registration_date: e.target.value })}
+                value={formData.RegistrationDate}
+                onChange={(e) => onChange({ ...formData, RegistrationDate: e.target.value })}
                 className="pl-9"
               />
             </div>
+          </div>
+
+          {/* Hospital */}
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="Hospital" className="text-sm font-medium">Hospital</Label>
+            <Select
+              value={formData.Hospital?.toString() || ''}
+              onValueChange={(value) => onChange({ ...formData, Hospital: value ? parseInt(value) : undefined })}
+              disabled={lookupsLoading}
+            >
+              <SelectTrigger id="Hospital">
+                <SelectValue placeholder="Select Hospital" />
+              </SelectTrigger>
+              <SelectContent>
+                {lookupsLoading && (
+                  <div className="flex items-center justify-center p-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                )}
+                {!lookupsLoading && lookups?.hospitals?.map((h) => (
+                  <SelectItem key={h.ID} value={h.ID.toString()}>
+                    {h.Hospitals}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
@@ -201,26 +336,15 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
           <h3 className="text-sm font-semibold">Additional Information</h3>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          {/* Language */}
-          <div className="space-y-2">
-            <Label htmlFor="language" className="text-sm font-medium">Primary Language</Label>
-            <Input
-              id="language"
-              value={formData.language}
-              onChange={(e) => onChange({ ...formData, language: e.target.value })}
-              placeholder="e.g., Urdu, English"
-            />
-          </div>
-
+        <div className="grid gap-4 md:grid-cols-2">
           {/* Children Count */}
           <div className="space-y-2">
-            <Label htmlFor="children_count" className="text-sm font-medium">Number of Children</Label>
+            <Label htmlFor="NoOfChidren" className="text-sm font-medium">Number of Children</Label>
             <Input
-              id="children_count"
+              id="NoOfChidren"
               type="number"
-              value={formData.children_count}
-              onChange={(e) => onChange({ ...formData, children_count: e.target.value })}
+              value={formData.NoOfChidren}
+              onChange={(e) => onChange({ ...formData, NoOfChidren: e.target.value })}
               placeholder="0"
               min="0"
             />
@@ -228,12 +352,12 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
 
           {/* Sibling Count */}
           <div className="space-y-2">
-            <Label htmlFor="sibling_count" className="text-sm font-medium">Number of Siblings</Label>
+            <Label htmlFor="NoOfSibling" className="text-sm font-medium">Number of Siblings</Label>
             <Input
-              id="sibling_count"
+              id="NoOfSibling"
               type="number"
-              value={formData.sibling_count}
-              onChange={(e) => onChange({ ...formData, sibling_count: e.target.value })}
+              value={formData.NoOfSibling}
+              onChange={(e) => onChange({ ...formData, NoOfSibling: e.target.value })}
               placeholder="0"
               min="0"
             />

@@ -3,23 +3,27 @@ import { z } from 'zod';
 
 // Patient Validation Schema
 export const patientSchema = z.object({
-  full_name: z.string().min(1, 'Name is required'),
-  age: z.number().min(0).max(150).optional(),
-  sex: z.enum(['Male', 'Female', 'Other']).optional(),
-  phone: z.string().optional(),
-  cnic: z.string().optional(),
-  registration_number: z.string().optional(),
-  registration_date: z.string().optional(),
-  marital_status: z.string().optional(),
-  education: z.string().optional(),
-  language: z.string().optional(),
-  territory: z.string().optional(),
-  children_count: z.number().min(0).optional(),
-  sibling_count: z.number().min(0).optional(),
+  PatientName: z.string().min(1, 'Name is required'),
+  Age: z.number().min(0).max(150).optional(),
+  Gender: z.enum(['Male', 'Female', 'Other']).optional(),
+  ContactNo: z.string().optional(),
+  CNICNo: z.string().optional(),
+  RegistrationNo: z.string().optional(),
+  RegistrationDate: z.string().optional(),
+  MaritalStatus: z.string().optional(),
+  NoOfChidren: z.number().min(0).optional(),
+  NoOfSibling: z.number().min(0).optional(),
+  // New lookup fields
+  BloodGroup: z.number().optional(),
+  Hospital: z.number().optional(),
+  Qualifications: z.number().optional(),
+  Occupation: z.number().optional(),
+  MotherTongue: z.number().optional(),
+  PlaceOfBirth: z.number().optional(),
 });
 
 export const createPatientSchema = patientSchema.extend({
-  full_name: z.string().min(1, 'Name is required'),
+  PatientName: z.string().min(1, 'Name is required'),
 });
 
 // Vitals Validation Schema
@@ -55,7 +59,7 @@ export const habitsSchema = z.object({
 // Diagnosis Validation Schema
 export const diagnosisSchema = z.object({
   cancer_type: z.string().min(1, 'Cancer type is required'),
-  stage: z.enum(['I', 'II', 'III', 'IV']).optional(),
+  stAge: z.enum(['I', 'II', 'III', 'IV']).optional(),
   grade: z.enum(['1', '2', '3']).optional(),
   who_classification: z.string().optional(),
   diagnosis_date: z.string().optional(),
@@ -67,7 +71,7 @@ export const reportSchema = z.object({
   report_type: z.string().min(1, 'Report type is required'),
   notes: z.string().optional(),
   report_date: z.string().optional(),
-  diagnosis_id: z.string().uuid().optional(),
+  diagnosis_id: z.number().optional(),
 });
 
 // Search Validation Schema

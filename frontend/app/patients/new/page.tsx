@@ -21,17 +21,20 @@ export default function NewPatientPage() {
   const [showForm, setShowForm] = useState(false);
 
   const [formData, setFormData] = useState<CreatePatientFormData>({
-    full_name: '',
-    age: undefined,
-    sex: undefined,
-    phone: '',
-    cnic: '',
-    marital_status: undefined,
-    education: undefined,
-    language: '',
-    territory: '',
-    children_count: 0,
-    sibling_count: 0,
+    PatientName: '',
+    Age: undefined,
+    Gender: undefined,
+    ContactNo: '',
+    CNICNo: '',
+    MaritalStatus: undefined,
+    NoOfChidren: 0,
+    NoOfSibling: 0,
+    BloodGroup: undefined,
+    Hospital: undefined,
+    Qualifications: undefined,
+    Occupation: undefined,
+    MotherTongue: undefined,
+    PlaceOfBirth: undefined,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,7 +43,7 @@ export default function NewPatientPage() {
     try {
       const result = await createPatient.mutateAsync(formData);
       // Redirect to patient detail page
-      router.push(`/patients/${result.id}`);
+      router.push(`/patients/${result.PatientID}`);
     } catch (error) {
       console.error('Failed to create patient:', error);
     }
@@ -72,10 +75,10 @@ export default function NewPatientPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="search">Search by name or phone</Label>
+                <Label htmlFor="search">Search by name or ContactNo</Label>
                 <Input
                   id="search"
-                  placeholder="Enter patient name or phone number..."
+                  placeholder="Enter patient name or ContactNo number..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="mt-2"
