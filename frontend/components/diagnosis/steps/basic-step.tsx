@@ -93,20 +93,20 @@ export function BasicStep({ formData, onChange, error }: BasicStepProps) {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          {/* Stage */}
+          {/* StAge */}
           <div className="space-y-2">
-            <Label htmlFor="stage" className="text-sm font-medium">Cancer Stage</Label>
+            <Label htmlFor="stAge" className="text-sm font-medium">Cancer StAge</Label>
             <Select
-              value={formData.stage}
-              onValueChange={(value) => onChange({ ...formData, stage: value })}
+              value={formData.stAge}
+              onValueChange={(value) => onChange({ ...formData, stAge: value })}
             >
-              <SelectTrigger id="stage">
-                <SelectValue placeholder="Select stage" />
+              <SelectTrigger id="stAge">
+                <SelectValue placeholder="Select stAge" />
               </SelectTrigger>
               <SelectContent>
-                {CANCER_STAGES.map((stage) => (
-                  <SelectItem key={stage} value={stage}>
-                    Stage {stage}
+                {CANCER_STAGES.map((stAge) => (
+                  <SelectItem key={stAge} value={stAge}>
+                    StAge {stAge}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -150,18 +150,18 @@ export function BasicStep({ formData, onChange, error }: BasicStepProps) {
         </div>
       </div>
 
-      {/* Stage Information Card */}
-      {formData.stage && (
+      {/* StAge Information Card */}
+      {formData.stAge && (
         <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-lg border border-purple-200 dark:border-purple-800">
           <p className="text-sm font-medium text-purple-900 dark:text-purple-100 mb-1">
-            Stage {formData.stage}
+            StAge {formData.stAge}
           </p>
           <p className="text-xs text-muted-foreground">
-            {formData.stage === '0' && 'Abnormal cells are present but have not spread (in situ)'}
-            {formData.stage === 'I' && 'Cancer is limited to the primary site (localized)'}
-            {formData.stage === 'II' && 'Cancer has spread locally but not to lymph nodes'}
-            {formData.stage === 'III' && 'Cancer has spread to nearby lymph nodes'}
-            {formData.stage === 'IV' && 'Cancer has metastasized to distant organs'}
+            {formData.stAge === '0' && 'Abnormal cells are present but have not spread (in situ)'}
+            {formData.stAge === 'I' && 'Cancer is limited to the primary site (localized)'}
+            {formData.stAge === 'II' && 'Cancer has spread locally but not to lymph nodes'}
+            {formData.stAge === 'III' && 'Cancer has spread to nearby lymph nodes'}
+            {formData.stAge === 'IV' && 'Cancer has metastasized to distant organs'}
           </p>
         </div>
       )}

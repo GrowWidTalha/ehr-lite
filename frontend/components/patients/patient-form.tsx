@@ -18,9 +18,12 @@ import {
 } from '@/components/ui/accordion';
 import { Loader2 } from 'lucide-react';
 import { SEX_OPTIONS } from '@/lib/utils';
+import { useLookups } from '@/hooks/use-lookups';
 import type { CreatePatientInput, Patient } from '@/lib/db.types';
 
 type CreatePatientFormData = CreatePatientInput;
+
+const MARITAL_STATUS_OPTIONS = ['Single', 'Married', 'Divorced', 'Widowed', 'Separated'];
 
 interface PatientFormProps {
   mode: 'create' | 'edit';
@@ -41,6 +44,8 @@ export function PatientForm({
   onCancel,
   isPending,
 }: PatientFormProps) {
+  const { data: lookups, isLoading: lookupsLoading } = useLookups();
+
   return (
     <form onSubmit={onSubmit}>
       <div className="space-y-6">
@@ -51,11 +56,11 @@ export function PatientForm({
           </h3>
 
           <div className="space-y-2">
-            <Label htmlFor="full_name">Full Name *</Label>
+            <Label htmlFor="PatientName">Full Name *</Label>
             <Input
-              id="full_name"
-              value={formData.full_name}
-              onChange={(e) => onChange({ ...formData, full_name: e.target.value })}
+              id="PatientName"
+              value={formData.PatientName}
+              onChange={(e) => onChange({ ...formData, PatientName: e.target.value })}
               placeholder="Enter full name"
               required
             />
@@ -63,15 +68,15 @@ export function PatientForm({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="age">Age *</Label>
+              <Label htmlFor="Age">Age *</Label>
               <Input
-                id="age"
+                id="Age"
                 type="number"
                 min="0"
                 max="150"
-                value={formData.age ?? ''}
+                value={formData.Age ?? ''}
                 onChange={(e) =>
-                  onChange({ ...formData, age: e.target.value ? parseInt(e.target.value) : undefined })
+                  onChange({ ...formData, Age: e.target.value ? parseInt(e.target.value) : undefined })
                 }
                 placeholder="Age"
                 required
@@ -79,16 +84,16 @@ export function PatientForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sex">Sex *</Label>
+              <Label htmlFor="Gender">Sex *</Label>
               <Select
-                value={formData.sex}
+                value={formData.Gender}
                 onValueChange={(value) =>
-                  onChange({ ...formData, sex: value as CreatePatientFormData['sex'] })
+                  onChange({ ...formData, Gender: value as CreatePatientFormData['Gender'] })
                 }
                 required
               >
-                <SelectTrigger id="sex">
-                  <SelectValue placeholder="Select sex" />
+                <SelectTrigger id="Gender">
+                  <SelectValue placeholder="Select Gender" />
                 </SelectTrigger>
                 <SelectContent>
                   {SEX_OPTIONS.map((option) => (
@@ -101,24 +106,48 @@ export function PatientForm({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone *</Label>
-            <Input
-              id="phone"
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => onChange({ ...formData, phone: e.target.value })}
-              placeholder="e.g., 0300-1234567"
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="ContactNo">Phone *</Label>
+              <Input
+                id="ContactNo"
+                type="tel"
+                value={formData.ContactNo}
+                onChange={(e) => onChange({ ...formData, ContactNo: e.target.value })}
+                placeholder="e.g., 0300-1234567"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="BloodGroup">Blood Group</Label>
+              <Select
+                value={formData.BloodGroup?.toString() || ''}
+                onValueChange={(value) =>
+                  onChange({ ...formData, BloodGroup: value ? parseInt(value) : undefined })
+                }
+                disabled={lookupsLoading}
+              >
+                <SelectTrigger id="BloodGroup">
+                  <SelectValue placeholder="Select Blood Group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {lookups?.bloodGroups?.map((bg) => (
+                    <SelectItem key={bg.ID} value={bg.ID.toString()}>
+                      {bg.BloodGroup}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="cnic">CNIC</Label>
+            <Label htmlFor="CNICNo">CNIC</Label>
             <Input
-              id="cnic"
-              value={formData.cnic}
-              onChange={(e) => onChange({ ...formData, cnic: e.target.value })}
+              id="CNICNo"
+              value={formData.CNICNo}
+              onChange={(e) => onChange({ ...formData, CNICNo: e.target.value })}
               placeholder="e.g., 12345-1234567-1"
             />
           </div>
@@ -131,71 +160,164 @@ export function PatientForm({
             <AccordionContent className="space-y-4 pt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="marital_status">Marital Status</Label>
-                  <Input
-                    id="marital_status"
-                    value={formData.marital_status ?? ''}
-                    onChange={(e) => onChange({ ...formData, marital_status: e.target.value })}
-                    placeholder="e.g., Single, Married"
-                  />
+                  <Label htmlFor="MaritalStatus">Marital Status</Label>
+                  <Select
+                    value={formData.MaritalStatus ?? ''}
+                    onValueChange={(value) =>
+                      onChange({ ...formData, MaritalStatus: value || undefined })
+                    }
+                  >
+                    <SelectTrigger id="MaritalStatus">
+                      <SelectValue placeholder="Select Marital Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MARITAL_STATUS_OPTIONS.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="education">Education</Label>
-                  <Input
-                    id="education"
-                    value={formData.education ?? ''}
-                    onChange={(e) => onChange({ ...formData, education: e.target.value })}
-                    placeholder="e.g., High School, Graduate"
-                  />
+                  <Label htmlFor="Qualifications">Qualification</Label>
+                  <Select
+                    value={formData.Qualifications?.toString() || ''}
+                    onValueChange={(value) =>
+                      onChange({ ...formData, Qualifications: value ? parseInt(value) : undefined })
+                    }
+                    disabled={lookupsLoading}
+                  >
+                    <SelectTrigger id="Qualifications">
+                      <SelectValue placeholder="Select Qualification" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {lookups?.qualifications?.map((q) => (
+                        <SelectItem key={q.ID} value={q.ID.toString()}>
+                          {q.QLevel}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="language">Language</Label>
-                  <Input
-                    id="language"
-                    value={formData.language}
-                    onChange={(e) => onChange({ ...formData, language: e.target.value })}
-                    placeholder="e.g., Urdu, English"
-                  />
+                  <Label htmlFor="Occupation">Occupation</Label>
+                  <Select
+                    value={formData.Occupation?.toString() || ''}
+                    onValueChange={(value) =>
+                      onChange({ ...formData, Occupation: value ? parseInt(value) : undefined })
+                    }
+                    disabled={lookupsLoading}
+                  >
+                    <SelectTrigger id="Occupation">
+                      <SelectValue placeholder="Select Occupation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {lookups?.occupations?.map((o) => (
+                        <SelectItem key={o.ID} value={o.ID.toString()}>
+                          {o.Occupation}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="territory">Territory</Label>
-                  <Input
-                    id="territory"
-                    value={formData.territory}
-                    onChange={(e) => onChange({ ...formData, territory: e.target.value })}
-                    placeholder="City or region"
-                  />
+                  <Label htmlFor="MotherTongue">Mother Tongue</Label>
+                  <Select
+                    value={formData.MotherTongue?.toString() || ''}
+                    onValueChange={(value) =>
+                      onChange({ ...formData, MotherTongue: value ? parseInt(value) : undefined })
+                    }
+                    disabled={lookupsLoading}
+                  >
+                    <SelectTrigger id="MotherTongue">
+                      <SelectValue placeholder="Select Mother Tongue" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {lookups?.motherTongues?.map((m) => (
+                        <SelectItem key={m.ID} value={m.ID.toString()}>
+                          {m.MotherTongue}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="children_count">Children Count</Label>
+                  <Label htmlFor="PlaceOfBirth">Place of Birth (District)</Label>
+                  <Select
+                    value={formData.PlaceOfBirth?.toString() || ''}
+                    onValueChange={(value) =>
+                      onChange({ ...formData, PlaceOfBirth: value ? parseInt(value) : undefined })
+                    }
+                    disabled={lookupsLoading}
+                  >
+                    <SelectTrigger id="PlaceOfBirth">
+                      <SelectValue placeholder="Select District" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {lookups?.districts?.map((d) => (
+                        <SelectItem key={d.ID} value={d.ID.toString()}>
+                          {d.District}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="Hospital">Hospital</Label>
+                  <Select
+                    value={formData.Hospital?.toString() || ''}
+                    onValueChange={(value) =>
+                      onChange({ ...formData, Hospital: value ? parseInt(value) : undefined })
+                    }
+                    disabled={lookupsLoading}
+                  >
+                    <SelectTrigger id="Hospital">
+                      <SelectValue placeholder="Select Hospital" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {lookups?.hospitals?.map((h) => (
+                        <SelectItem key={h.ID} value={h.ID.toString()}>
+                          {h.Hospitals}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="NoOfChidren">Children Count</Label>
                   <Input
-                    id="children_count"
+                    id="NoOfChidren"
                     type="number"
                     min="0"
-                    value={formData.children_count ?? 0}
+                    value={formData.NoOfChidren ?? 0}
                     onChange={(e) =>
-                      onChange({ ...formData, children_count: parseInt(e.target.value) || 0 })
+                      onChange({ ...formData, NoOfChidren: parseInt(e.target.value) || 0 })
                     }
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="sibling_count">Sibling Count</Label>
+                  <Label htmlFor="NoOfSibling">Sibling Count</Label>
                   <Input
-                    id="sibling_count"
+                    id="NoOfSibling"
                     type="number"
                     min="0"
-                    value={formData.sibling_count ?? 0}
+                    value={formData.NoOfSibling ?? 0}
                     onChange={(e) =>
-                      onChange({ ...formData, sibling_count: parseInt(e.target.value) || 0 })
+                      onChange({ ...formData, NoOfSibling: parseInt(e.target.value) || 0 })
                     }
                   />
                 </div>

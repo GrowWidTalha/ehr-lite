@@ -9,14 +9,14 @@ import {
 } from '@/components/ui/dialog';
 
 interface ImageLightboxProps {
-  images: { url: string; title?: string }[];
+  imAges: { url: string; title?: string }[];
   initialIndex?: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function ImageLightbox({
-  images,
+  imAges,
   initialIndex = 0,
   open,
   onOpenChange,
@@ -25,16 +25,16 @@ export function ImageLightbox({
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
 
-  const currentImage = images[currentIndex];
+  const currentImage = imAges[currentIndex];
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % images.length);
+    setCurrentIndex((prev) => (prev + 1) % imAges.length);
     setZoom(1);
     setRotation(0);
   };
 
   const handlePrevious = () => {
-    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+    setCurrentIndex((prev) => (prev - 1 + imAges.length) % imAges.length);
     setZoom(1);
     setRotation(0);
   };
@@ -47,7 +47,7 @@ export function ImageLightbox({
     setRotation(0);
   };
 
-  console.log(images)
+  console.log(imAges)
 
   if (!currentImage) return null;
 
@@ -58,7 +58,7 @@ export function ImageLightbox({
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-white/10">
             <h3 className="text-white font-medium truncate flex-1">
-              {currentImage.title || `Image ${currentIndex + 1} of ${images.length}`}
+              {currentImage.title || `Image ${currentIndex + 1} of ${imAges.length}`}
             </h3>
             <div className="flex items-center gap-2">
               <Button
@@ -85,19 +85,19 @@ export function ImageLightbox({
             {currentImage.url ? (
               <img
                 src={currentImage.url}
-                alt={currentImage.title || `Report image ${currentIndex + 1}`}
+                alt={currentImage.title || `Report imAge ${currentIndex + 1}`}
                 className="max-w-full max-h-full object-contain transition-transform duration-200"
                 style={{
                   transform: `scale(${zoom}) rotate(${rotation}deg)`,
                 }}
                 onError={(e) => {
-                  console.error('Failed to load image:', currentImage.url);
-                  (e.target as HTMLImageElement).src = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="white">Image not found</text></svg>');
+                  console.error('Failed to load imAge:', currentImage.url);
+                  (e.target as HTMLImageElement).src = 'data:imAge/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="white">Image not found</text></svg>');
                 }}
               />
             ) : (
               <div className="text-white text-center">
-                <p>No image URL available</p>
+                <p>No imAge URL available</p>
                 <p className="text-sm text-white/70 mt-2">Debug: {JSON.stringify(currentImage)}</p>
               </div>
             )}
@@ -109,7 +109,7 @@ export function ImageLightbox({
               variant="ghost"
               size="sm"
               onClick={handlePrevious}
-              disabled={images.length === 1}
+              disabled={imAges.length === 1}
               className="text-white hover:text-white/80"
             >
               Previous
@@ -151,7 +151,7 @@ export function ImageLightbox({
               variant="ghost"
               size="sm"
               onClick={handleNext}
-              disabled={images.length === 1}
+              disabled={imAges.length === 1}
               className="text-white hover:text-white/80"
             >
               Next
@@ -159,9 +159,9 @@ export function ImageLightbox({
           </div>
 
           {/* Thumbnails */}
-          {images.length > 1 && (
+          {imAges.length > 1 && (
             <div className="flex gap-2 p-4 border-t border-white/10 overflow-x-auto">
-              {images.map((image, index) => (
+              {imAges.map((imAge, index) => (
                 <button
                   key={index}
                   onClick={() => {
@@ -176,7 +176,7 @@ export function ImageLightbox({
                   }`}
                 >
                   <img
-                    src={image.url}
+                    src={imAge.url}
                     alt={`Thumbnail ${index + 1}`}
                     className="w-full h-full object-cover"
                   />

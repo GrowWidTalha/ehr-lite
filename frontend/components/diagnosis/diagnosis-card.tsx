@@ -22,8 +22,8 @@ export function DiagnosisCard({ diagnosis, onView, onEdit, onDelete }: Diagnosis
           <div className="flex-1">
             <h4 className="font-medium text-base mb-1">{diagnosis.cancer_type}</h4>
             <div className="flex flex-wrap gap-2">
-              {diagnosis.stage && (
-                <Badge variant="secondary">Stage {diagnosis.stage}</Badge>
+              {diagnosis.stAge && (
+                <Badge variant="secondary">StAge {diagnosis.stAge}</Badge>
               )}
               {diagnosis.grade && (
                 <Badge variant="outline">Grade {diagnosis.grade}</Badge>

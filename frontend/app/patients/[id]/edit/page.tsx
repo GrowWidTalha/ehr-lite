@@ -16,38 +16,44 @@ export default function EditPatientPage() {
   const params = useParams();
   const router = useRouter();
   const patientId = params.id as string;
-  const { data: patient, isLoading } = usePatient(patientId);
+  const { data: patient, isLoading } = usePatient(parseInt(patientId));
   const updatePatient = useUpdatePatient();
 
   const [formData, setFormData] = useState<CreatePatientFormData>({
-    full_name: '',
-    age: undefined,
-    sex: undefined,
-    phone: '',
-    cnic: '',
-    marital_status: undefined,
-    education: undefined,
-    language: '',
-    territory: '',
-    children_count: 0,
-    sibling_count: 0,
+    PatientName: '',
+    Age: undefined,
+    Gender: undefined,
+    ContactNo: '',
+    CNICNo: '',
+    MaritalStatus: undefined,
+    NoOfChidren: 0,
+    NoOfSibling: 0,
+    BloodGroup: undefined,
+    Hospital: undefined,
+    Qualifications: undefined,
+    Occupation: undefined,
+    MotherTongue: undefined,
+    PlaceOfBirth: undefined,
   });
 
   // Pre-populate form when patient data loads
   useEffect(() => {
     if (patient) {
       setFormData({
-        full_name: patient.full_name || '',
-        age: patient.age || undefined,
-        sex: patient.sex || undefined,
-        phone: patient.phone || '',
-        cnic: patient.cnic || '',
-        marital_status: patient.marital_status || undefined,
-        education: patient.education || undefined,
-        language: patient.language || '',
-        territory: patient.territory || '',
-        children_count: patient.children_count || 0,
-        sibling_count: patient.sibling_count || 0,
+        PatientName: patient.PatientName || '',
+        Age: patient.Age || undefined,
+        Gender: patient.Gender || undefined,
+        ContactNo: patient.ContactNo || '',
+        CNICNo: patient.CNICNo || '',
+        MaritalStatus: patient.MaritalStatus || undefined,
+        Qualifications: patient.Qualifications || undefined,
+        NoOfChidren: patient.NoOfChidren || 0,
+        NoOfSibling: patient.NoOfSibling || 0,
+        BloodGroup: patient.BloodGroup || undefined,
+        Hospital: patient.Hospital || undefined,
+        Occupation: patient.Occupation || undefined,
+        MotherTongue: patient.MotherTongue || undefined,
+        PlaceOfBirth: patient.PlaceOfBirth || undefined,
       });
     }
   }, [patient]);
@@ -57,7 +63,7 @@ export default function EditPatientPage() {
 
     try {
       await updatePatient.mutateAsync({
-        id: patientId,
+        id: parseInt(patientId),
         data: formData,
       });
 

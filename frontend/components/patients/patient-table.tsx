@@ -1,4 +1,4 @@
-// Patient table component - User Story 1
+// Patient table component - New Schema (PascalCase/Integer)
 'use client';
 
 import Link from 'next/link';
@@ -27,8 +27,8 @@ export function PatientTable({ patients }: PatientTableProps) {
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Age</TableHead>
-            <TableHead>Sex</TableHead>
-            <TableHead>Phone</TableHead>
+            <TableHead>Gender</TableHead>
+            <TableHead>Contact</TableHead>
             <TableHead>Registration Date</TableHead>
             <TableHead>Reports</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -36,13 +36,13 @@ export function PatientTable({ patients }: PatientTableProps) {
         </TableHeader>
         <TableBody>
           {patients.map((patient) => (
-            <TableRow key={patient.id}>
-              <TableCell className="font-medium">{patient.full_name}</TableCell>
-              <TableCell>{patient.age ?? '-'}</TableCell>
-              <TableCell>{patient.sex ?? '-'}</TableCell>
-              <TableCell>{patient.phone ?? '-'}</TableCell>
+            <TableRow key={patient.PatientID}>
+              <TableCell className="font-medium">{patient.PatientName}</TableCell>
+              <TableCell>{patient.Age ?? '-'}</TableCell>
+              <TableCell>{patient.Gender ?? '-'}</TableCell>
+              <TableCell>{patient.ContactNo ?? '-'}</TableCell>
               <TableCell>
-                {patient.registration_date ? formatDate(patient.registration_date) : '-'}
+                {patient.RegistrationDate ? formatDate(patient.RegistrationDate) : '-'}
               </TableCell>
               <TableCell>
                 <span className="inline-flex items-center gap-1">
@@ -50,7 +50,7 @@ export function PatientTable({ patients }: PatientTableProps) {
                 </span>
               </TableCell>
               <TableCell className="text-right">
-                <Link href={`/patients/${patient.id}`}>
+                <Link href={`/patients/${patient.PatientID}`}>
                   <Button variant="ghost" size="sm">
                     <Eye className="h-4 w-4" />
                   </Button>

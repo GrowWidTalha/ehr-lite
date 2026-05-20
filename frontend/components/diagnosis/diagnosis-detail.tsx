@@ -22,7 +22,7 @@ export function DiagnosisDetail({ diagnosis, onEdit, onClose }: DiagnosisDetailP
         <div>
           <h2 className="text-2xl font-bold">{diagnosis.cancer_type}</h2>
           <div className="flex flex-wrap gap-2 mt-2">
-            {diagnosis.stage && <Badge variant="secondary">Stage {diagnosis.stage}</Badge>}
+            {diagnosis.stAge && <Badge variant="secondary">StAge {diagnosis.stAge}</Badge>}
             {diagnosis.grade && <Badge variant="outline">Grade {diagnosis.grade}</Badge>}
           </div>
         </div>
@@ -114,7 +114,7 @@ export function DiagnosisDetail({ diagnosis, onEdit, onClose }: DiagnosisDetailP
       ) : null}
 
       {/* Biomarker Results */}
-      {diagnosis.er_status || diagnosis.pr_status || diagnosis.her2_status || diagnosis.ki67_percentage ? (
+      {diagnosis.er_status || diagnosis.pr_status || diagnosis.her2_status || diagnosis.ki67_percentAge ? (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Biomarker Results</CardTitle>
@@ -125,7 +125,7 @@ export function DiagnosisDetail({ diagnosis, onEdit, onClose }: DiagnosisDetailP
                 <span className="text-sm text-muted-foreground">ER Status</span>
                 <Badge variant={diagnosis.er_status === 'positive' ? 'default' : 'secondary'}>
                   {diagnosis.er_status}
-                  {diagnosis.er_percentage && ` (${diagnosis.er_percentage}%)`}
+                  {diagnosis.er_percentAge && ` (${diagnosis.er_percentAge}%)`}
                 </Badge>
               </div>
             )}
@@ -134,7 +134,7 @@ export function DiagnosisDetail({ diagnosis, onEdit, onClose }: DiagnosisDetailP
                 <span className="text-sm text-muted-foreground">PR Status</span>
                 <Badge variant={diagnosis.pr_status === 'positive' ? 'default' : 'secondary'}>
                   {diagnosis.pr_status}
-                  {diagnosis.pr_percentage && ` (${diagnosis.pr_percentage}%)`}
+                  {diagnosis.pr_percentAge && ` (${diagnosis.pr_percentAge}%)`}
                 </Badge>
               </div>
             )}
@@ -146,10 +146,10 @@ export function DiagnosisDetail({ diagnosis, onEdit, onClose }: DiagnosisDetailP
                 </Badge>
               </div>
             )}
-            {diagnosis.ki67_percentage && (
+            {diagnosis.ki67_percentAge && (
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Ki-67 Index</span>
-                <span className="text-sm font-medium">{diagnosis.ki67_percentage}%</span>
+                <span className="text-sm font-medium">{diagnosis.ki67_percentAge}%</span>
               </div>
             )}
           </CardContent>

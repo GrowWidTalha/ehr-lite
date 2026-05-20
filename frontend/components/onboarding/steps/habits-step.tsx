@@ -1,11 +1,30 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useLookups } from '@/hooks/use-lookups';
 
-const HABIT_STATUS = ['Never', 'Former', 'Current'];
+const FREQUENCY_OPTIONS = [
+  'per day',
+  'per week',
+  'per month',
+  'occasionally',
+  'socially'
+];
+
+interface Habit {
+  addiction_id: number;
+  name: string;
+  has_habit: boolean;
+  quantity: string;
+  frequency: string;
+  quit: boolean;
+  quit_period: string;
+}
 
 interface HabitsStepProps {
   formData: any;
@@ -14,186 +33,142 @@ interface HabitsStepProps {
 }
 
 export function HabitsStep({ formData, onChange, error }: HabitsStepProps) {
+  const { data: lookups } = useLookups();
+  const [habits, setHabits] = useState<Habit[]>([]);
+
+  // Initialize habits from addictions lookup
+  useEffect(() => {
+    if (lookups?.addictions && habits.length === 0) {
+      const initialHabits: Habit[] = lookups.addictions.map((addiction: any) => ({
+        addiction_id: addiction.ID,
+        name: addiction.Addiction,
+        has_habit: false,
+        quantity: '',
+        frequency: 'per day',
+        quit: false,
+        quit_period: '',
+      }));
+      setHabits(initialHabits);
+    }
+  }, [lookups]);
+
+  // Load existing habits if editing
+  useEffect(() => {
+    if (formData.habits && formData.habits.length > 0 && habits.length > 0) {
+      setHabits(formData.habits);
+    }
+  }, [formData.habits]);
+
+  const updateHabit = (index: number, updates: Partial<Habit>) => {
+    const newHabits = [...habits];
+    newHabits[index] = { ...newHabits[index], ...updates };
+    setHabits(newHabits);
+    onChange({ ...formData, habits: newHabits });
+  };
+
+  const toggleHabit = (index: number) => {
+    const newHabits = [...habits];
+    newHabits[index] = {
+      ...newHabits[index],
+      has_habit: !newHabits[index].has_habit,
+      // Reset fields when turning off
+      ...(!newHabits[index].has_habit ? {} : {
+        quantity: '',
+        frequency: 'per day',
+        quit: false,
+        quit_period: '',
+      })
+    };
+    setHabits(newHabits);
+    onChange({ ...formData, habits: newHabits });
+  };
+
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground mb-4">
-        Record the patient&apos;s habits and substance use. All fields are optional.
+    <div className="space-y-6">
+      <p className="text-sm text-muted-foreground">
+        Select which habits/addictions apply to this patient. For each selected habit, provide details about quantity, frequency, and quit status.
       </p>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Smoking */}
-        <div className="space-y-2">
-          <Label htmlFor="smoking_status">Smoking Status</Label>
-          <Select
-            value={formData.smoking_status}
-            onValueChange={(value) => onChange({ ...formData, smoking_status: value })}
-          >
-            <SelectTrigger id="smoking_status">
-              <SelectValue placeholder="Select..." />
-            </SelectTrigger>
-            <SelectContent>
-              {HABIT_STATUS.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {status}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="space-y-4">
+        {habits.map((habit, index) => (
+          <div key={habit.addiction_id} className="border rounded-lg p-4 space-y-4">
+            {/* Habit Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={habit.has_habit}
+                  onCheckedChange={() => toggleHabit(index)}
+                />
+                <Label className="font-medium">{habit.name}</Label>
+              </div>
+            </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="smoking_quantity">Quantity/Day</Label>
-          <Input
-            id="smoking_quantity"
-            value={formData.smoking_quantity}
-            onChange={(e) => onChange({ ...formData, smoking_quantity: e.target.value })}
-            placeholder="e.g., 10 cigarettes"
-          />
-        </div>
+            {/* Habit Details - only shown when toggled on */}
+            {habit.has_habit && (
+              <div className="grid gap-4 md:grid-cols-2 pt-2">
+                {/* Quantity */}
+                <div className="space-y-2">
+                  <Label htmlFor={`quantity-${habit.addiction_id}`}>Quantity</Label>
+                  <Input
+                    id={`quantity-${habit.addiction_id}`}
+                    value={habit.quantity}
+                    onChange={(e) => updateHabit(index, { quantity: e.target.value })}
+                    placeholder="e.g., 1 pack, 2 cigarettes"
+                  />
+                </div>
 
-        {/* Pan */}
-        <div className="space-y-2">
-          <Label htmlFor="pan_use">Pan Use</Label>
-          <Select
-            value={formData.pan_use}
-            onValueChange={(value) => onChange({ ...formData, pan_use: value })}
-          >
-            <SelectTrigger id="pan_use">
-              <SelectValue placeholder="Select..." />
-            </SelectTrigger>
-            <SelectContent>
-              {HABIT_STATUS.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {status}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+                {/* Frequency */}
+                <div className="space-y-2">
+                  <Label htmlFor={`frequency-${habit.addiction_id}`}>Frequency</Label>
+                  <select
+                    id={`frequency-${habit.addiction_id}`}
+                    value={habit.frequency}
+                    onChange={(e) => updateHabit(index, { frequency: e.target.value })}
+                    className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
+                  >
+                    {FREQUENCY_OPTIONS.map((freq) => (
+                      <option key={freq} value={freq}>
+                        {freq.charAt(0).toUpperCase() + freq.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="pan_quantity">Pan Quantity/Day</Label>
-          <Input
-            id="pan_quantity"
-            value={formData.pan_quantity}
-            onChange={(e) => onChange({ ...formData, pan_quantity: e.target.value })}
-            placeholder="e.g., 2-3 pans"
-          />
-        </div>
+                {/* Quit Status - full width */}
+                <div className="md:col-span-2 flex items-center gap-3 pt-2">
+                  <Checkbox
+                    id={`quit-${habit.addiction_id}`}
+                    checked={habit.quit}
+                    onCheckedChange={(checked) => updateHabit(index, { quit: !!checked, quit_period: !!checked ? habit.quit_period : '' })}
+                  />
+                  <Label htmlFor={`quit-${habit.addiction_id}`} className="cursor-pointer">
+                    Has quit this habit
+                  </Label>
+                </div>
 
-        {/* Gutka */}
-        <div className="space-y-2">
-          <Label htmlFor="gutka_use">Gutka Use</Label>
-          <Select
-            value={formData.gutka_use}
-            onValueChange={(value) => onChange({ ...formData, gutka_use: value })}
-          >
-            <SelectTrigger id="gutka_use">
-              <SelectValue placeholder="Select..." />
-            </SelectTrigger>
-            <SelectContent>
-              {HABIT_STATUS.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {status}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="gutka_quantity">Gutka Quantity/Day</Label>
-          <Input
-            id="gutka_quantity"
-            value={formData.gutka_quantity}
-            onChange={(e) => onChange({ ...formData, gutka_quantity: e.target.value })}
-            placeholder="e.g., 1-2 packets"
-          />
-        </div>
-
-        {/* Naswar */}
-        <div className="space-y-2">
-          <Label htmlFor="naswar_use">Naswar Use</Label>
-          <Select
-            value={formData.naswar_use}
-            onValueChange={(value) => onChange({ ...formData, naswar_use: value })}
-          >
-            <SelectTrigger id="naswar_use">
-              <SelectValue placeholder="Select..." />
-            </SelectTrigger>
-            <SelectContent>
-              {HABIT_STATUS.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {status}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="naswar_quantity">Naswar Quantity/Day</Label>
-          <Input
-            id="naswar_quantity"
-            value={formData.naswar_quantity}
-            onChange={(e) => onChange({ ...formData, naswar_quantity: e.target.value })}
-            placeholder="e.g., 2-3 times"
-          />
-        </div>
-
-        {/* Alcohol */}
-        <div className="space-y-2">
-          <Label htmlFor="alcohol_use">Alcohol Use</Label>
-          <Select
-            value={formData.alcohol_use}
-            onValueChange={(value) => onChange({ ...formData, alcohol_use: value })}
-          >
-            <SelectTrigger id="alcohol_use">
-              <SelectValue placeholder="Select..." />
-            </SelectTrigger>
-            <SelectContent>
-              {HABIT_STATUS.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {status}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="alcohol_quantity">Alcohol Quantity</Label>
-          <Input
-            id="alcohol_quantity"
-            value={formData.alcohol_quantity}
-            onChange={(e) => onChange({ ...formData, alcohol_quantity: e.target.value })}
-            placeholder="e.g., 2-3 drinks/week"
-          />
-        </div>
+                {/* Quit Period - shown only when quit is checked */}
+                {habit.quit && (
+                  <div className="md:col-span-2 space-y-2">
+                    <Label htmlFor={`quit_period-${habit.addiction_id}`}>Quit Period</Label>
+                    <Input
+                      id={`quit_period-${habit.addiction_id}`}
+                      value={habit.quit_period}
+                      onChange={(e) => updateHabit(index, { quit_period: e.target.value })}
+                      placeholder="e.g., 2 years ago, 6 months ago"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
-      {/* Other Habits */}
-      <div className="space-y-2">
-        <Label htmlFor="other_habits">Other Habits</Label>
-        <Textarea
-          id="other_habits"
-          value={formData.other_habits}
-          onChange={(e) => onChange({ ...formData, other_habits: e.target.value })}
-          placeholder="Any other habits not listed above..."
-          className="min-h-[60px]"
-        />
-      </div>
-
-      {/* Quit Period */}
-      <div className="space-y-2">
-        <Label htmlFor="quit_period">Quit Period (if former user)</Label>
-        <Input
-          id="quit_period"
-          value={formData.quit_period}
-          onChange={(e) => onChange({ ...formData, quit_period: e.target.value })}
-          placeholder="e.g., 2 years ago"
-        />
-      </div>
+      {error && (
+        <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+          {error}
+        </div>
+      )}
     </div>
   );
 }

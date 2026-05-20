@@ -22,7 +22,7 @@ export default function PatientDetailPage() {
   const router = useRouter();
   const id = params.id as string;
 
-  const { data: patient, isLoading, error } = usePatient(id);
+  const { data: patient, isLoading, error } = usePatient(parseInt(id));
 
   if (isLoading) {
     return (
@@ -65,9 +65,9 @@ export default function PatientDetailPage() {
                 </Button>
               </Link>
               <div>
-                <h1 className="text-2xl font-bold">{patient.full_name}</h1>
+                <h1 className="text-2xl font-bold">{patient.PatientName}</h1>
                 <p className="text-sm text-muted-foreground">
-                  {patient.age ? `${patient.age} years` : 'Age unknown'} • {patient.sex || 'Unknown'}
+                  {patient.Age ? `${patient.Age} years` : 'Age unknown'} • {patient.Gender || 'Unknown'}
                 </p>
               </div>
             </div>
@@ -95,19 +95,19 @@ export default function PatientDetailPage() {
           </TabsContent>
 
           <TabsContent value="history" className="space-y-6">
-            <HistoryTab patientId={patient.id} />
+            <HistoryTab patientId={patient.PatientID.toString()} />
           </TabsContent>
 
           <TabsContent value="habits" className="space-y-6">
-            <HabitsTab patientId={patient.id} />
+            <HabitsTab patientId={patient.PatientID.toString()} />
           </TabsContent>
 
           <TabsContent value="diagnoses" className="space-y-6">
-            <DiagnosesTab patientId={patient.id} />
+            <DiagnosesTab patientId={patient.PatientID.toString()} />
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-6">
-            <ReportsTab patientId={patient.id} />
+            <ReportsTab patientId={patient.PatientID.toString()} />
           </TabsContent>
         </Tabs>
       </main>

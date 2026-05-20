@@ -58,15 +58,15 @@ export function BiomarkerStep({ formData, onChange, error }: BiomarkerStepProps)
             </p>
           </div>
 
-          {/* ER Percentage */}
+          {/* ER PercentAge */}
           <div className="space-y-2">
-            <Label htmlFor="er_percentage" className="text-sm font-medium">ER Intensity (%)</Label>
+            <Label htmlFor="er_percentAge" className="text-sm font-medium">ER Intensity (%)</Label>
             <div className="flex items-center gap-2">
               <Input
-                id="er_percentage"
+                id="er_percentAge"
                 type="number"
-                value={formData.er_percentage}
-                onChange={(e) => onChange({ ...formData, er_percentage: e.target.value })}
+                value={formData.er_percentAge}
+                onChange={(e) => onChange({ ...formData, er_percentAge: e.target.value })}
                 placeholder="0-100"
                 min="0"
                 max="100"
@@ -75,7 +75,7 @@ export function BiomarkerStep({ formData, onChange, error }: BiomarkerStepProps)
               <span className="text-sm text-muted-foreground w-10">%</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              {formData.er_percentage && parseInt(formData.er_percentage) >= 1
+              {formData.er_percentAge && parseInt(formData.er_percentAge) >= 1
                 ? 'Positive (≥1% staining)'
                 : 'Positive if ≥1%'}
             </p>
@@ -101,15 +101,15 @@ export function BiomarkerStep({ formData, onChange, error }: BiomarkerStepProps)
             </p>
           </div>
 
-          {/* PR Percentage */}
+          {/* PR PercentAge */}
           <div className="space-y-2">
-            <Label htmlFor="pr_percentage" className="text-sm font-medium">PR Intensity (%)</Label>
+            <Label htmlFor="pr_percentAge" className="text-sm font-medium">PR Intensity (%)</Label>
             <div className="flex items-center gap-2">
               <Input
-                id="pr_percentage"
+                id="pr_percentAge"
                 type="number"
-                value={formData.pr_percentage}
-                onChange={(e) => onChange({ ...formData, pr_percentage: e.target.value })}
+                value={formData.pr_percentAge}
+                onChange={(e) => onChange({ ...formData, pr_percentAge: e.target.value })}
                 placeholder="0-100"
                 min="0"
                 max="100"
@@ -118,7 +118,7 @@ export function BiomarkerStep({ formData, onChange, error }: BiomarkerStepProps)
               <span className="text-sm text-muted-foreground w-10">%</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Percentage of cells stained for PR
+              PercentAge of cells stained for PR
             </p>
           </div>
         </div>
@@ -209,15 +209,15 @@ export function BiomarkerStep({ formData, onChange, error }: BiomarkerStepProps)
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          {/* Ki-67 Percentage */}
+          {/* Ki-67 PercentAge */}
           <div className="space-y-2">
-            <Label htmlFor="ki67_percentage" className="text-sm font-medium">Ki-67 Index (%)</Label>
+            <Label htmlFor="ki67_percentAge" className="text-sm font-medium">Ki-67 Index (%)</Label>
             <div className="flex items-center gap-2">
               <Input
-                id="ki67_percentage"
+                id="ki67_percentAge"
                 type="number"
-                value={formData.ki67_percentage}
-                onChange={(e) => onChange({ ...formData, ki67_percentage: e.target.value })}
+                value={formData.ki67_percentAge}
+                onChange={(e) => onChange({ ...formData, ki67_percentAge: e.target.value })}
                 placeholder="0-100"
                 min="0"
                 max="100"
@@ -232,20 +232,20 @@ export function BiomarkerStep({ formData, onChange, error }: BiomarkerStepProps)
         </div>
 
         {/* Ki-67 Interpretation */}
-        {formData.ki67_percentage && (
+        {formData.ki67_percentAge && (
           <div className={`p-3 rounded-md border ${
-            parseFloat(formData.ki67_percentage) < 14
+            parseFloat(formData.ki67_percentAge) < 14
               ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800'
-              : parseFloat(formData.ki67_percentage) < 30
+              : parseFloat(formData.ki67_percentAge) < 30
                 ? 'bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800'
                 : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800'
           }`}>
             <p className="text-xs text-muted-foreground">
-              Ki-67 Index: <span className="font-semibold">{formData.ki67_percentage}%</span>
+              Ki-67 Index: <span className="font-semibold">{formData.ki67_percentAge}%</span>
               {' - '}
-              {parseFloat(formData.ki67_percentage) < 14
+              {parseFloat(formData.ki67_percentAge) < 14
                 ? 'Low proliferation'
-                : parseFloat(formData.ki67_percentage) < 30
+                : parseFloat(formData.ki67_percentAge) < 30
                   ? 'Intermediate proliferation'
                   : 'High proliferation'}
             </p>
@@ -279,9 +279,9 @@ export function BiomarkerStep({ formData, onChange, error }: BiomarkerStepProps)
                 HER2 {formData.her2_status}
               </span>
             )}
-            {formData.ki67_percentage && (
+            {formData.ki67_percentAge && (
               <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">
-                Ki-67 {formData.ki67_percentage}%
+                Ki-67 {formData.ki67_percentAge}%
               </span>
             )}
           </div>

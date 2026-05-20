@@ -1,252 +1,360 @@
-// Type definitions for EHR Frontend
+// Type definitions for EHR Frontend - New Schema (PascalCase/Integer)
 // Matches backend database schema
 
 // Core Types
-export type UUID = string;
 export type ISODateTime = string;
 
-// Patient Types
+// Patient Types - New Schema (denormalized with 60+ fields)
 export interface Patient {
-  id: UUID;
-  registration_number: string | null;
-  registration_date: ISODateTime | null;
-  full_name: string;
-  age: number | null;
-  sex: 'Male' | 'Female' | 'Other' | null;
-  phone: string | null;
-  cnic: string | null;
-  marital_status: string | null;
-  education: string | null;
-  language: string | null;
-  territory: string | null;
-  children_count: number;
-  sibling_count: number;
-  created_at: ISODateTime;
-  updated_at: ISODateTime;
+  PatientID: number;
+  RegistrationNo?: string | null;
+  RegistrationDate?: ISODateTime | null;
+  PatientName: string;
+  WOSODO?: string | null;
+  RelativeName?: string | null;
+  Age?: number | null;
+  Height?: number | null;
+  HScale?: string | null;
+  Weight?: number | null;
+  WScale?: string | null;
+  Gender?: 'Male' | 'Female' | 'Other' | null;
+  MaritalStatus?: string | null;
+  NoOfChidren?: number;
+  NoOfSibling?: number;
+  BloodGroup?: number | null; // FK to BloodGroups.ID
+  ContactNo?: string | null;
+  CNICNo?: string | null;
+  Educated?: number;
+  Qualifications?: number | null; // FK to Qualifications.ID
+  Occupation?: number | null; // FK to Occupation.ID
+  Years?: number | null;
+  MonthlyIncome?: number | null;
+  WaterUsage?: string | null;
+  MotherTongue?: number | null; // FK to MotherTongue.ID
+  PlaceOfBirth?: number | null; // FK to District.ID
+  DoSports?: number;
+  Sports?: number | null; // FK to Sports.ID
+  HowOften?: string | null;
+  DoExercise?: number;
+  Exercise?: string | null;
+  Durantion?: string | null;
+  PresentAddress?: string | null;
+  PermanentAddress?: string | null;
+  TreatedBefore?: number;
+  AlternativeNameDuration?: string | null;
+  MedicalTreatmentSpecify?: string | null;
+  PreviousTreatment?: string | null;
+  ModeOfPresentation?: string | null;
+  PresentedWith?: string | null;
+  TreatmentOfferedAtJPMC?: string | null;
+  OutComeOfTreatment?: string | null;
+  ProposedTreatment?: string | null;
+  PlanOfTreatment?: string | null;
+  SurgicalProcedure?: string | null;
+  SurgicalDate?: ISODateTime | null;
+  Hospital?: number | null; // FK to Hospitals.ID
+  TNM?: string | null;
+  Margins?: string | null;
+  LVI?: string | null;
+  PNI?: string | null;
+  EGFR?: string | null;
+  EGFR2?: string | null;
+  ENE?: string | null;
+  ECE?: string | null;
+  NodesDisected?: string | null;
+  NodesInvolved?: string | null;
+  Metastasis?: string | null;
+  SitesOfMetastasis?: string | null;
+  TumorLateralityRL?: string | null;
+  Quadrant?: string | null;
+  TumorSize?: string | null;
+  TumorDepth?: string | null;
+  TumorResponseToChemo?: string | null;
+  Grade?: string | null;
+  RadioTherapy?: string | null;
+  Dose?: string | null;
+  ResponseR?: string | null;
+  ChemoRegimen?: string | null;
+  Cycles?: string | null;
+  ResponseC?: string | null;
+  SurgicalOutCome?: string | null;
+  SurgicalPathalogy?: string | null;
+  StatingTest?: string | null;
+  BrainTumor?: string | null;
+  HeadAndNeck?: string | null;
+  BreastCancer?: string | null;
+  Genitourinary?: string | null;
+  Gyneacological?: string | null;
+  LungsCancer?: string | null;
+  GITumor?: string | null;
+  SkinTumor?: string | null;
+  Hematological?: string | null;
+  Sarcoma?: string | null;
+  Carcinoma?: string | null;
+  FollowUp?: number;
+  ExaminationDate?: ISODateTime | null;
+  DoctorName?: string | null;
+  // Resolved lookup names (from views)
+  BloodGroupName?: string | null;
+  HospitalName?: string | null;
+  QualificationName?: string | null;
+  OccupationName?: string | null;
+  MotherTongueName?: string | null;
+  PlaceOfBirthName?: string | null;
+  SportsName?: string | null;
+  // Additional fields for compatibility (may not exist in current schema)
+  PresentingComplaint?: string | null;
+  Comorbidities?: string | null;
+  FamilyCancerHistory?: string | null;
+  CancerType?: string | null;
+  DiagnosisDate?: ISODateTime | null;
+  Notes?: string | null;
+  WHOClassification?: string | null;
+  StAge?: string | null;
+  ERStatus?: string | null;
+  ERPercent?: string | null;
+  PRStatus?: string | null;
+  PRPercent?: string | null;
+  HER2Status?: string | null;
+  Ki67Percent?: string | null;
+  Findings?: string | null;
+  Indication?: string | null;
+  PlanType?: string | null;
+  SurgeryPlanned?: string | null;
+  NeoadjuvantChemo?: string | null;
 }
 
 export interface PatientListItem extends Patient {
-  report_count: number;
-  diagnosis_count?: number;
+  // Additional computed fields for list view
+  report_count?: number;
 }
 
 export interface CreatePatientInput {
-  full_name: string;
-  age?: number;
-  sex?: 'Male' | 'Female' | 'Other';
-  phone?: string;
-  cnic?: string;
-  registration_number?: string;
-  registration_date?: string;
-  marital_status?: string;
-  education?: string;
-  language?: string;
-  territory?: string;
-  children_count?: number;
-  sibling_count?: number;
+  PatientName: string;
+  Age?: number;
+  Gender?: 'Male' | 'Female' | 'Other';
+  ContactNo?: string;
+  CNICNo?: string;
+  RegistrationNo?: string;
+  RegistrationDate?: string;
+  MaritalStatus?: string;
+  NoOfChidren?: number;
+  NoOfSibling?: number;
+  BloodGroup?: number;
+  Hospital?: number;
+  Qualifications?: number;
+  Occupation?: number;
+  MotherTongue?: number;
+  PlaceOfBirth?: number;
+  Sports?: number;
+  // Additional fields for compatibility
+  PresentingComplaint?: string;
+  Comorbidities?: string;
+  FamilyCancerHistory?: string;
+  CancerType?: string;
+  DiagnosisDate?: string;
+  Notes?: string;
+  WHOClassification?: string;
+  StAge?: string;
+  Grade?: string;
+  TumorSize?: string;
+  TumorDepth?: string;
+  Margins?: string;
+  LVI?: string;
+  PNI?: string;
+  NodesDisected?: string;
+  NodesInvolved?: string;
+  ERStatus?: string;
+  ERPercent?: string;
+  PRStatus?: string;
+  PRPercent?: string;
+  HER2Status?: string;
+  Ki67Percent?: string;
+  Findings?: string;
+  Indication?: string;
+  PlanType?: string;
+  SurgeryPlanned?: string;
+  NeoadjuvantChemo?: string;
+  Smoking?: string;
+  SmokingQuantity?: string;
+  Pan?: string;
+  PanQuantity?: string;
+  Gutka?: string;
+  GutkaQuantity?: string;
+  Naswar?: string;
+  NaswarQuantity?: string;
+  Alcohol?: string;
+  AlcoholQuantity?: string;
+  OtherHabits?: string;
+  QuitPeriod?: string;
 }
 
 export interface UpdatePatientInput extends Partial<CreatePatientInput> {}
 
-// Vitals Types
-export interface PatientVitals {
-  id: UUID;
-  patient_id: UUID;
-  height_cm: number | null;
-  weight_kg: number | null;
-  blood_group: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-' | null;
-  recorded_at: ISODateTime;
+// Lab Result Types
+export interface LabResult {
+  RowID: number;
+  PatientID: number;
+  Laboratory?: number | null;
+  TestDate?: ISODateTime | null;
+  [key: string]: any; // Allow for test-specific fields
 }
 
-export interface CreateVitalsInput {
-  height_cm?: number;
-  weight_kg?: number;
-  blood_group?: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
+// Imaging Result Types
+export interface ImagingResult {
+  RowID: number;
+  PatientID: number;
+  TestDate?: ISODateTime | null;
+  [key: string]: any;
 }
 
-// History Types
-export interface PatientHistory {
-  id: UUID;
-  patient_id: UUID;
-  presenting_complaint: string | null;
-  comorbidities: string | null;
-  family_cancer_history: string | null;
-  created_at: ISODateTime;
-  updated_at: ISODateTime;
+// Treatment Result Types
+export interface TreatmentResult {
+  RowID: number;
+  PatientID: number;
+  TreatmentDate?: ISODateTime | null;
+  [key: string]: any;
 }
 
-export interface CreateHistoryInput {
-  presenting_complaint?: string;
-  comorbidities?: string;
-  family_cancer_history?: string;
+// Pathology Result Types
+export interface PathologyResult {
+  RowID: number;
+  PatientID: number;
+  TestDate?: ISODateTime | null;
+  [key: string]: any;
 }
 
-// Habits Types
-export interface PatientHabits {
-  id: UUID;
-  patient_id: UUID;
-  smoking_status: 'Never' | 'Former' | 'Current' | null;
-  smoking_quantity: string | null;
-  pan_use: 'Never' | 'Former' | 'Current' | null;
-  pan_quantity: string | null;
-  gutka_use: 'Never' | 'Former' | 'Current' | null;
-  gutka_quantity: string | null;
-  naswar_use: 'Never' | 'Former' | 'Current' | null;
-  naswar_quantity: string | null;
-  alcohol_use: 'Never' | 'Former' | 'Current' | null;
-  alcohol_quantity: string | null;
-  other_habits: string | null;
-  quit_period: string | null;
-  created_at: ISODateTime;
-  updated_at: ISODateTime;
+// Lifestyle Types
+export interface LifestyleResult {
+  RowID: number;
+  PatientID: number;
+  [key: string]: any;
 }
 
-export interface CreateHabitsInput {
-  smoking_status?: 'Never' | 'Former' | 'Current';
-  smoking_quantity?: string;
-  pan_use?: 'Never' | 'Former' | 'Current';
-  pan_quantity?: string;
-  gutka_use?: 'Never' | 'Former' | 'Current';
-  gutka_quantity?: string;
-  naswar_use?: 'Never' | 'Former' | 'Current';
-  naswar_quantity?: string;
-  alcohol_use?: 'Never' | 'Former' | 'Current';
-  alcohol_quantity?: string;
-  other_habits?: string;
-  quit_period?: string;
+export interface FamilyHistoryResult {
+  RowID: number;
+  PatientID: number;
+  Relation?: number | null;
+  Disease?: number | null;
+  Diseases?: string | null; // Resolved name
+  Relations?: string | null; // Resolved name
 }
 
-// Diagnosis Types
-export interface CancerDiagnosis {
-  id: UUID;
-  patient_id: UUID;
-  cancer_type: string;
-  stage: 'I' | 'II' | 'III' | 'IV' | null;
-  grade: '1' | '2' | '3' | null;
-  who_classification: string | null;
-  diagnosis_date: ISODateTime | null;
-  created_at: ISODateTime;
-  updated_at: ISODateTime;
-  image_count?: number;
-  // Pathology fields
-  tumor_size?: string | null;
-  depth?: string | null;
-  margins?: string | null;
-  lvi?: string | null;
-  pni?: string | null;
-  nodes_recovered?: number | null;
-  nodes_involved?: number | null;
-  // Biomarker fields
-  er_status?: string | null;
-  er_percentage?: string | null;
-  pr_status?: string | null;
-  pr_percentage?: string | null;
-  her2_status?: string | null;
-  ki67_percentage?: string | null;
-  // Imaging fields
-  study_type?: string | null;
-  study_date?: string | null;
-  findings?: string | null;
-  indication?: string | null;
-  // Treatment fields
-  plan_type?: string | null;
-  surgery_planned?: string | null;
-  neoadjuvant_chemo?: string | null;
-  adjuvant_chemo?: string | null;
+// Grouped Response Types
+export interface PatientLabs {
+  cbc: LabResult[];
+  lft: LabResult[];
+  bloodSugar: LabResult[];
+  bloodUrea: LabResult[];
+  electrolytes: LabResult[];
+  tumorMarkers: LabResult[];
+  pt: LabResult[];
+  esr: LabResult[];
+  ldh: LabResult[];
+  calcium: LabResult[];
+  uricAcid: LabResult[];
+  bloodLipids: LabResult[];
+  bicarbonate: LabResult[];
+  tport: LabResult[];
+  antiHCV: LabResult[];
+  hbsag: LabResult[];
+  urine: LabResult[];
+  urineDR2: LabResult[];
+  otherTests: LabResult[];
 }
 
-export interface CreateDiagnosisInput {
-  cancer_type: string;
-  stage?: 'I' | 'II' | 'III' | 'IV';
-  grade?: '1' | '2' | '3';
-  who_classification?: string;
-  diagnosis_date?: string;
-  // Pathology
-  tumor_size?: string;
-  depth?: string;
-  margins?: string;
-  lvi?: string;
-  pni?: string;
-  nodes_recovered?: string;
-  nodes_involved?: string;
-  // Biomarkers
-  er_status?: string;
-  er_percentage?: string;
-  pr_status?: string;
-  pr_percentage?: string;
-  her2_status?: string;
-  ki67_percentage?: string;
-  // Imaging
-  study_type?: string;
-  study_date?: string;
-  findings?: string;
-  indication?: string;
-  // Treatment
-  plan_type?: string;
-  surgery_planned?: string;
-  neoadjuvant_chemo?: string;
-  adjuvant_chemo?: string;
+export interface PatientImaging {
+  xray: ImagingResult[];
+  ctScan: ImagingResult[];
+  mri: ImagingResult[];
+  ultrasound: ImagingResult[];
+  petScan: ImagingResult[];
+  boneScan: ImagingResult[];
+  mammography: ImagingResult[];
+  doppler: ImagingResult[];
+  endoscopy: ImagingResult[];
+  bronchoscopy: ImagingResult[];
+  laproscopy: ImagingResult[];
+  ecg: ImagingResult[];
+  echocardiography: ImagingResult[];
+  srs: ImagingResult[];
+  otherTests: ImagingResult[];
 }
 
-// Report Types
-export interface Report {
-  id: UUID;
-  patient_id: UUID;
-  diagnosis_id: UUID | null;
-  title: string;
-  report_type: string;
-  notes: string | null;
-  report_date: ISODateTime | null;
-  created_at: ISODateTime;
-  image_count?: number;
+export interface PatientTreatments {
+  chemo: TreatmentResult[];
+  radio: TreatmentResult[];
+  hormonal: TreatmentResult[];
+  targeted: TreatmentResult[];
+  surgery: TreatmentResult[];
+  leukemia: TreatmentResult[];
+  chronicLeukemia: TreatmentResult[];
+  myeloma: TreatmentResult[];
 }
 
-export interface GroupedReports {
-  pathology: Report[];
-  imaging: Report[];
-  lab: Report[];
-  consultation: Report[];
-  other: Report[];
+export interface PatientPathology {
+  boneMarrow: PathologyResult[];
+  cytogenetics: PathologyResult[];
+  immunophenotyping: PathologyResult[];
+  molecular: PathologyResult[];
+  imagingFooter?: Record<string, any>;
 }
 
-export interface CreateReportInput {
-  patient_id: UUID;
-  diagnosis_id?: UUID;
-  title: string;
-  report_type: string;
-  notes?: string;
-  report_date?: string;
+export interface PatientLifestyle {
+  addictions: LifestyleResult[];
+  drinks: LifestyleResult[];
+  foods: LifestyleResult[];
+  familyHistory: FamilyHistoryResult[];
 }
 
-export interface UpdateReportInput {
-  diagnosis_id?: UUID;
-  title?: string;
-  report_type?: string;
-  notes?: string;
-  report_date?: string;
+// Lookup Types
+export interface LookupItem {
+  ID: number;
+  [key: string]: string | number; // Dynamic properties like BloodGroup, Hospitals, etc.
 }
 
-// Image Types
-export interface ReportImage {
-  id: UUID;
-  entity_type: string;
-  entity_id: UUID;
-  image_path: string;
-  file_name: string;
-  file_type: string;
-  file_size: number;
-  caption: string | null;
-  sequence: number;
-  captured_at: ISODateTime;
-  created_at: ISODateTime;
+export interface BloodGroup extends LookupItem {
+  BloodGroup: string;
 }
 
-export interface CreateImageInput {
-  entity_type: string;
-  entity_id: UUID;
-  image: File;
-  caption?: string;
-  sequence?: number;
+export interface Hospital extends LookupItem {
+  Hospitals: string;
+}
+
+export interface Qualification extends LookupItem {
+  QLevel: string;
+}
+
+export interface LookupsResponse {
+  bloodGroups: BloodGroup[];
+  hospitals: Hospital[];
+  laboratories: LookupItem[];
+  occupations: LookupItem[];
+  qualifications: Qualification[];
+  motherTongues: LookupItem[];
+  districts: LookupItem[];
+  provinces: LookupItem[];
+  relations: LookupItem[];
+  sports: LookupItem[];
+  durations: LookupItem[];
+  typeOfSamples: LookupItem[];
+  diseases: LookupItem[];
+  addictions: LookupItem[];
+  drinks: LookupItem[];
+  foods: LookupItem[];
+  cancerTypes: {
+    brainTumors: LookupItem[];
+    breastCancer: LookupItem[];
+    carcinoma: LookupItem[];
+    genitourinary: LookupItem[];
+    giTumors: LookupItem[];
+    gynecological: LookupItem[];
+    headNeckCancer: LookupItem[];
+    hematological: LookupItem[];
+    lungsCancer: LookupItem[];
+    sarcoma: LookupItem[];
+    skinTumor: LookupItem[];
+  };
 }
 
 // API Response Types
@@ -269,6 +377,15 @@ export interface ApiError {
 
 export type ApiResult<T> = ApiResponse<T> | ApiError;
 
+// Paginated Response Type
+export interface PaginatedResponse<T> {
+  patients: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 // Form State Types
 export type FormErrors<T extends object> = Partial<Record<keyof T, string[]>>;
 
@@ -285,32 +402,11 @@ export type PatientListView = 'card' | 'table';
 
 export type PatientDetailTab = 'overview' | 'history' | 'habits' | 'diagnoses' | 'reports';
 
-export type DiagnosisWizardStep =
-  | 'basic'
-  | 'pathology'
-  | 'biomarker'
-  | 'imaging'
-  | 'treatment';
-
-export interface WizardState {
-  currentStep: DiagnosisWizardStep;
-  completedSteps: DiagnosisWizardStep[];
-  data: Partial<CreateDiagnosisInput>;
-}
-
 // Search & Filter Types
 export interface PatientSearchParams {
   search?: string;
+  page?: number;
   limit?: number;
-  offset?: number;
-}
-
-export interface ReportFilters {
-  patient_id: UUID;
-  diagnosis_id?: UUID;
-  report_type?: string;
-  limit?: number;
-  offset?: number;
 }
 
 // Utility Types
@@ -319,3 +415,78 @@ export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 export type Nullable<T> = {
   [P in keyof T]: T[P] | null;
 };
+
+// Vitals type
+export interface PatientVitals {
+  id: string;
+  height_cm?: number;
+  weight_kg?: number;
+  blood_group?: string;
+  recorded_at?: string;
+}
+
+// Report type
+export interface Report {
+  id: string;
+  patient_id: string;
+  title: string;
+  report_type: string;
+  notes?: string;
+  report_date?: string;
+  imAges?: Array<{ url: string; id?: string }>;
+  created_at?: string;
+}
+
+// Habits input type
+export interface CreateHabitsInput {
+  Smoking?: string;
+  SmokingQuantity?: string;
+  Pan?: string;
+  PanQuantity?: string;
+  Gutka?: string;
+  GutkaQuantity?: string;
+  Naswar?: string;
+  NaswarQuantity?: string;
+  Alcohol?: string;
+  AlcoholQuantity?: string;
+  OtherHabits?: string;
+  QuitPeriod?: string;
+}
+
+// Legacy diagnosis type (for compatibility during migration)
+export interface CancerDiagnosis {
+  id: string;
+  patient_id: string;
+  cancer_type: string;
+  stAge?: string;
+  grade?: string;
+  who_classification?: string;
+  diagnosis_date?: string;
+  notes?: string;
+  tumor_size?: string;
+  depth?: string;
+  margins?: string;
+  lvi?: string;
+  pni?: string;
+  nodes_recovered?: string;
+  nodes_involved?: string;
+  er_status?: string;
+  er_percentAge?: string;
+  pr_status?: string;
+  pr_percentAge?: string;
+  her2_status?: string;
+  ki67_percentAge?: string;
+  findings?: string;
+  indication?: string;
+  plan_type?: string;
+  surgery_planned?: string;
+  neoadjuvant_chemo?: string;
+  study_type?: string;
+  study_date?: string;
+  imaging_type?: string;
+  imaging_date?: string;
+  chemo_regimen?: string;
+  cycles?: string;
+  radio_dose?: string;
+  response?: string;
+}

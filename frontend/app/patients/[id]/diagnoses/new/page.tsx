@@ -20,7 +20,7 @@ import { toast } from 'sonner';
 type DiagnosisStep = 'basic' | 'pathology' | 'biomarker' | 'imaging' | 'treatment';
 
 const STEPS: { id: DiagnosisStep; title: string; description: string }[] = [
-  { id: 'basic', title: 'Basic', description: 'Cancer type, stage, grade' },
+  { id: 'basic', title: 'Basic', description: 'Cancer type, stAge, grade' },
   { id: 'pathology', title: 'Pathology', description: 'Tumor details' },
   { id: 'biomarker', title: 'Biomarkers', description: 'ER, PR, HER2' },
   { id: 'imaging', title: 'Imaging', description: 'CT, MRI, PET' },
@@ -61,7 +61,7 @@ export default function NewDiagnosisPage() {
   const [formData, setFormData] = useState({
     // Basic (Required: cancer_type)
     cancer_type: '',
-    stage: '',
+    stAge: '',
     grade: '',
     who_classification: '',
     diagnosis_date: '',
@@ -75,11 +75,11 @@ export default function NewDiagnosisPage() {
     nodes_involved: '',
     // Biomarkers (Optional)
     er_status: '',
-    er_percentage: '',
+    er_percentAge: '',
     pr_status: '',
-    pr_percentage: '',
+    pr_percentAge: '',
     her2_status: '',
-    ki67_percentage: '',
+    ki67_percentAge: '',
     // Imaging (Optional)
     study_type: '',
     study_date: '',
@@ -138,7 +138,7 @@ export default function NewDiagnosisPage() {
 
     try {
       await createDiagnosis.mutateAsync({
-        patientId,
+        patientId: parseInt(patientId),
         data: formData as any,
       });
 

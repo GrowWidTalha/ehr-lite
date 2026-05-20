@@ -1,4 +1,4 @@
-// API client wrapper for EHR Frontend
+// API client wrapper for EHR Frontend - New Schema (PascalCase/Integer)
 import type {
   ApiError,
   ApiResponse,
@@ -8,16 +8,13 @@ import type {
   PatientListItem,
   CreatePatientInput,
   UpdatePatientInput,
-  PatientVitals,
-  CreateVitalsInput,
-  PatientHistory,
-  CreateHistoryInput,
-  PatientHabits,
-  CreateHabitsInput,
-  CancerDiagnosis,
-  CreateDiagnosisInput,
-  Report,
-  CreateReportInput,
+  PatientLabs,
+  PatientImaging,
+  PatientTreatments,
+  PatientPathology,
+  PatientLifestyle,
+  LookupsResponse,
+  PaginatedResponse,
   PatientSearchParams,
 } from './db.types';
 
@@ -43,6 +40,11 @@ async function api<T>(
       return { success: false, error: data.error || 'Request failed' };
     }
 
+    // If response has success field and data, extract data
+    if ('success' in data && 'data' in data) {
+      return data;
+    }
+
     return data;
   } catch (error) {
     return {
@@ -61,13 +63,17 @@ async function uploadApi<T>(
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'POST',
       body: formData,
-      // Don't set Content-Type for FormData - browser does it automatically with boundary
     });
 
     const data = await response.json();
 
     if (!response.ok) {
       return { success: false, error: data.error || 'Upload failed' };
+    }
+
+    // If response has success field and data, extract data
+    if ('success' in data && 'data' in data) {
+      return data;
     }
 
     return data;
@@ -81,7 +87,7 @@ async function uploadApi<T>(
 
 // Patient API
 export const patientApi = {
-  list: (params?: PatientSearchParams) => {
+  list: async (params?: PatientSearchParams): Promise<ApiResult<PaginatedResponse<PatientListItem>>> => {
     const queryParams = params
       ? new URLSearchParams(
           Object.entries(params)
@@ -89,10 +95,10 @@ export const patientApi = {
             .map(([key, value]) => [key, String(value)])
         ).toString()
       : '';
-    return api<PatientListItem[]>(`/patients${queryParams ? `?${queryParams}` : ''}`);
+    return api<PaginatedResponse<PatientListItem>>(`/patients${queryParams ? `?${queryParams}` : ''}`);
   },
 
-  get: (id: string) => api<Patient>(`/patients/${id}`),
+  get: (id: number) => api<Patient>(`/patients/${id}`),
 
   create: (data: CreatePatientInput) =>
     api<Patient>('/patients', {
@@ -100,100 +106,84 @@ export const patientApi = {
       body: JSON.stringify(data),
     }),
 
-  update: (id: string, data: UpdatePatientInput) =>
+  update: (id: number, data: UpdatePatientInput) =>
     api<Patient>(`/patients/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
 
-  delete: (id: string) =>
+  delete: (id: number) =>
     api<{ success: boolean }>(`/patients/${id}`, {
       method: 'DELETE',
     }),
+
+  // Sub-resource endpoints
+  getLabs: (id: number) => api<PatientLabs>(`/patients/${id}/labs`),
+
+  getImaging: (id: number) => api<PatientImaging>(`/patients/${id}/imaging`),
+
+  getTreatments: (id: number) => api<PatientTreatments>(`/patients/${id}/treatments`),
+
+  getPathology: (id: number) => api<PatientPathology>(`/patients/${id}/pathology`),
+
+  getLifestyle: (id: number) => api<PatientLifestyle>(`/patients/${id}/lifestyle`),
 };
 
-// Vitals API
-export const vitalsApi = {
-  list: (patientId: string) =>
-    api<PatientVitals[]>(`/patients/${patientId}/vitals`),
-
-  create: (patientId: string, data: CreateVitalsInput) =>
-    api<PatientVitals>(`/patients/${patientId}/vitals`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+// Lookups API
+export const lookupsApi = {
+  getAll: () => api<LookupsResponse>('/lookups'),
 };
 
-// History API
-export const historyApi = {
-  get: (patientId: string) =>
-    api<PatientHistory>(`/patients/${patientId}/history`),
-
-  update: (patientId: string, data: CreateHistoryInput) =>
-    api<PatientHistory>(`/patients/${patientId}/history`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-};
-
-// Habits API
-export const habitsApi = {
-  get: (patientId: string) =>
-    api<PatientHabits>(`/patients/${patientId}/habits`),
-
-  update: (patientId: string, data: CreateHabitsInput) =>
-    api<PatientHabits>(`/patients/${patientId}/habits`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-};
-
-// Diagnosis API
-export const diagnosisApi = {
-  list: (patientId: string) =>
-    api<CancerDiagnosis[]>(`/patients/${patientId}/diagnoses`),
-
-  get: (patientId: string, id: string) =>
-    api<CancerDiagnosis>(`/patients/${patientId}/diagnoses/${id}`),
-
-  create: (patientId: string, data: CreateDiagnosisInput) =>
-    api<CancerDiagnosis>(`/patients/${patientId}/diagnoses`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-
-  update: (patientId: string, id: string, data: Partial<CreateDiagnosisInput>) =>
-    api<CancerDiagnosis>(`/patients/${patientId}/diagnoses/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-
-  delete: (patientId: string, id: string) =>
-    api<{ success: boolean }>(`/patients/${patientId}/diagnoses/${id}`, {
-      method: 'DELETE',
-    }),
-};
-
-// Reports API
+// Reports API (unchanged - uses polymorphic entity_type)
 export const reportsApi = {
-  list: (patientId: string, type?: string) =>
-    api<Report[]>(`/patients/${patientId}/reports${type ? `?type=${type}` : ''}`),
+  list: (patientId: number, type?: string) =>
+    api<any[]>(`/patients/${patientId}/reports${type ? `?type=${type}` : ''}`),
 
-  upload: (patientId: string, formData: FormData) =>
-    uploadApi<Report>(`/patients/${patientId}/reports`, formData),
+  getTypes: () =>
+    api<Array<{ ID: number; report_type: string }>>('/reports/types'),
 
-  delete: (id: string) =>
+  upload: (patientId: number, formData: FormData) =>
+    uploadApi<any>(`/patients/${patientId}/reports`, formData),
+
+  delete: (id: number) =>
     api<{ success: boolean }>(`/reports/${id}`, {
       method: 'DELETE',
     }),
 };
 
-// Search API
-export const searchApi = {
-  patients: (query: string, type?: string) =>
-    api<PatientListItem[]>(
-      `/search?q=${encodeURIComponent(query)}${type ? `&type=${type}` : ''}`
-    ),
+// Images API (unchanged - uses polymorphic entity_type)
+export const imagesApi = {
+  getByEntity: (entityType: string, entityId: number) => {
+    const params = new URLSearchParams({ entity_type: entityType, entity_id: String(entityId) });
+    return api<any[]>(`/images?${params}`);
+  },
+
+  upload: async (entityType: string, entityId: number, file: File, caption?: string) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('entity_type', entityType);
+    formData.append('entity_id', String(entityId));
+    if (caption) formData.append('caption', caption);
+
+    return uploadApi<any>('/images', formData);
+  },
+
+  delete: (id: number) =>
+    api<{ success: boolean }>(`/images/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+// Dashboard API
+export const dashboardApi = {
+  getStats: () => api<{
+    totalPatients: number;
+    todayRegistrations: number;
+    followUpPatients: number;
+    cancerTypeBreakdown: Record<string, number>;
+  }>('/dashboard/stats'),
+
+  getRecent: () => api<PatientListItem[]>('/dashboard/recent'),
 };
 
 // Export API
@@ -204,7 +194,6 @@ export const exportApi = {
    */
   patients: async (): Promise<{ success: boolean; error?: string; filename?: string }> => {
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
       const response = await fetch(`${API_BASE_URL}/export/patients`);
 
       if (!response.ok) {
@@ -247,11 +236,57 @@ export const exportApi = {
    */
   status: () =>
     api<{
-      today: { exportCount: number; totalPatients: number; lastExport: any };
+      totalPatients: number;
+      todayRegistrations: number;
       format: string;
       columns: number;
       description: string;
     }>('/export/status'),
+};
+
+// Import API
+export const importApi = {
+  upload: async (file: File): Promise<ApiResult<any>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/import/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Upload failed' };
+      }
+
+      return data;
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error',
+      };
+    }
+  },
+
+  status: () => api<{
+    totalPatients: number;
+    recentImports: number;
+    lastImport: any;
+  }>('/import/status'),
+
+  logs: () => api<any[]>('/import/logs'),
+};
+
+// Health Check API
+export const healthApi = {
+  check: () => api<{
+    status: string;
+    timestamp: string;
+    database: any;
+  }>('/health'),
 };
 
 export { api, uploadApi };

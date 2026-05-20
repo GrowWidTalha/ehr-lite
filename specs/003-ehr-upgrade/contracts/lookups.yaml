@@ -1,0 +1,189 @@
+openapi: 3.0.0
+info:
+  title: EHR Lite Lookups API
+  version: 1.0.0
+  description: Lookup data endpoints for dropdowns and references
+
+servers:
+  - url: http://localhost:4000/api
+
+paths:
+  /lookups:
+    get:
+      summary: Get all lookup table data
+      description: Returns all lookup tables in a single call for frontend dropdowns
+      responses:
+        '200':
+          description: All lookup data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LookupsResponse'
+
+components:
+  schemas:
+    LookupsResponse:
+      type: object
+      properties:
+        bloodGroups:
+          type: array
+          items:
+            $ref: '#/components/schemas/LookupItem'
+        addictions:
+          type: array
+          items:
+            $ref: '#/components/schemas/LookupItem'
+        drinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/LookupItem'
+        foods:
+          type: array
+          items:
+            $ref: '#/components/schemas/LookupItem'
+        hospitals:
+          type: array
+          items:
+            $ref: '#/components/schemas/LookupItem'
+        laboratories:
+          type: array
+          items:
+            $ref: '#/components/schemas/LookupItem'
+        occupations:
+          type: array
+          items:
+            $ref: '#/components/schemas/LookupItem'
+        qualifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/LookupItem'
+        motherTongues:
+          type: array
+          items:
+            $ref: '#/components/schemas/LookupItem'
+        districts:
+          type: array
+          items:
+            $ref: '#/components/schemas/LookupItem'
+        provinces:
+          type: array
+          items:
+            $ref: '#/components/schemas/LookupItem'
+        relations:
+          type: array
+          items:
+            $ref: '#/components/schemas/LookupItem'
+        sports:
+          type: array
+          items:
+            $ref: '#/components/schemas/LookupItem'
+        durations:
+          type: array
+          items:
+            $ref: '#/components/schemas/LookupItem'
+        typeOfSamples:
+          type: array
+          items:
+            $ref: '#/components/schemas/LookupItem'
+        diseases:
+          type: array
+          items:
+            $ref: '#/components/schemas/LookupItem'
+        cancerTypes:
+          type: object
+          properties:
+            brainTumors:
+              type: array
+              items:
+                $ref: '#/components/schemas/LookupItem'
+            breastCancer:
+              type: array
+              items:
+                $ref: '#/components/schemas/LookupItem'
+            carcinoma:
+              type: array
+              items:
+                $ref: '#/components/schemas/LookupItem'
+            genitourinary:
+              type: array
+              items:
+                $ref: '#/components/schemas/LookupItem'
+            giTumors:
+              type: array
+              items:
+                $ref: '#/components/schemas/LookupItem'
+            gynecological:
+              type: array
+              items:
+                $ref: '#/components/schemas/LookupItem'
+            headNeckCancer:
+              type: array
+              items:
+                $ref: '#/components/schemas/LookupItem'
+            hematological:
+              type: array
+              items:
+                $ref: '#/components/schemas/LookupItem'
+            lungsCancer:
+              type: array
+              items:
+                $ref: '#/components/schemas/LookupItem'
+            sarcoma:
+              type: array
+              items:
+                $ref: '#/components/schemas/LookupItem'
+            skinTumor:
+              type: array
+              items:
+                $ref: '#/components/schemas/LookupItem'
+
+    LookupItem:
+      type: object
+      properties:
+        ID:
+          type: integer
+          description: Primary key (use this value in foreign key fields)
+        # Additional properties vary by table
+        # Examples:
+        # BloodGroups: BloodGroup (string)
+        # Hospitals: Hospitals (string)
+        # Occupations: Occupation (string)
+        # Qualifications: QLevel (string)
+      required:
+        - ID
+      additionalProperties:
+        oneOf:
+          - type: string
+          - type: integer
+
+    LookupItemBloodGroup:
+      allOf:
+        - $ref: '#/components/schemas/LookupItem'
+        - type: object
+          properties:
+            BloodGroup:
+              type: string
+
+    LookupItemHospital:
+      allOf:
+        - $ref: '#/components/schemas/LookupItem'
+        - type: object
+          properties:
+            Hospitals:
+              type: string
+
+    LookupItemOccupation:
+      allOf:
+        - $ref: '#/components/schemas/LookupItem'
+        - type: object
+          properties:
+            Occupation:
+              type: string
+
+    LookupItemQualification:
+      allOf:
+        - $ref: '#/components/schemas/LookupItem'
+        - type: object
+          properties:
+            QLevel:
+              type: string

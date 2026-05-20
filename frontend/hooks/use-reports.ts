@@ -9,13 +9,13 @@ import type { Report } from '@/lib/db.types';
 export const reportKeys = {
   all: ['reports'] as const,
   lists: () => [...reportKeys.all, 'list'] as const,
-  list: (patientId: string, type?: string) =>
+  list: (patientId: number, type?: string) =>
     [...reportKeys.lists(), patientId, type] as const,
-  detail: (id: string) => [...reportKeys.all, 'detail', id] as const,
+  detail: (id: number) => [...reportKeys.all, 'detail', id] as const,
 };
 
 // Get reports for a patient
-export function useReports(patientId: string, type?: string) {
+export function useReports(patientId: number, type?: string) {
   return useQuery({
     queryKey: reportKeys.list(patientId, type),
     queryFn: () => reportsApi.list(patientId, type).then((res) =>
@@ -26,12 +26,23 @@ export function useReports(patientId: string, type?: string) {
   });
 }
 
+// Get report types (from TypeOfSamples table)
+export function useReportTypes() {
+  return useQuery({
+    queryKey: [...reportKeys.all, 'types'],
+    queryFn: () => reportsApi.getTypes().then((res) =>
+      res.success ? res.data : []
+    ),
+    staleTime: 60 * 60 * 1000, // Cache for 1 hour
+  });
+}
+
 // Upload report
 export function useUploadReport() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ patientId, formData }: { patientId: string; formData: FormData }) =>
+    mutationFn: ({ patientId, formData }: { patientId: number; formData: FormData }) =>
       reportsApi.upload(patientId, formData).then((res) =>
         res.success ? res.data : Promise.reject(new Error(res.error))
       ),
@@ -49,7 +60,7 @@ export function useDeleteReport() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) =>
+    mutationFn: (id: number) =>
       reportsApi.delete(id).then((res) =>
         res.success ? true : Promise.reject(new Error(res.error))
       ),

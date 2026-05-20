@@ -15,6 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Import routes
 import patientRoutes from './routes/patients.js';
+import lookupsRoutes from './routes/lookups.js';
 import imageRoutes from './routes/images.js';
 import reportRoutes from './routes/reports.js';
 import dashboardRoutes from './routes/dashboard.js';
@@ -56,6 +57,7 @@ if (!fs.existsSync(imagesDir)) {
 }
 
 app.use('/images', cors(), express.static(imagesDir));
+app.use('/patient-images', cors(), express.static(imagesDir));
 
 // ============================================================================
 // HEALTH CHECK
@@ -135,6 +137,7 @@ app.get('/api', (req, res) => {
 // ============================================================================
 
 app.use('/api/patients', patientRoutes);
+app.use('/api/lookups', lookupsRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/dashboard', dashboardRoutes);
