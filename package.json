@@ -6,10 +6,10 @@
   "scripts": {
     "dev": "concurrently \"npm:backend:*\" \"npm:frontend:*\"",
     "backend": "cd backend && npm run dev",
-    "frontend": "cd frontend && npm run dev",
+    "frontend": "cd frontend && npm install && npm run build && cd .. && node scripts/copy-static.js",
     "init-db": "cd backend && npm run init-db",
     "start": "cd backend && npm start",
-    "build:frontend": "cd frontend && rm -rf .next && npm install && npm run build && cd .. && node scripts/copy-static.js",
+    "build:frontend": "cd frontend && node -e \"const fs=require('fs');fs.existsSync('.next')&&fs.rmSync('.next',{recursive:true})\" && npm install && npm run build && cd .. && node scripts/copy-static.js",
     "build:backend": "cd backend && pnpm install",
     "build:all": "npm run build:frontend && npm run build:backend",
     "electron:dev": "npm run build:frontend && electron .",
