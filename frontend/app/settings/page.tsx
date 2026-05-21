@@ -14,14 +14,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useBackup } from '@/hooks/use-backup';
-import { HardDrive, CheckCircle, XCircle, Loader2, FolderOpen } from 'lucide-react';
+import { BackButton } from '@/components/navigation/back-button';
+import { HardDrive, CheckCircle, XCircle, Loader2, FolderOpen, Upload, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function SettingsPage() {
-  const { config, setBackupPath: setBackupPathHook, createBackup, backupInProgress, refetch } = useBackup();
+  const { config, setBackupPath: setBackupPathHook, createBackup, restoreBackup, backupInProgress, refetch } = useBackup();
   const [backupPath, setBackupPathInput] = useState(config?.backupPath || '');
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessAge, setErrorMessAge] = useState('');
+  const [isRestoring, setIsRestoring] = useState(false);
   const folderInputRef = useRef<HTMLInputElement>(null);
 
   // Check if File System Access API is supported
@@ -98,8 +100,27 @@ export default function SettingsPage() {
     if (result.success) {
       toast.success('Backup completed successfully');
       refetch();
-    } else {
+    } else if (!result.cancelled) {
       toast.error(result.error || 'Backup failed');
+    }
+  };
+
+  const handleRestoreBackup = async () => {
+    setIsRestoring(true);
+    try {
+      const result = await restoreBackup();
+
+      if (result.success) {
+        toast.success('Backup restored successfully. The app will now refresh.');
+        // Reload the page after a short delay to show the restored data
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else if (!result.cancelled) {
+        toast.error(result.error || 'Restore failed');
+      }
+    } finally {
+      setIsRestoring(false);
     }
   };
 
@@ -108,11 +129,14 @@ export default function SettingsPage() {
       {/* Header */}
       <header className="border-b bg-background px-6 py-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Configure application settings and preferences
-            </p>
+          <div className="flex items-center gap-4">
+            <BackButton />
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Configure application settings and preferences
+              </p>
+            </div>
           </div>
         </div>
       </header>
@@ -272,13 +296,62 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Restore Backup */}
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              Restore Backup
+            </CardTitle>
+            <CardDescription>
+              Restore patient data from a previously created backup file. This will replace all current data.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-md">
+                <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                  ⚠️ Warning: Restore will replace all current data
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                  Make sure you have a current backup before restoring. The restore process cannot be undone.
+                </p>
+              </div>
+
+              <div className="flex flex-col items-center gap-3">
+                <Button
+                  onClick={handleRestoreBackup}
+                  disabled={isRestoring}
+                  className="w-full max-w-xs"
+                  variant="outline"
+                >
+                  {isRestoring ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Restoring...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" />
+                      Select Backup to Restore
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  Choose a .zip backup file to restore your data
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Info Card */}
         <Card className="mt-4">
           <CardHeader>
             <CardTitle>Backup Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>• Backups include: patient database and all report imAges</p>
+            <p>• Backups include: patient database and all report images</p>
             <p>• Recommended: Connect an external hard drive and set it as your backup location</p>
             <p>• Backup files are named: ehr-backup-YYYY-MM-DD-HHMMSS.zip</p>
             <p>• You'll see a reminder banner if your last backup is more than 7 days old</p>

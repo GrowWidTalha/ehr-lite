@@ -146,6 +146,29 @@ export async function createBackup(type = 'manual', customPath = null) {
   if (!targetDir) {
     // No configured path, use local fallback
     targetDir = ensureBackupsDir(dateStr);
+  } else if (customPath) {
+    // When using custom path (from Electron dialog), use the exact path provided
+    // The user already selected the exact filename they want
+    const parsedPath = path.parse(customPath);
+    targetDir = parsedPath.dir;
+    // Override the filename with what the user selected
+    const customFilename = parsedPath.base;
+    if (customFilename.endsWith('.zip')) {
+      // User selected a specific filename
+      const backupPath = customPath;
+
+      // Check disk space
+      try {
+        const testFile = path.join(targetDir, '.space-check');
+        fs.writeFileSync(testFile, 'test');
+        fs.unlinkSync(testFile);
+      } catch (writeError) {
+        throw new Error('Cannot write to backup location');
+      }
+
+      // Create the backup with the custom filename
+      return await createBackupArchive(backupPath, type, now);
+    }
   } else {
     // Create EHR backups subdirectory in external drive
     const ehrBackupDir = path.join(targetDir, 'EHR-Backups');
@@ -162,11 +185,42 @@ export async function createBackup(type = 'manual', customPath = null) {
 
   // Check disk space on target drive
   let spaceCheck;
-  if (usingExternalDrive) {
+  if (usingExternalDrive && !customPath) {
     // For external drive, just check if we can write a small test file
     try {
       const testFile = path.join(targetDir, '.space-check');
       fs.writeFileSync(testFile, 'test');
+      fs.unlinkSync(testFile);
+      spaceCheck = { enough: true };
+    } catch (error) {
+      spaceCheck = { enough: false, error: 'Cannot write to backup location' };
+    }
+  } else if (!customPath) {
+    spaceCheck = await hasEnoughDiskSpace();
+  } else {
+    spaceCheck = { enough: true };
+  }
+
+  if (!spaceCheck.enough) {
+    const error = spaceCheck.error || `Insufficient disk space`;
+    await createBackupLog({
+      timestamp: now.toISOString(),
+      type,
+      status: 'failed',
+      error,
+      location: usingExternalDrive ? 'external' : 'local'
+    });
+    throw new Error(error);
+  }
+
+  return await createBackupArchive(backupPath, type, now);
+}
+
+/**
+ * Create the actual backup archive
+ */
+async function createBackupArchive(backupPath, type, now) {
+  const startTime = Date.now();
       fs.unlinkSync(testFile);
       spaceCheck = { enough: true };
     } catch (error) {
@@ -187,6 +241,14 @@ export async function createBackup(type = 'manual', customPath = null) {
     });
     throw new Error(error);
   }
+}
+
+/**
+ * Create the actual backup archive
+ */
+async function createBackupArchive(backupPath, type, now) {
+  const startTime = Date.now();
+  const filename = path.basename(backupPath);
 
   try {
     // Create write stream for zip file
@@ -202,12 +264,18 @@ export async function createBackup(type = 'manual', customPath = null) {
     const dbPath = getDatabasePath();
     if (fs.existsSync(dbPath)) {
       archive.file(dbPath, { name: 'database.db' });
+      console.log(`[backup] Adding database: ${dbPath}`);
+    } else {
+      console.warn(`[backup] Database not found: ${dbPath}`);
     }
 
     // Add images directory if it exists
     const imagesDir = getImagesDir();
     if (fs.existsSync(imagesDir)) {
       archive.directory(imagesDir, 'patient-images');
+      console.log(`[backup] Adding images directory: ${imagesDir}`);
+    } else {
+      console.warn(`[backup] Images directory not found: ${imagesDir}`);
     }
 
     // Finalize archive

@@ -185,25 +185,15 @@ export async function exportPatientsToExcel(userId = null) {
     const timestamp = new Date().toISOString().split('T')[0].replace(/-/g, '');
     const filename = `ehr-export-${timestamp}.xlsx`;
 
-    // Create temp file path
-    const tmpDir = path.join(process.cwd(), 'backend', 'data', 'exports');
-    const tmpPath = path.join(tmpDir, filename);
-
-    // Ensure directory exists
-    const fs = await import('fs');
-    if (!fs.existsSync(tmpDir)) {
-      fs.mkdirSync(tmpDir, { recursive: true });
-    }
-
-    // Write workbook
-    xlsx.writeFile(workbook, tmpPath);
+    // Write workbook to buffer instead of file
+    const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 
     const duration = Date.now() - startTime;
     createExportLog(`Exported ${patients.length} patients to ${filename} in ${duration}ms`, userId);
 
     return {
       filename,
-      path: tmpPath,
+      buffer,
       count: patients.length,
       duration
     };
