@@ -21,17 +21,9 @@ const FRONTEND_ENTRY = path.join(ROOT, 'frontend', '.next', 'standalone', 'front
 // Migration and seed paths
 const MIGRATE_ENTRY = path.join(ROOT, 'backend', 'migrations', 'migrate.js');
 const SEED_ENTRY = path.join(ROOT, 'backend', 'migrations', 'seed.js');
-const SEED_FLAG = path.join(USER_DATA, 'data', '.seeded');
 
-// User data directory for database and uploads
-const USER_DATA = app.getPath('userData');
-const DATA_DIR = path.join(USER_DATA, 'data');
-
-// Ensure data directories exist on first launch
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.mkdirSync(path.join(DATA_DIR, 'patient-images'), { recursive: true });
-}
+// User data directory for database and uploads (will be set in app.whenReady)
+let USER_DATA, DATA_DIR, SEED_FLAG;
 
 // Node binary path - use system node in dev, bundled node in production
 const NODE_BIN = isPackaged
@@ -233,6 +225,17 @@ ipcMain.handle('dialog:selectRestoreFile', async () => {
 
 app.whenReady().then(async () => {
   try {
+    // Initialize user data paths (must be done inside app.whenReady)
+    USER_DATA = app.getPath('userData');
+    DATA_DIR = path.join(USER_DATA, 'data');
+    SEED_FLAG = path.join(DATA_DIR, '.seeded');
+
+    // Create data directories if first launch
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+      fs.mkdirSync(path.join(DATA_DIR, 'patient-images'), { recursive: true });
+    }
+
     // Check if ports are already in use
     try {
       await Promise.all([waitForPort(3000, 2, 100), waitForPort(4000, 2, 100)]);
