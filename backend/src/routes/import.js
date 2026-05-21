@@ -69,15 +69,12 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     activeImports.set(importId, { status: 'processing', file: req.file.originalname });
 
-    // Import patients with progress tracking
-    const result = await importPatientsFromExcel(req.file.buffer, (progress) => {
-      // Could emit socket event here for real-time progress
-      console.log(`Import progress: ${progress.percent}% (${progress.current}/${progress.total})`);
-    });
+    // Import patients
+    const result = await importPatientsFromExcel(req.file.buffer, null);
 
     activeImports.set(importId, { status: 'completed', ...result.stats });
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         importId,
@@ -85,8 +82,6 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         errors: result.errors
       }
     });
-
-    console.log(`Import completed: ${result.stats.successCount} successful, ${result.stats.errorCount} errors`);
 
   } catch (error) {
     activeImports.set(importId, { status: 'failed', error: error.message });

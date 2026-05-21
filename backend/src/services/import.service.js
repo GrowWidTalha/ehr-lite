@@ -170,7 +170,7 @@ async function createAddictionsForPatient(patientId, row) {
       const addictionId = await getLookupId('Addictions', 'Addiction', habit.name);
       if (addictionId) {
         await run(
-          `INSERT INTO PatientAddictions (PatientID, Addiction) VALUES (?, ?)`,
+          `INSERT INTO PatientAddictions (PatientID, AddictionID) VALUES (?, ?)`,
           patientId, addictionId
         );
         addictions.push(habit.name);
@@ -183,7 +183,7 @@ async function createAddictionsForPatient(patientId, row) {
     const addictionId = await getLookupId('Addictions', 'Addiction', 'Other');
     if (addictionId) {
       await run(
-        `INSERT INTO PatientAddictions (PatientID, Addiction) VALUES (?, ?)`,
+        `INSERT INTO PatientAddictions (PatientID, AddictionID) VALUES (?, ?)`,
         patientId, addictionId
       );
       addictions.push('Other');
@@ -204,7 +204,7 @@ async function createFamilyHistoryForPatient(patientId, row) {
   const diseaseId = await getLookupId('Diseases', 'Diseases', familyHistory);
   if (diseaseId) {
     await run(
-      `INSERT INTO FamilyHistory (PatientID, Diseases, Relation) VALUES (?, ?, NULL)`,
+      `INSERT INTO FamilyHistory (PatientID, Diseas, Relation) VALUES (?, ?, NULL)`,
       patientId, diseaseId
     );
     return familyHistory;
@@ -283,16 +283,15 @@ export async function importPatientsFromExcel(buffer, userId = null) {
     }
 
     const duration = Date.now() - startTime;
-    const summary = {
-      total: rows.length,
-      success: successCount,
-      errors: errorCount,
-      duration,
-      errorDetails: errors
+    const stats = {
+      totalCount: rows.length,
+      successCount: successCount,
+      errorCount: errorCount,
+      duration
     };
 
     createImportLog(`Import complete: ${successCount} succeeded, ${errorCount} failed in ${duration}ms`, userId);
-    return summary;
+    return { stats, errors };
 
   } catch (error) {
     createImportLog(`Import failed: ${error.message}`, userId);

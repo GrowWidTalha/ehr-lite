@@ -106,7 +106,7 @@ const statements = [
     RowID INTEGER PRIMARY KEY AUTOINCREMENT,
     PatientID INTEGER REFERENCES Patient(PatientID),
     AddictionID INTEGER REFERENCES Addictions(ID),
-    Quantity INTEGER, QScale TEXT, Since TEXT, Frequency INTEGER, Quit TEXT
+    Quantity INTEGER, QScale TEXT, Frequency TEXT, Quit TEXT, QuitPeriod TEXT
   )`,
 
   `CREATE TABLE IF NOT EXISTS PatientDrinks (
