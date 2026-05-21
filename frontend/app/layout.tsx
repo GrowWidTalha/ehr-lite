@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { Toaster } from "sonner";
 import { BackupReminderWrapper } from "@/components/backup-reminder-wrapper";
+import { NavBar } from "@/components/navigation/navbar";
 import "./globals.css";
 
 const inter = Inter({
@@ -26,7 +27,10 @@ export default function RootLayout({
         <Providers>
           <BackupReminderWrapper />
           <div className="min-h-screen bg-background">
-            {children}
+            <NavBar />
+            <main className="min-h-[calc(100vh-4rem)]">
+              {children}
+            </main>
           </div>
           <Toaster />
         </Providers>

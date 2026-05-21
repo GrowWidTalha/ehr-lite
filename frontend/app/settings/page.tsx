@@ -14,7 +14,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useBackup } from '@/hooks/use-backup';
-import { BackButton } from '@/components/navigation/back-button';
 import { HardDrive, CheckCircle, XCircle, Loader2, FolderOpen, Upload, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -129,14 +128,11 @@ export default function SettingsPage() {
       {/* Header */}
       <header className="border-b bg-background px-6 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <BackButton />
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Configure application settings and preferences
-              </p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Configure application settings and preferences
+            </p>
           </div>
         </div>
       </header>

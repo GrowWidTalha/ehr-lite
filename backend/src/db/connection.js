@@ -167,19 +167,21 @@ async function initializeDatabase() {
     const addictionsColumns = db.exec("PRAGMA table_info(PatientAddictions)");
     if (addictionsColumns.length > 0) {
       const columns = addictionsColumns[0].values.map(v => v[1]);
-      // Check if we still have the old Since column
-      if (columns.includes('Since') && !columns.includes('QuitPeriod')) {
-        db.run('ALTER TABLE PatientAddictions ADD COLUMN QuitPeriod TEXT');
-        // Copy data from Since to QuitPeriod
-        db.run('UPDATE PatientAddictions SET QuitPeriod = Since WHERE Since IS NOT NULL');
-        // Note: We can't drop columns in SQLite, but we'll ignore Since in the app
-        console.log('Migrated Since column to QuitPeriod in PatientAddictions');
-      }
+
       // Add QuitPeriod column if it doesn't exist
       if (!columns.includes('QuitPeriod')) {
-        db.run('ALTER TABLE PatientAddictions ADD COLUMN QuitPeriod TEXT');
-        console.log('Added QuitPeriod column to PatientAddictions');
+        // Check if we still have the old Since column to migrate from
+        if (columns.includes('Since')) {
+          db.run('ALTER TABLE PatientAddictions ADD COLUMN QuitPeriod TEXT');
+          // Copy data from Since to QuitPeriod
+          db.run('UPDATE PatientAddictions SET QuitPeriod = Since WHERE Since IS NOT NULL');
+          console.log('Migrated Since column to QuitPeriod in PatientAddictions');
+        } else {
+          db.run('ALTER TABLE PatientAddictions ADD COLUMN QuitPeriod TEXT');
+          console.log('Added QuitPeriod column to PatientAddictions');
+        }
       }
+
       // Add Quit column if it doesn't exist
       if (!columns.includes('Quit')) {
         db.run('ALTER TABLE PatientAddictions ADD COLUMN Quit TEXT');

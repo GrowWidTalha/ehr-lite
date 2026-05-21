@@ -241,7 +241,7 @@ export function ReportUploadForm({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       <div>
         <h3 className="text-lg font-semibold">{title}</h3>
         <p className="text-sm text-muted-foreground">{description}</p>
