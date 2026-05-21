@@ -137,39 +137,24 @@ export async function createBackup(type = 'manual', customPath = null) {
   const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
   const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, ''); // HHMMSS
 
-  const filename = `ehr-backup-${dateStr}-${timeStr}.zip`;
+  let filename = `ehr-backup-${dateStr}-${timeStr}.zip`;
+  let backupPath;
+
+  // Handle custom path from Electron dialog
+  if (customPath) {
+    backupPath = customPath;
+    const parsedPath = path.parse(customPath);
+    filename = parsedPath.base;
+  }
 
   // Get backup path: custom path > configured path > fallback to local
-  let targetDir = customPath || getConfiguredBackupPath();
+  let targetDir = customPath ? path.parse(customPath).dir : getConfiguredBackupPath();
   const usingExternalDrive = !!targetDir;
 
-  if (!targetDir) {
+  if (!targetDir && !customPath) {
     // No configured path, use local fallback
     targetDir = ensureBackupsDir(dateStr);
-  } else if (customPath) {
-    // When using custom path (from Electron dialog), use the exact path provided
-    // The user already selected the exact filename they want
-    const parsedPath = path.parse(customPath);
-    targetDir = parsedPath.dir;
-    // Override the filename with what the user selected
-    const customFilename = parsedPath.base;
-    if (customFilename.endsWith('.zip')) {
-      // User selected a specific filename
-      const backupPath = customPath;
-
-      // Check disk space
-      try {
-        const testFile = path.join(targetDir, '.space-check');
-        fs.writeFileSync(testFile, 'test');
-        fs.unlinkSync(testFile);
-      } catch (writeError) {
-        throw new Error('Cannot write to backup location');
-      }
-
-      // Create the backup with the custom filename
-      return await createBackupArchive(backupPath, type, now);
-    }
-  } else {
+  } else if (targetDir && !customPath) {
     // Create EHR backups subdirectory in external drive
     const ehrBackupDir = path.join(targetDir, 'EHR-Backups');
     if (!fs.existsSync(ehrBackupDir)) {
@@ -181,7 +166,10 @@ export async function createBackup(type = 'manual', customPath = null) {
     }
   }
 
-  const backupPath = path.join(targetDir, filename);
+  // Set final backup path
+  if (!customPath) {
+    backupPath = path.join(targetDir, filename);
+  }
 
   // Check disk space on target drive
   let spaceCheck;
@@ -214,33 +202,6 @@ export async function createBackup(type = 'manual', customPath = null) {
   }
 
   return await createBackupArchive(backupPath, type, now);
-}
-
-/**
- * Create the actual backup archive
- */
-async function createBackupArchive(backupPath, type, now) {
-  const startTime = Date.now();
-      fs.unlinkSync(testFile);
-      spaceCheck = { enough: true };
-    } catch (error) {
-      spaceCheck = { enough: false, error: 'Cannot write to backup location' };
-    }
-  } else {
-    spaceCheck = await hasEnoughDiskSpace();
-  }
-
-  if (!spaceCheck.enough) {
-    const error = spaceCheck.error || `Insufficient disk space`;
-    await createBackupLog({
-      timestamp: now.toISOString(),
-      type,
-      status: 'failed',
-      error,
-      location: usingExternalDrive ? 'external' : 'local'
-    });
-    throw new Error(error);
-  }
 }
 
 /**
