@@ -61,9 +61,8 @@ export default function PatientDetailPage() {
             <div>
               <h1 className="text-2xl font-bold">{patient.PatientName}</h1>
               <p className="text-sm text-muted-foreground">
-                  {patient.Age ? `${patient.Age} years` : 'Age unknown'} • {patient.Gender || 'Unknown'}
-                </p>
-              </div>
+                {patient.Age ? `${patient.Age} years` : 'Age unknown'} • {patient.Gender || 'Unknown'}
+              </p>
             </div>
             <Button variant="outline" size="sm">
               <Edit className="mr-2 h-4 w-4" />
