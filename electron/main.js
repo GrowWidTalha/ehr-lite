@@ -16,7 +16,7 @@ const ROOT = isPackaged
   : path.join(__dirname, '..');
 
 const BACKEND_ENTRY = path.join(ROOT, 'backend', 'src', 'server.js');
-const FRONTEND_ENTRY = path.join(ROOT, 'frontend', '.next', 'standalone', 'server.js');
+const FRONTEND_ENTRY = path.join(ROOT, 'frontend', '.next', 'standalone', 'frontend', 'server.js');
 
 // User data directory for database and uploads
 const USER_DATA = app.getPath('userData');
@@ -82,7 +82,7 @@ function startFrontend() {
     };
 
     frontendProcess = spawn(NODE_BIN, [FRONTEND_ENTRY], {
-      cwd: path.join(ROOT, 'frontend', '.next', 'standalone'),
+      cwd: path.join(ROOT, 'frontend', '.next', 'standalone', 'frontend'),
       env,
       stdio: 'pipe',
     });
