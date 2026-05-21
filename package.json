@@ -9,10 +9,11 @@
     "frontend": "cd frontend && npm run dev",
     "init-db": "cd backend && npm run init-db",
     "start": "cd backend && npm start",
-    "build:frontend": "cd frontend && npm install && npm run build && cd .. && node scripts/copy-static.js",
+    "build:frontend": "cd frontend && rm -rf .next && npm install && npm run build && cd .. && node scripts/copy-static.js",
     "build:backend": "cd backend && pnpm install",
     "build:all": "npm run build:frontend && npm run build:backend",
-    "electron:dev": "electron .",
+    "electron:dev": "npm run build:frontend && electron .",
+    "dev:electron": "concurrently \"npm:electron:dev\" \"npm:backend:*\"",
     "dist": "npm run build:all && electron-builder --win"
   },
   "devDependencies": {

@@ -4,6 +4,12 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 const standalone = path.join(root, 'frontend', '.next', 'standalone');
 
+// Verify standalone build exists
+if (!fs.existsSync(standalone)) {
+  console.error('Standalone build not found. Run "npm run build" in frontend directory first.');
+  process.exit(1);
+}
+
 const copies = [
   {
     src: path.join(root, 'frontend', '.next', 'static'),
@@ -26,4 +32,4 @@ for (const { src, dst, label } of copies) {
   console.log(`Copied ${label} → ${path.relative(root, dst)}`);
 }
 
-console.log('Static assets ready.');
+console.log('Static assets ready for Electron standalone build.');
