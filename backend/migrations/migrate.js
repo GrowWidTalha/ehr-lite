@@ -470,6 +470,21 @@ const statements = [
     WhoReffered TEXT, ReferralCenterName TEXT, Reason TEXT,
     Hospital INTEGER REFERENCES Hospitals(ID)
   )`,
+
+  // Create views for patient data access
+  `CREATE VIEW IF NOT EXISTS vw_patient_list AS
+    SELECT p.*,
+      bg.BloodGroup AS BloodGroupName,
+      h.Hospitals AS HospitalName,
+      q.QLevel AS QualificationName,
+      o.Occupation AS OccupationName,
+      d.District AS PlaceOfBirthName
+    FROM Patient p
+    LEFT JOIN BloodGroups bg ON p.BloodGroup = bg.ID
+    LEFT JOIN Hospitals h ON p.Hospital = h.ID
+    LEFT JOIN Qualifications q ON p.Qualifications = q.ID
+    LEFT JOIN Occupation o ON p.Occupation = o.ID
+    LEFT JOIN District d ON p.PlaceOfBirth = d.ID`,
 ];
 
 let created = 0;
@@ -480,6 +495,12 @@ for (const stmt of statements) {
     db.run(stmt);
     if (stmt.includes('CREATE TABLE')) {
       const match = stmt.match(/CREATE TABLE IF NOT EXISTS (\w+)/i);
+      if (match) {
+        console.log(`✅ ${match[1]}`);
+        created++;
+      }
+    } else if (stmt.includes('CREATE VIEW')) {
+      const match = stmt.match(/CREATE VIEW IF NOT EXISTS (\w+)/i);
       if (match) {
         console.log(`✅ ${match[1]}`);
         created++;
@@ -496,5 +517,5 @@ const data = db.export();
 fs.writeFileSync(dbPath, Buffer.from(data));
 db.close();
 
-console.log(`\nDone — ${created} tables created, ${skipped} errors`);
+console.log(`\nDone — ${created} tables/views created, ${skipped} errors`);
 console.log(`Saved to: ${dbPath}`);
