@@ -30,6 +30,7 @@ Thumbs.db
 # Electron
 dist/
 node-win/
-electron/assets/*.ico
+# Keep icon.ico but ignore other icon files
 electron/assets/*.png
+electron/assets/*_icon-icons.com*
 
