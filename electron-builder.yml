@@ -20,9 +20,9 @@ extraResources:
   - from: frontend/.next/standalone
     to: app/frontend/.next/standalone
   - from: frontend/.next/static
-    to: app/frontend/.next/standalone/.next/static
+    to: app/frontend/.next/standalone/frontend/.next/static
   - from: frontend/public
-    to: app/frontend/.next/standalone/public
+    to: app/frontend/.next/standalone/frontend/public
   - from: node-win
     to: node
 

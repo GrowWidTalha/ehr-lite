@@ -4,7 +4,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.resolve(__dirname, '../data/database.db');
+const dbPath = process.env.DATA_DIR
+  ? path.join(process.env.DATA_DIR, 'database.db')
+  : path.resolve(__dirname, '../data/database.db');
 
 const SQL = await initSqlJs();
 

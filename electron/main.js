@@ -18,6 +18,11 @@ const ROOT = isPackaged
 const BACKEND_ENTRY = path.join(ROOT, 'backend', 'src', 'server.js');
 const FRONTEND_ENTRY = path.join(ROOT, 'frontend', '.next', 'standalone', 'frontend', 'server.js');
 
+// Migration and seed paths
+const MIGRATE_ENTRY = path.join(ROOT, 'backend', 'migrations', 'migrate.js');
+const SEED_ENTRY = path.join(ROOT, 'backend', 'migrations', 'seed.js');
+const SEED_FLAG = path.join(USER_DATA, 'data', '.seeded');
+
 // User data directory for database and uploads
 const USER_DATA = app.getPath('userData');
 const DATA_DIR = path.join(USER_DATA, 'data');
@@ -32,6 +37,42 @@ if (!fs.existsSync(DATA_DIR)) {
 const NODE_BIN = isPackaged
   ? path.join(process.resourcesPath, 'node', 'node.exe')
   : 'node';
+
+function runScript(scriptPath, label) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(NODE_BIN, [scriptPath], {
+      cwd: path.join(ROOT, 'backend'),
+      env: {
+        ...process.env,
+        DATA_DIR: DATA_DIR,
+        NODE_ENV: 'production',
+      },
+      stdio: 'pipe',
+    });
+
+    proc.stdout.on('data', d => console.log(`[${label}]`, d.toString().trim()));
+    proc.stderr.on('data', d => console.error(`[${label} error]`, d.toString().trim()));
+
+    proc.on('close', code => {
+      if (code === 0) resolve();
+      else reject(new Error(`${label} failed with exit code ${code}`));
+    });
+
+    proc.on('error', reject);
+  });
+}
+
+async function initDatabase() {
+  await runScript(MIGRATE_ENTRY, 'migrate');
+
+  if (!fs.existsSync(SEED_FLAG)) {
+    await runScript(SEED_ENTRY, 'seed');
+    fs.writeFileSync(SEED_FLAG, new Date().toISOString());
+    console.log('[db] Seed complete, flag written');
+  } else {
+    console.log('[db] Already seeded, skipping');
+  }
+}
 
 function startBackend() {
   return new Promise((resolve, reject) => {
@@ -206,6 +247,7 @@ app.whenReady().then(async () => {
       // Ports are available, continue
     }
 
+    await initDatabase();
     await Promise.all([startBackend(), startFrontend()]);
     await Promise.all([waitForPort(4000), waitForPort(3000)]);
     createWindow();
