@@ -12,6 +12,7 @@
     "test": "node test-api.js"
   },
   "dependencies": {
+    "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",
     "better-sqlite3": "^12.9.0",
     "cors": "^2.8.5",

@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const CONFIG_FILE = 'backup-config.json';
-const getDataDir = () => path.resolve(__dirname, '../../data');
+const getDataDir = () => process.env.DATA_DIR || path.resolve(__dirname, '../../data');
 const getConfigPath = () => path.join(getDataDir(), CONFIG_FILE);
 
 /**

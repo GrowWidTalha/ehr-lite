@@ -20,9 +20,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const getProjectRoot = () => path.resolve(__dirname, '../..');
 
 /**
+ * Get the data directory path (from environment or default)
+ */
+const getDataDir = () => process.env.DATA_DIR || path.join(getProjectRoot(), 'data');
+
+/**
  * Get the logs directory path
  */
-const getLogsDir = () => path.join(getProjectRoot(), 'data', 'logs');
+const getLogsDir = () => path.join(getDataDir(), 'logs');
 
 /**
  * Ensure logs directory exists

@@ -24,7 +24,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  * Get project paths
  */
 const getProjectRoot = () => path.resolve(__dirname, '../..');
-const getDataDir = () => path.join(getProjectRoot(), 'data');
+const getDataDir = () => process.env.DATA_DIR || path.join(getProjectRoot(), 'data');
 const getBackupsDir = () => path.join(getDataDir(), 'backups'); // Fallback/backups index
 const getDatabasePath = () => path.join(getDataDir(), 'database.db');
 const getImagesDir = () => path.join(getDataDir(), 'patient-images');

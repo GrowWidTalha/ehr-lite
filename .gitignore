@@ -25,3 +25,10 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Electron
+dist/
+node-win/
+electron/assets/*.ico
+electron/assets/*.png
+

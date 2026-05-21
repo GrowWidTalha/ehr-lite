@@ -9,6 +9,9 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
+// Check if running in Electron environment
+const isElectron = typeof window !== 'undefined' && window.electronAPI;
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 interface BackupConfig {
@@ -111,10 +114,29 @@ export function useBackup() {
     setBackupInProgress(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/backup/create`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
+      let response;
+
+      if (isElectron && window.electronAPI) {
+        // Use Electron native dialog for backup destination
+        const destinationPath = await window.electronAPI.selectBackupDestination();
+        if (!destinationPath) {
+          // User cancelled
+          setBackupInProgress(false);
+          return { success: false, cancelled: true };
+        }
+
+        response = await fetch(`${API_BASE_URL}/backup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ destinationPath })
+        });
+      } else {
+        // Use legacy endpoint
+        response = await fetch(`${API_BASE_URL}/backup/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
 
       const data = await response.json();
 
@@ -130,6 +152,40 @@ export function useBackup() {
       };
     } finally {
       setBackupInProgress(false);
+    }
+  };
+
+  // Restore backup
+  const restoreBackup = async () => {
+    if (!isElectron || !window.electronAPI) {
+      return { success: false, error: 'Restore only available in Electron app' };
+    }
+
+    try {
+      const zipPath = await window.electronAPI.selectRestoreFile();
+      if (!zipPath) {
+        // User cancelled
+        return { success: false, cancelled: true };
+      }
+
+      const response = await fetch(`${API_BASE_URL}/backup/restore`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ zipPath })
+      });
+
+      const data = await response.json();
+
+      // Refresh status after restore
+      await fetchStatus();
+      await fetchReminder();
+
+      return data;
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Restore failed'
+      };
     }
   };
 
@@ -198,6 +254,7 @@ export function useBackup() {
     loading,
     backupInProgress,
     createBackup,
+    restoreBackup,
     validatePath,
     setBackupPath,
     refetch: () => Promise.all([fetchStatus(), fetchReminder(), fetchConfig()])

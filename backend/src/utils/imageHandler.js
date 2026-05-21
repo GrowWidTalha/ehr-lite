@@ -12,7 +12,8 @@ const __dirname = path.dirname(__filename);
 
 // Project root is the backend directory (where package.json is)
 const projectRoot = path.resolve(__dirname, '../..');
-const imagesDir = path.join(projectRoot, 'data', 'patient-images');
+const dataDir = process.env.DATA_DIR || path.join(projectRoot, 'data');
+const imagesDir = path.join(dataDir, 'patient-images');
 
 /**
  * Ensure patient images directory exists
@@ -59,7 +60,7 @@ export function saveImage(patientId, filename, buffer) {
  * Delete image file
  */
 export function deleteImage(imagePath) {
-  const fullPath = path.join(projectRoot, 'data', imagePath);
+  const fullPath = path.join(dataDir, imagePath);
   if (fs.existsSync(fullPath)) {
     fs.unlinkSync(fullPath);
     return true;
@@ -71,7 +72,7 @@ export function deleteImage(imagePath) {
  * Get image file info
  */
 export function getImageInfo(imagePath) {
-  const fullPath = path.join(projectRoot, 'data', imagePath);
+  const fullPath = path.join(dataDir, imagePath);
   if (!fs.existsSync(fullPath)) {
     return null;
   }

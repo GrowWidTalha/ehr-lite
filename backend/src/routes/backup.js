@@ -263,4 +263,74 @@ router.get('/reminder', async (req, res) => {
   }
 });
 
+// ============================================================================
+// ELECTRON INTEGRATION ENDPOINTS
+// ============================================================================
+
+/**
+ * POST /api/backup
+ * Create backup with custom destination path (for Electron)
+ */
+router.post('/', async (req, res) => {
+  const { destinationPath } = req.body;
+  if (!destinationPath) {
+    return res.status(400).json({
+      success: false,
+      error: 'No destination path provided'
+    });
+  }
+
+  try {
+    const result = await createBackup('manual', destinationPath);
+    const isValid = await verifyBackup(result.path);
+
+    res.json({
+      success: true,
+      data: {
+        path: result.path,
+        filename: result.filename,
+        size: result.size,
+        duration: result.duration,
+        verified: isValid
+      }
+    });
+  } catch (error) {
+    console.error('Backup error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to create backup'
+    });
+  }
+});
+
+/**
+ * POST /api/backup/restore
+ * Restore from a zip file (for Electron)
+ */
+router.post('/restore', async (req, res) => {
+  const { zipPath } = req.body;
+  if (!zipPath) {
+    return res.status(400).json({
+      success: false,
+      error: 'No zip path provided'
+    });
+  }
+
+  try {
+    const { restoreBackup } = await import('../services/restore.service.js');
+    const result = await restoreBackup(zipPath);
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Restore error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to restore backup'
+    });
+  }
+});
+
 export default router;

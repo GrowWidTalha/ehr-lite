@@ -49,7 +49,8 @@ app.use((req, res, next) => {
 // ============================================================================
 
 const projectRoot = path.resolve(__dirname, '..');
-const imagesDir = path.join(projectRoot, 'data', 'patient-images');
+const dataDir = process.env.DATA_DIR || path.join(projectRoot, 'data');
+const imagesDir = path.join(dataDir, 'patient-images');
 
 // Ensure images directory exists
 if (!fs.existsSync(imagesDir)) {

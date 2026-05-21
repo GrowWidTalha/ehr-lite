@@ -2,15 +2,23 @@
   "name": "ehr-lite",
   "version": "1.0.0",
   "description": "Local-first Electronic Health Record System",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"npm:backend:*\" \"npm:frontend:*\"",
     "backend": "cd backend && npm run dev",
     "frontend": "cd frontend && npm run dev",
     "init-db": "cd backend && npm run init-db",
-    "start": "cd backend && npm start"
+    "start": "cd backend && npm start",
+    "build:frontend": "cd frontend && npm install && npm run build",
+    "build:backend": "cd backend && pnpm install",
+    "build:all": "npm run build:frontend && npm run build:backend",
+    "electron:dev": "electron .",
+    "dist": "npm run build:all && electron-builder --win"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "electron": "^31.0.0",
+    "electron-builder": "^24.0.0"
   },
   "keywords": ["ehr", "healthcare", "local-first", "oncology"],
   "author": "",

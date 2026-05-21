@@ -20,9 +20,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const getProjectRoot = () => path.resolve(__dirname, '../..');
 
 /**
+ * Get the data directory path (from environment or default)
+ */
+const getDataDir = () => process.env.DATA_DIR || path.join(getProjectRoot(), 'data');
+
+/**
  * Get the backups directory path
  */
-const getBackupsDir = () => path.join(getProjectRoot(), 'data', 'backups');
+const getBackupsDir = () => path.join(getDataDir(), 'backups');
 
 /**
  * Get the backup index file path

@@ -25,9 +25,8 @@ async function initializeDatabase() {
   // Initialize sql.js
   SQL = await initSqlJs();
 
-  // Set paths
-  const projectRoot = path.resolve(__dirname, '../..');
-  const dataDir = path.join(projectRoot, 'data');
+  // Set paths - use DATA_DIR from environment if available, otherwise use default
+  const dataDir = process.env.DATA_DIR || path.join(path.resolve(__dirname, '../..'), 'data');
   dbPath = path.join(dataDir, 'database.db');
 
   // Ensure data directory exists
