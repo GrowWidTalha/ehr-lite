@@ -30,7 +30,9 @@ export default function HomePage() {
   const [showImportDialog, setShowImportDialog] = useState(false);
 
   const { data: patients, isLoading, error } = usePatientList(
-    debouncedSearch ? { search: debouncedSearch } : undefined
+    currentPage === 1 && !debouncedSearch
+      ? undefined
+      : { search: debouncedSearch, page: currentPage, limit: PAGE_SIZE }
   );
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
 
