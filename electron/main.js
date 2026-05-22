@@ -75,32 +75,52 @@ function startBackend() {
       DATA_DIR: DATA_DIR,
     };
 
+    console.log('[backend] Starting with DATA_DIR:', DATA_DIR);
+
     backendProcess = spawn(NODE_BIN, [BACKEND_ENTRY], {
       cwd: path.join(ROOT, 'backend'),
       env,
       stdio: 'pipe',
     });
 
+    let resolved = false;
+
     backendProcess.stdout.on('data', (data) => {
       const msg = data.toString();
-      console.log('[backend]', msg);
+      console.log('[backend]', msg.trim());
       // Resolve once the backend confirms it's listening
-      if (msg.includes('listening') || msg.includes('started') || msg.includes('4000')) {
+      if (!resolved && (msg.includes('listening') || msg.includes('started') || msg.includes('4000') || msg.includes('Server running'))) {
+        resolved = true;
         resolve();
       }
     });
 
     backendProcess.stderr.on('data', (data) => {
-      console.error('[backend error]', data.toString());
+      const msg = data.toString();
+      console.error('[backend error]', msg.trim());
+      // Don't reject on stderr, some libraries log to stderr
     });
 
-    backendProcess.on('error', reject);
-    backendProcess.on('exit', (code) => {
-      console.log(`[backend] exited with code ${code}`);
+    backendProcess.on('error', (err) => {
+      console.error('[backend] Failed to start:', err);
+      reject(err);
     });
 
-    // Fallback resolve after 3 seconds in case the log message differs
-    setTimeout(resolve, 3000);
+    backendProcess.on('exit', (code, signal) => {
+      console.log(`[backend] exited with code ${code}, signal ${signal}`);
+      if (!resolved && code !== 0) {
+        reject(new Error(`Backend exited with code ${code}`));
+      }
+    });
+
+    // Fallback resolve after 5 seconds in case the log message differs
+    setTimeout(() => {
+      if (!resolved) {
+        console.log('[backend] Timeout reached, assuming started');
+        resolved = true;
+        resolve();
+      }
+    }, 5000);
   });
 }
 
@@ -114,30 +134,53 @@ function startFrontend() {
       NEXT_PUBLIC_API_URL: 'http://localhost:4000',
     };
 
+    console.log('[frontend] Starting...');
+
     frontendProcess = spawn(NODE_BIN, [FRONTEND_ENTRY], {
       cwd: path.join(ROOT, 'frontend', '.next', 'standalone', 'frontend'),
       env,
       stdio: 'pipe',
     });
 
+    let resolved = false;
+
     frontendProcess.stdout.on('data', (data) => {
       const msg = data.toString();
-      console.log('[frontend]', msg);
-      if (msg.includes('ready') || msg.includes('started') || msg.includes('3000') || msg.includes('listening')) {
+      console.log('[frontend]', msg.trim());
+      if (!resolved && (msg.includes('ready') || msg.includes('started') || msg.includes('3000') || msg.includes('listening') || msg.includes('Local'))) {
+        resolved = true;
         resolve();
       }
     });
 
     frontendProcess.stderr.on('data', (data) => {
-      console.error('[frontend error]', data.toString());
+      const msg = data.toString();
+      // Filter out Next.js build warnings
+      if (!msg.includes('Experiment') && !msg.includes('Fetched') && !msg.includes('package')) {
+        console.error('[frontend error]', msg.trim());
+      }
     });
 
-    frontendProcess.on('error', reject);
-    frontendProcess.on('exit', (code) => {
-      console.log(`[frontend] exited with code ${code}`);
+    frontendProcess.on('error', (err) => {
+      console.error('[frontend] Failed to start:', err);
+      reject(err);
     });
 
-    setTimeout(resolve, 5000);
+    frontendProcess.on('exit', (code, signal) => {
+      console.log(`[frontend] exited with code ${code}, signal ${signal}`);
+      if (!resolved && code !== 0) {
+        reject(new Error(`Frontend exited with code ${code}`));
+      }
+    });
+
+    // Frontend takes longer, give it 8 seconds
+    setTimeout(() => {
+      if (!resolved) {
+        console.log('[frontend] Timeout reached, assuming started');
+        resolved = true;
+        resolve();
+      }
+    }, 8000);
   });
 }
 
@@ -245,14 +288,24 @@ app.whenReady().then(async () => {
     try {
       await Promise.all([waitForPort(3000, 2, 100), waitForPort(4000, 2, 100)]);
       // If we get here, ports are already in use
-      dialog.showErrorBox(
-        'Port Conflict',
-        'EHR Lite cannot start because ports 3000 or 4000 are already in use.\n\nPlease close other applications using these ports and try again.'
-      );
+      const result = dialog.showMessageBoxSync({
+        type: 'error',
+        title: 'Port Conflict',
+        message: 'EHR Lite cannot start because ports 3000 or 4000 are already in use.',
+        detail: 'This usually means:\n\n1. Another instance of EHR Lite is already running\n2. Another application is using these ports\n\nPlease close other applications and try again.\n\nIf the problem persists, restart your computer.',
+        buttons: ['OK', 'Open Task Manager'],
+        defaultId: 0,
+      });
+
+      if (result === 1) {
+        // User clicked "Open Task Manager"
+        require('child_process').spawn('taskmgr');
+      }
       app.quit();
       return;
     } catch (e) {
       // Ports are available, continue
+      console.log('[startup] Ports 3000 and 4000 are available');
     }
 
     await initDatabase();
