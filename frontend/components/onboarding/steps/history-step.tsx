@@ -21,8 +21,8 @@ export function HistoryStep({ formData, onChange, error }: HistoryStepProps) {
         <Label htmlFor="presenting_complaint">Presenting Complaint</Label>
         <Textarea
           id="presenting_complaint"
-          value={formData.presenting_complaint}
-          onChange={(e) => onChange({ ...formData, presenting_complaint: e.target.value })}
+          value={formData.PresentingComplaint}
+          onChange={(e) => onChange({ ...formData, PresentingComplaint: e.target.value })}
           placeholder="Reason for visit / chief complaint..."
           className="min-h-[80px]"
         />
@@ -33,8 +33,8 @@ export function HistoryStep({ formData, onChange, error }: HistoryStepProps) {
         <Label htmlFor="comorbidities">Comorbidities</Label>
         <Textarea
           id="comorbidities"
-          value={formData.comorbidities}
-          onChange={(e) => onChange({ ...formData, comorbidities: e.target.value })}
+          value={formData.Comorbidities}
+          onChange={(e) => onChange({ ...formData, Comorbidities: e.target.value })}
           placeholder="Existing conditions (diabetes, hypertension, etc.)..."
           className="min-h-[80px]"
         />
@@ -45,8 +45,8 @@ export function HistoryStep({ formData, onChange, error }: HistoryStepProps) {
         <Label htmlFor="family_cancer_history">Family Cancer History</Label>
         <Textarea
           id="family_cancer_history"
-          value={formData.family_cancer_history}
-          onChange={(e) => onChange({ ...formData, family_cancer_history: e.target.value })}
+          value={formData.FamilyCancerHistory}
+          onChange={(e) => onChange({ ...formData, FamilyCancerHistory: e.target.value })}
           placeholder="Any family history of cancer, relationship, type..."
           className="min-h-[80px]"
         />

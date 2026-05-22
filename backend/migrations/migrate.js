@@ -82,7 +82,7 @@ const statements = [
     NodesDisected TEXT, NodesInvolved TEXT,
     Metastasis TEXT, SitesOfMetastasis TEXT,
     TumorLateralityRL TEXT, Quadrant TEXT, TumorSize TEXT, TumorDepth TEXT,
-    TumorResponseToChemo TEXT, Grade TEXT,
+    TumorResponseToChemo TEXT, Grade TEXT, StAge TEXT,
     RadioTherapy TEXT, Dose TEXT, ResponseR TEXT,
     ChemoRegimen TEXT, Cycles TEXT, ResponseC TEXT,
     SurgicalOutCome TEXT, SurgicalPathalogy TEXT, StatingTest TEXT,
@@ -91,7 +91,12 @@ const statements = [
     GITumor TEXT, SkinTumor TEXT, Hematological TEXT,
     Sarcoma TEXT, Carcinoma TEXT,
     FollowUp INTEGER DEFAULT 0,
-    ExaminationDate DATETIME, DoctorName TEXT
+    ExaminationDate DATETIME, DoctorName TEXT,
+    PresentingComplaint TEXT, Comorbidities TEXT, FamilyCancerHistory TEXT,
+    WHOClassification TEXT, ERStatus TEXT, ERPercent TEXT,
+    PRStatus TEXT, PRPercent TEXT, HER2Status TEXT, Ki67Percent TEXT,
+    StudyType TEXT, StudyDate DATETIME, Findings TEXT, Indication TEXT,
+    PlanType TEXT, SurgeryPlanned TEXT, NeoadjuvantChemo TEXT
   )`,
 
   `CREATE TABLE IF NOT EXISTS FamilyHistory (
