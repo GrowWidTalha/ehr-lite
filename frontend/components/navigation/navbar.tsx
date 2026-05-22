@@ -8,6 +8,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Home, Settings, Menu } from 'lucide-react';
@@ -30,13 +31,18 @@ export function NavBar({ className = '' }: NavBarProps) {
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         {/* Left side - Logo and app name */}
         <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="h-8 w-8 bg-primary rounded-md flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">EHR</span>
+          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <div className="relative w-10 h-10">
+              <Image
+                src="/icon.ico"
+                alt="JPMC Logo"
+                fill
+                className="rounded-lg"
+              />
             </div>
             <div className="hidden sm:block">
               <h1 className="font-semibold text-lg leading-tight">EHR Lite</h1>
-              <p className="text-xs text-muted-foreground">Oncology Department</p>
+              <p className="text-xs text-muted-foreground">JPMC Oncology</p>
             </div>
           </Link>
         </div>

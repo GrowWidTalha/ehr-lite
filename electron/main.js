@@ -156,12 +156,17 @@ function waitForPort(port, retries = 20, delay = 500) {
 }
 
 function createWindow() {
+  const iconPath = isPackaged
+    ? path.join(process.resourcesPath, 'app', 'electron', 'assets', 'icon.ico')
+    : path.join(__dirname, 'assets', 'icon.ico');
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 1024,
     minHeight: 700,
     title: 'EHR Lite',
+    icon: iconPath,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

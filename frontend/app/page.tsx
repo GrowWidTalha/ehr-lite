@@ -1,8 +1,9 @@
-// Patient list page - Dashboard
+// Patient list page - Dashboard (Centered Layout)
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePatientList } from '@/hooks/use-patients';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,17 +11,18 @@ import { PatientCard } from '@/components/patients/patient-card';
 import { PatientTable } from '@/components/patients/patient-table';
 import { ViewToggle } from '@/components/patients/view-toggle';
 import { FunctionalPagination } from '@/components/patients/pagination';
-import { FilePlus, Search as SearchIcon, UserPlus, Activity, Building2, X, Settings, Upload } from 'lucide-react';
+import { FilePlus, Search as SearchIcon, UserPlus, X, Upload } from 'lucide-react';
 import { ExportButton } from '@/components/export-button';
 import { ImportUpload } from '@/components/import-upload';
-import { LoadingSpinner } from '@/components/shared/loading-spinner';
 import { DashboardStatsSkeleton, PatientTableSkeleton, PatientCardSkeleton } from '@/components/shared/skeleton-loader';
 import { DashboardStats } from '@/components/dashboard/stats-cards';
 import { useDashboardStats } from '@/hooks/use-dashboard-stats';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import type { PatientListView, PaginatedResponse } from '@/lib/db.types';
+import type { PatientListView } from '@/lib/db.types';
 
-const PAGE_SIZE = 20; // Match backend default
+const PAGE_SIZE = 20;
+
+const MAX_WIDTH = 1200;
 
 export default function HomePage() {
   const [search, setSearch] = useState('');
@@ -36,142 +38,104 @@ export default function HomePage() {
   );
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
 
-  // Debounce search
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 300);
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Reset to page 1 when search changes
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch]);
 
-  // Extract paginated response from backend
   const response = patients;
   const patientList = response?.patients || [];
   const totalPages = response?.totalPages || 1;
   const total = response?.total || 0;
 
   return (
-    <div className="min-h-screen flex">
-      {/* Sidebar */}
-      <aside className="w-72 border-r bg-background hidden md:flex flex-col">
-        {/* Clinic Branding */}
-        <div className="p-6 border-b bg-gradient-to-br from-blue-600 to-cyan-600 text-white">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20 backdrop-blur">
-              <Building2 className="h-6 w-6" />
-            </div>
-            <div>
-              <h1 className="font-bold text-lg leading-tight">JPMC</h1>
-              <p className="text-sm text-blue-100">Oncology Department</p>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-background">
+      {/* Import Dialog */}
+      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Import Patient Data</DialogTitle>
+            <DialogDescription>
+              Upload an Excel file with patient data to import into the system.
+            </DialogDescription>
+          </DialogHeader>
+          <ImportUpload />
+        </DialogContent>
+      </Dialog>
 
-        {/* Navigation */}
-        <nav className="p-4 space-y-1 flex-1">
-          <div className="mb-4">
-            <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              Main Menu
-            </p>
-          </div>
-          <Link href="/">
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium">
-              <Activity className="h-4 w-4" />
-              Dashboard
-            </div>
-          </Link>
-          <Link href="/onboarding/new" className="block">
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
-              <UserPlus className="h-4 w-4" />
-              New Patient
-            </div>
-          </Link>
-          <Link href="/patients/new" className="block">
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
-              <FilePlus className="h-4 w-4" />
-              Add Basic Info
-            </div>
-          </Link>
-          <Link href="/settings" className="block">
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
-              <Settings className="h-4 w-4" />
-              Settings
-            </div>
-          </Link>
-        </nav>
-
-        {/* Footer */}
-        <div className="p-4 border-t">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
-            </span>
-            <span>System Online</span>
-          </div>
-          <p className="text-[10px] text-muted-foreground mt-1">v1.0.0 • Local Mode</p>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto bg-background">
-        {/* Top Header Bar */}
-        <header className="border-b bg-background px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">Welcome back! Here's your overview.</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search patients..."
-                  className="w-64 pl-10"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') {
-                      setSearch('');
-                    }
-                  }}
+      {/* Main Content - Centered */}
+      <main className="mx-auto max-w-[1600px] px-6 py-8">
+        {/* Header */}
+        <header className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div className="relative w-16 h-16">
+                <Image
+                  src="/icon.ico"
+                  alt="JPMC Logo"
+                  fill
+                  className="rounded-lg"
                 />
               </div>
+              <div>
+                <h1 className="text-3xl font-bold">JPMC Oncology</h1>
+                <p className="text-muted-foreground">Electronic Health Records</p>
+              </div>
             </div>
+            <div className="flex gap-2">
+              <Link href="/settings">
+                <Button variant="outline">Settings</Button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Search */}
+          <div className="relative max-w-md">
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search patients..."
+              className="pl-10"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setSearch('');
+              }}
+            />
           </div>
         </header>
 
-        {/* Main Content Area */}
-        <div className="p-6">
-          {/* Dashboard Stats */}
-          <div className="mb-6">
-            {statsLoading ? (
-              <DashboardStatsSkeleton />
-            ) : (
-              <DashboardStats
-                totalPatients={stats?.totalPatients || 0}
-                activeDiagnoses={stats?.activeDiagnoses || 0}
-                totalReports={stats?.totalReports || 0}
-                newThisMonth={stats?.todayRegistrations || 0}
-              />
-            )}
-          </div>
+        {/* Dashboard Stats */}
+        <div className="mb-8">
+          {statsLoading ? (
+            <DashboardStatsSkeleton />
+          ) : (
+            <DashboardStats
+              totalPatients={stats?.totalPatients || 0}
+              activeDiagnoses={stats?.activeDiagnoses || 0}
+              totalReports={stats?.totalReports || 0}
+              newThisMonth={stats?.todayRegistrations || 0}
+            />
+          )}
+        </div>
 
-          {/* Page Header */}
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold tracking-tight">Patients</h2>
-            <p className="text-muted-foreground">
-              ManAge patient records, diagnoses, and treatment plans
+        {/* Page Header & Actions */}
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-semibold">Patients</h2>
+            <p className="text-sm text-muted-foreground">
+              {debouncedSearch ? (
+                <>Found <span className="font-medium">{total}</span> patients</>
+              ) : (
+                <><span className="font-medium">{total}</span> total</>
+              )}
             </p>
           </div>
 
-          {/* Quick Actions */}
-          <div className="flex flex-wrap gap-3 mb-6">
+          <div className="flex flex-wrap gap-2">
             <Link href="/onboarding/new">
               <Button size="lg">
                 <UserPlus className="mr-2 h-4 w-4" />
@@ -187,132 +151,94 @@ export default function HomePage() {
             <ExportButton
               size="lg"
               variant="outline"
-              label="Export All Patients"
-              onExportComplete={(filename) => {
-                console.log('Export completed:', filename);
-              }}
+              label="Export"
+              onExportComplete={(filename) => console.log('Export:', filename)}
             />
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => setShowImportDialog(true)}
-            >
+            <Button size="lg" variant="outline" onClick={() => setShowImportDialog(true)}>
               <Upload className="mr-2 h-4 w-4" />
-              Import Excel
+              Import
             </Button>
-          </div>
-
-          {/* View Toggle & Count */}
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-muted-foreground">
-              {debouncedSearch ? (
-                <>
-                  <span className="font-medium text-foreground">{total}</span> patient{total !== 1 ? 's' : ''} found for &quot;<span className="font-medium text-foreground">{debouncedSearch}</span>&quot;
-                </>
-              ) : (
-                <>
-                  <span className="font-medium text-foreground">{total}</span> patient{total !== 1 ? 's' : ''} total
-                </>
-              )}
-            </p>
             <ViewToggle view={view} onViewChange={setView} />
           </div>
-
-          {/* Loading State */}
-          {isLoading && (
-            <>
-              {view === 'card' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <PatientCardSkeleton key={i} />
-                  ))}
-                </div>
-              ) : (
-                <PatientTableSkeleton />
-              )}
-            </>
-          )}
-
-          {/* Error State */}
-          {error && (
-            <div className="text-center py-12">
-              <p className="text-destructive">Error loading patients. Please try again.</p>
-            </div>
-          )}
-
-          {/* Empty State */}
-          {!isLoading && total === 0 && (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                <SearchIcon className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">
-                {debouncedSearch ? 'No patients found' : 'No patients registered yet'}
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                {debouncedSearch
-                  ? `No patients match "${debouncedSearch}". Try a different search term or check the spelling.`
-                  : 'Get started by registering your first patient.'}
-              </p>
-              {debouncedSearch ? (
-                <Button variant="outline" onClick={() => setSearch('')}>
-                  <X className="mr-2 h-4 w-4" />
-                  Clear Search
-                </Button>
-              ) : (
-                <Link href="/patients/new">
-                  <Button>
-                    <FilePlus className="mr-2 h-4 w-4" />
-                    Register First Patient
-                  </Button>
-                </Link>
-              )}
-            </div>
-          )}
-
-          {/* Patient List */}
-          {!isLoading && total > 0 && (
-            <>
-              {view === 'card' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in" key={debouncedSearch || 'all'}>
-                  {patientList.map((patient) => (
-                    <PatientCard key={patient.PatientID} patient={patient} />
-                  ))}
-                </div>
-              ) : (
-                <div className="animate-fade-in" key={debouncedSearch || 'all'}>
-                  <PatientTable patients={patientList} />
-                </div>
-              )}
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <FunctionalPagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  totalItems={total}
-                  pageSize={PAGE_SIZE}
-                  onPageChange={setCurrentPage}
-                  className="mt-8"
-                />
-              )}
-            </>
-          )}
         </div>
-      </main>
 
-      {/* Import Dialog */}
-      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Import Patient Data</DialogTitle>
-            <DialogDescription>
-              Upload an Excel file with patient data to import into the system.
-            </DialogDescription>
-          </DialogHeader>
-          <ImportUpload />
-        </DialogContent>
-      </Dialog>
+        {/* Loading */}
+        {isLoading && (
+          <>
+            {view === 'card' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => <PatientCardSkeleton key={i} />)}
+              </div>
+            ) : <PatientTableSkeleton />}
+          </>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="text-center py-12">
+            <p className="text-destructive">Error loading patients. Please try again.</p>
+          </div>
+        )}
+
+        {/* Empty */}
+        {!isLoading && total === 0 && (
+          <div className="text-center py-16">
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+              <SearchIcon className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">
+              {debouncedSearch ? 'No patients found' : 'No patients yet'}
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              {debouncedSearch
+                ? `No matches for "${debouncedSearch}"`
+                : 'Register your first patient to get started'}
+            </p>
+            {debouncedSearch ? (
+              <Button variant="outline" onClick={() => setSearch('')}>
+                <X className="mr-2 h-4 w-4" />
+                Clear
+              </Button>
+            ) : (
+              <Link href="/patients/new">
+                <Button>
+                  <FilePlus className="mr-2 h-4 w-4" />
+                  Register First Patient
+                </Button>
+              </Link>
+            )}
+          </div>
+        )}
+
+        {/* Patient List */}
+        {!isLoading && total > 0 && (
+          <>
+            {view === 'card' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {patientList.map((patient) => (
+                  <PatientCard key={patient.PatientID} patient={patient} />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border bg-card">
+                <PatientTable patients={patientList} />
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <FunctionalPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={total}
+                pageSize={PAGE_SIZE}
+                onPageChange={setCurrentPage}
+                className="mt-8"
+              />
+            )}
+          </>
+        )}
+      </main>
     </div>
   );
 }
