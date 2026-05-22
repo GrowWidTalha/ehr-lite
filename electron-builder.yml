@@ -23,7 +23,6 @@ extraResources:
       - "!node_modules/**/README*"
       - "!node_modules/**/*.map"
       - "!node_modules/**/*.ts"
-      - "!node_modules/**/dist/**"
       - "!**/*.log"
   - from: frontend/.next/standalone
     to: app/frontend/.next/standalone
