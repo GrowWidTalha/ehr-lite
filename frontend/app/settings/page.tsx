@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useBackup } from '@/hooks/use-backup';
 import { HardDrive, CheckCircle, XCircle, Loader2, FolderOpen, Upload, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { NavBar } from '@/components/navigation/navbar';
 
 export default function SettingsPage() {
   const { config, setBackupPath: setBackupPathHook, createBackup, restoreBackup, backupInProgress, refetch } = useBackup();
@@ -125,6 +126,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <NavBar />
       {/* Header */}
       <header className="border-b bg-background px-6 py-4">
         <div className="flex items-center justify-between">

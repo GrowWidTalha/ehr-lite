@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, User, FileText, Edit } from 'lucide-react';
+import { Calendar, User, FileText, Edit, ArrowLeft } from 'lucide-react';
 import { LoadingSpinner } from '@/components/shared/loading-spinner';
 import { formatDate } from '@/lib/utils';
 import { OverviewTab } from '@/components/patients/tabs/overview-tab';
@@ -16,6 +16,7 @@ import { HistoryTab } from '@/components/patients/tabs/history-tab';
 import { HabitsTab } from '@/components/patients/tabs/habits-tab';
 import { DiagnosesTab } from '@/components/patients/tabs/diagnoses-tab';
 import { ReportsTab } from '@/components/patients/tabs/reports-tab';
+import { NavBar } from '@/components/navigation/navbar';
 
 export default function PatientDetailPage() {
   const params = useParams();
@@ -53,16 +54,25 @@ export default function PatientDetailPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
+      <NavBar />
       {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">{patient.PatientName}</h1>
-              <p className="text-sm text-muted-foreground">
-                {patient.Age ? `${patient.Age} years` : 'Age unknown'} • {patient.Gender || 'Unknown'}
-              </p>
+            <div className="flex items-center gap-4">
+              <Link href="/">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+              </Link>
+              <div>
+                <h1 className="text-2xl font-bold">{patient.PatientName}</h1>
+                <p className="text-sm text-muted-foreground">
+                  {patient.Age ? `${patient.Age} years` : 'Age unknown'} • {patient.Gender || 'Unknown'}
+                </p>
+              </div>
             </div>
             <Button variant="outline" size="sm">
               <Edit className="mr-2 h-4 w-4" />
