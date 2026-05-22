@@ -4,6 +4,13 @@ const path = require('path');
 const http = require('http');
 const fs = require('fs');
 
+let LOG_FILE;
+function log(msg) {
+  const line = `[${new Date().toISOString()}] ${msg}\n`;
+  try { fs.appendFileSync(LOG_FILE, line); } catch (_) {}
+  console.log(msg);
+}
+
 let mainWindow = null;
 let backendProcess = null;
 let frontendProcess = null;
@@ -42,8 +49,8 @@ function runScript(scriptPath, label) {
       stdio: 'pipe',
     });
 
-    proc.stdout.on('data', d => console.log(`[${label}]`, d.toString().trim()));
-    proc.stderr.on('data', d => console.error(`[${label} error]`, d.toString().trim()));
+    proc.stdout.on('data', d => log(`[${label}] ${d.toString().trim()}`));
+    proc.stderr.on('data', d => log(`[${label} error] ${d.toString().trim()}`));
 
     proc.on('close', code => {
       if (code === 0) resolve();
@@ -60,9 +67,9 @@ async function initDatabase() {
   if (!fs.existsSync(SEED_FLAG)) {
     await runScript(SEED_ENTRY, 'seed');
     fs.writeFileSync(SEED_FLAG, new Date().toISOString());
-    console.log('[db] Seed complete, flag written');
+    log('[db] Seed complete, flag written');
   } else {
-    console.log('[db] Already seeded, skipping');
+    log('[db] Already seeded, skipping');
   }
 }
 
@@ -75,7 +82,7 @@ function startBackend() {
       DATA_DIR: DATA_DIR,
     };
 
-    console.log('[backend] Starting with DATA_DIR:', DATA_DIR);
+    log('[backend] Starting with DATA_DIR: ' + DATA_DIR);
 
     backendProcess = spawn(NODE_BIN, [BACKEND_ENTRY], {
       cwd: path.join(ROOT, 'backend'),
@@ -87,7 +94,7 @@ function startBackend() {
 
     backendProcess.stdout.on('data', (data) => {
       const msg = data.toString();
-      console.log('[backend]', msg.trim());
+      log('[backend] ' + msg.trim());
       // Resolve once the backend confirms it's listening
       if (!resolved && (msg.includes('listening') || msg.includes('started') || msg.includes('4000') || msg.includes('Server running'))) {
         resolved = true;
@@ -97,17 +104,17 @@ function startBackend() {
 
     backendProcess.stderr.on('data', (data) => {
       const msg = data.toString();
-      console.error('[backend error]', msg.trim());
+      log('[backend error] ' + msg.trim());
       // Don't reject on stderr, some libraries log to stderr
     });
 
     backendProcess.on('error', (err) => {
-      console.error('[backend] Failed to start:', err);
+      log('[backend] Failed to start: ' + err);
       reject(err);
     });
 
     backendProcess.on('exit', (code, signal) => {
-      console.log(`[backend] exited with code ${code}, signal ${signal}`);
+      log(`[backend] exited with code ${code}, signal ${signal}`);
       if (!resolved && code !== 0) {
         reject(new Error(`Backend exited with code ${code}`));
       }
@@ -116,7 +123,7 @@ function startBackend() {
     // Fallback resolve after 5 seconds in case the log message differs
     setTimeout(() => {
       if (!resolved) {
-        console.log('[backend] Timeout reached, assuming started');
+        log('[backend] Timeout reached, assuming started');
         resolved = true;
         resolve();
       }
@@ -134,7 +141,7 @@ function startFrontend() {
       NEXT_PUBLIC_API_URL: 'http://localhost:4000',
     };
 
-    console.log('[frontend] Starting...');
+    log('[frontend] Starting...');
 
     frontendProcess = spawn(NODE_BIN, [FRONTEND_ENTRY], {
       cwd: path.join(ROOT, 'frontend', '.next', 'standalone', 'frontend'),
@@ -146,7 +153,7 @@ function startFrontend() {
 
     frontendProcess.stdout.on('data', (data) => {
       const msg = data.toString();
-      console.log('[frontend]', msg.trim());
+      log('[frontend] ' + msg.trim());
       if (!resolved && (msg.includes('ready') || msg.includes('started') || msg.includes('3000') || msg.includes('listening') || msg.includes('Local'))) {
         resolved = true;
         resolve();
@@ -157,17 +164,17 @@ function startFrontend() {
       const msg = data.toString();
       // Filter out Next.js build warnings
       if (!msg.includes('Experiment') && !msg.includes('Fetched') && !msg.includes('package')) {
-        console.error('[frontend error]', msg.trim());
+        log('[frontend error] ' + msg.trim());
       }
     });
 
     frontendProcess.on('error', (err) => {
-      console.error('[frontend] Failed to start:', err);
+      log('[frontend] Failed to start: ' + err);
       reject(err);
     });
 
     frontendProcess.on('exit', (code, signal) => {
-      console.log(`[frontend] exited with code ${code}, signal ${signal}`);
+      log(`[frontend] exited with code ${code}, signal ${signal}`);
       if (!resolved && code !== 0) {
         reject(new Error(`Frontend exited with code ${code}`));
       }
@@ -176,7 +183,7 @@ function startFrontend() {
     // Frontend takes longer, give it 8 seconds
     setTimeout(() => {
       if (!resolved) {
-        console.log('[frontend] Timeout reached, assuming started');
+        log('[frontend] Timeout reached, assuming started');
         resolved = true;
         resolve();
       }
@@ -277,11 +284,20 @@ app.whenReady().then(async () => {
     USER_DATA = app.getPath('userData');
     DATA_DIR = path.join(USER_DATA, 'data');
     SEED_FLAG = path.join(DATA_DIR, '.seeded');
+    LOG_FILE = path.join(USER_DATA, 'startup.log');
+
+    log('=== EHR Lite Startup ===');
+    log('USER_DATA: ' + USER_DATA);
+    log('DATA_DIR: ' + DATA_DIR);
+    log('isPackaged: ' + isPackaged);
+    log('ROOT: ' + ROOT);
+    log('NODE_BIN: ' + NODE_BIN);
 
     // Create data directories if first launch
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
       fs.mkdirSync(path.join(DATA_DIR, 'patient-images'), { recursive: true });
+      log('[startup] Created data directories');
     }
 
     // Check if ports are already in use
@@ -305,7 +321,7 @@ app.whenReady().then(async () => {
       return;
     } catch (e) {
       // Ports are available, continue
-      console.log('[startup] Ports 3000 and 4000 are available');
+      log('[startup] Ports 3000 and 4000 are available');
     }
 
     await initDatabase();
@@ -313,9 +329,11 @@ app.whenReady().then(async () => {
     await Promise.all([waitForPort(4000), waitForPort(3000)]);
     createWindow();
   } catch (err) {
+    log('[startup] ERROR: ' + err.message);
+    log('[startup] Stack: ' + err.stack);
     dialog.showErrorBox(
       'Startup Failed',
-      `EHR Lite could not start:\n\n${err.message}\n\nPlease contact support.`
+      `EHR Lite could not start:\n\n${err.message}\n\nCheck startup log at:\n${LOG_FILE}`
     );
     app.quit();
   }

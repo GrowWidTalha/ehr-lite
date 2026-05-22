@@ -16,7 +16,16 @@ extraResources:
     to: app/backend
     filter:
       - "**/*"
-      - "!node_modules/.cache"
+      - "!node_modules/.cache/**"
+      - "!node_modules/.pnpm/**"
+      - "!node_modules/*/test/**"
+      - "!node_modules/*/tests/**"
+      - "!node_modules/**/*.md"
+      - "!node_modules/**/README*"
+      - "!node_modules/**/*.map"
+      - "!node_modules/**/*.ts"
+      - "!node_modules/**/dist/**"
+      - "!**/*.log"
   - from: frontend/.next/standalone
     to: app/frontend/.next/standalone
   - from: frontend/.next/static
