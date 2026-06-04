@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { User, Phone, IdCard, Calendar, Ruler, Weight, Droplets } from 'lucide-react';
 import { useLookups } from '@/hooks/use-lookups';
 
@@ -418,79 +419,40 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
           {/* Place of Birth */}
           <div className="space-y-2">
             <Label htmlFor="PlaceOfBirthDistrict" className="text-sm font-medium">Place of Birth (District)</Label>
-            <Select
-              value={formData.PlaceOfBirthDistrict?.toString() || ''}
+            <SearchableSelect
+              value={formData.PlaceOfBirthDistrict}
               onValueChange={(value) => onChange({ ...formData, PlaceOfBirthDistrict: value ? parseInt(value) : undefined })}
+              placeholder="Search districts..."
+              searchPlaceholder="Type to search districts..."
               disabled={lookupsLoading}
-            >
-              <SelectTrigger id="PlaceOfBirthDistrict">
-                <SelectValue placeholder="Select district" />
-              </SelectTrigger>
-              <SelectContent>
-                {lookupsLoading && (
-                  <div className="flex items-center justify-center p-2">
-                    <div className="h-4 w-4 animate-spin border-2 border-primary border-t-transparent rounded-full" />
-                  </div>
-                )}
-                {!lookupsLoading && lookups?.districts?.map((d) => (
-                  <SelectItem key={d.ID} value={d.ID.toString()}>
-                    {d.District}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={lookups?.districts?.map((d) => ({ value: d.ID.toString(), label: String(d.District) })) || []}
+            />
           </div>
 
           {/* Territory / City */}
           <div className="space-y-2">
             <Label htmlFor="PlaceOfBirth" className="text-sm font-medium">Territory / City</Label>
-            <Select
-              value={formData.PlaceOfBirth?.toString() || ''}
+            <SearchableSelect
+              value={formData.PlaceOfBirth}
               onValueChange={(value) => onChange({ ...formData, PlaceOfBirth: value ? parseInt(value) : undefined })}
+              placeholder="Search cities..."
+              searchPlaceholder="Type to search cities..."
               disabled={lookupsLoading}
-            >
-              <SelectTrigger id="PlaceOfBirth">
-                <SelectValue placeholder="Select city" />
-              </SelectTrigger>
-              <SelectContent>
-                {lookupsLoading && (
-                  <div className="flex items-center justify-center p-2">
-                    <div className="h-4 w-4 animate-spin border-2 border-primary border-t-transparent rounded-full" />
-                  </div>
-                )}
-                {!lookupsLoading && lookups?.districts?.map((d) => (
-                  <SelectItem key={d.ID} value={d.ID.toString()}>
-                    {d.District}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={lookups?.districts?.map((d) => ({ value: d.ID.toString(), label: String(d.District) })) || []}
+            />
           </div>
 
           {/* Language / Mother Tongue */}
           <div className="space-y-2">
             <Label htmlFor="MotherTongue" className="text-sm font-medium">Language</Label>
-            <Select
-              value={formData.MotherTongue?.toString() || ''}
+            <SearchableSelect
+              value={formData.MotherTongue}
               onValueChange={(value) => onChange({ ...formData, MotherTongue: value ? parseInt(value) : undefined })}
+              placeholder="Search languages..."
+              searchPlaceholder="Type to search languages..."
               disabled={lookupsLoading}
-            >
-              <SelectTrigger id="MotherTongue">
-                <SelectValue placeholder="Select language" />
-              </SelectTrigger>
-              <SelectContent>
-                {lookupsLoading && (
-                  <div className="flex items-center justify-center p-2">
-                    <div className="h-4 w-4 animate-spin border-2 border-primary border-t-transparent rounded-full" />
-                  </div>
-                )}
-                {!lookupsLoading && lookups?.motherTongues?.map((m) => (
-                  <SelectItem key={m.ID} value={m.ID.toString()}>
-                    {m.MotherTongue}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={lookups?.motherTongues?.map((m) => ({ value: m.ID.toString(), label: String(m.MotherTongue) })) || []}
+            />
           </div>
 
           {/* Contact No */}
@@ -533,53 +495,27 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
           {/* Education / Qualification */}
           <div className="space-y-2">
             <Label htmlFor="Qualifications" className="text-sm font-medium">Education</Label>
-            <Select
-              value={formData.Qualifications?.toString() || ''}
+            <SearchableSelect
+              value={formData.Qualifications}
               onValueChange={(value) => onChange({ ...formData, Qualifications: value ? parseInt(value) : undefined })}
+              placeholder="Search education levels..."
+              searchPlaceholder="Type to search..."
               disabled={lookupsLoading}
-            >
-              <SelectTrigger id="Qualifications">
-                <SelectValue placeholder="Select education" />
-              </SelectTrigger>
-              <SelectContent>
-                {lookupsLoading && (
-                  <div className="flex items-center justify-center p-2">
-                    <div className="h-4 w-4 animate-spin border-2 border-primary border-t-transparent rounded-full" />
-                  </div>
-                )}
-                {!lookupsLoading && lookups?.qualifications?.map((q) => (
-                  <SelectItem key={q.ID} value={q.ID.toString()}>
-                    {q.QLevel}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={lookups?.qualifications?.map((q) => ({ value: q.ID.toString(), label: String(q.QLevel) })) || []}
+            />
           </div>
 
           {/* Occupation */}
           <div className="space-y-2">
             <Label htmlFor="Occupation" className="text-sm font-medium">Occupation</Label>
-            <Select
-              value={formData.Occupation?.toString() || ''}
+            <SearchableSelect
+              value={formData.Occupation}
               onValueChange={(value) => onChange({ ...formData, Occupation: value ? parseInt(value) : undefined })}
+              placeholder="Search occupations..."
+              searchPlaceholder="Type to search..."
               disabled={lookupsLoading}
-            >
-              <SelectTrigger id="Occupation">
-                <SelectValue placeholder="Select occupation" />
-              </SelectTrigger>
-              <SelectContent>
-                {lookupsLoading && (
-                  <div className="flex items-center justify-center p-2">
-                    <div className="h-4 w-4 animate-spin border-2 border-primary border-t-transparent rounded-full" />
-                  </div>
-                )}
-                {!lookupsLoading && lookups?.occupations?.map((o) => (
-                  <SelectItem key={o.ID} value={o.ID.toString()}>
-                    {o.Occupation}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={lookups?.occupations?.map((o) => ({ value: o.ID.toString(), label: String(o.Occupation) })) || []}
+            />
           </div>
         </div>
       </div>
