@@ -52,7 +52,7 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
   const formatContactNo = (value: string) => {
     const cleaned = value.replace(/\D/g, '');
     if (cleaned.length <= 4) return cleaned;
-    if (cleaned.length <= 7) return `${cleaned.slice(0, 4)}-${cleaned.slice(4)}`;
+    if (cleaned.length <= 11) return `${cleaned.slice(0, 4)}-${cleaned.slice(4)}`;
     return `${cleaned.slice(0, 4)}-${cleaned.slice(4, 11)}`;
   };
 
@@ -64,17 +64,20 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
     return `${cleaned.slice(0, 5)}-${cleaned.slice(5, 12)}-${cleaned.slice(12, 13)}`;
   };
 
-  // Build full name from components
-  const buildFullName = () => {
+  // Build full name from components - inline to avoid stale closure
+  const updateNameField = (field: string, value: string) => {
+    const updatedData = { ...formData, [field]: value };
+
+    // Build full name
     const parts = [];
-    if (formData.FirstName) parts.push(formData.FirstName);
-    if (formData.Relation && formData.RelativeName) {
-      parts.push(`${formData.Relation} ${formData.RelativeName}`);
+    if (updatedData.FirstName) parts.push(updatedData.FirstName);
+    if (updatedData.Relation && updatedData.RelativeName) {
+      parts.push(`${updatedData.Relation} ${updatedData.RelativeName}`);
     }
-    if (formData.Surname) parts.push(formData.Surname);
-    const fullName = parts.join(' ');
-    onChange({ ...formData, PatientName: fullName });
-    return fullName;
+    if (updatedData.Surname) parts.push(updatedData.Surname);
+
+    updatedData.PatientName = parts.join(' ');
+    onChange(updatedData);
   };
 
   return (
@@ -136,10 +139,7 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
             <Input
               id="FirstName"
               value={formData.FirstName || ''}
-              onChange={(e) => {
-                onChange({ ...formData, FirstName: e.target.value });
-                buildFullName();
-              }}
+              onChange={(e) => updateNameField('FirstName', e.target.value)}
               placeholder="First name"
               className={error && !formData.FirstName ? 'border-destructive focus-visible:ring-destructive' : ''}
             />
@@ -153,10 +153,7 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
             <Label htmlFor="Relation" className="text-sm font-medium">Relation</Label>
             <Select
               value={formData.Relation || ''}
-              onValueChange={(value) => {
-                onChange({ ...formData, Relation: value });
-                buildFullName();
-              }}
+              onValueChange={(value) => updateNameField('Relation', value)}
             >
               <SelectTrigger id="Relation">
                 <SelectValue placeholder="Select relation" />
@@ -177,10 +174,7 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
             <Input
               id="RelativeName"
               value={formData.RelativeName || ''}
-              onChange={(e) => {
-                onChange({ ...formData, RelativeName: e.target.value });
-                buildFullName();
-              }}
+              onChange={(e) => updateNameField('RelativeName', e.target.value)}
               placeholder="Enter name"
             />
           </div>
@@ -191,10 +185,7 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
             <Input
               id="Surname"
               value={formData.Surname || ''}
-              onChange={(e) => {
-                onChange({ ...formData, Surname: e.target.value });
-                buildFullName();
-              }}
+              onChange={(e) => updateNameField('Surname', e.target.value)}
               placeholder="Enter surname"
             />
             {formData.PatientName && (
@@ -424,16 +415,16 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          {/* Language / Mother Tongue */}
+          {/* Place of Birth */}
           <div className="space-y-2">
-            <Label htmlFor="MotherTongue" className="text-sm font-medium">Language</Label>
+            <Label htmlFor="PlaceOfBirthDistrict" className="text-sm font-medium">Place of Birth (District)</Label>
             <Select
-              value={formData.MotherTongue?.toString() || ''}
-              onValueChange={(value) => onChange({ ...formData, MotherTongue: value ? parseInt(value) : undefined })}
+              value={formData.PlaceOfBirthDistrict?.toString() || ''}
+              onValueChange={(value) => onChange({ ...formData, PlaceOfBirthDistrict: value ? parseInt(value) : undefined })}
               disabled={lookupsLoading}
             >
-              <SelectTrigger id="MotherTongue">
-                <SelectValue placeholder="Select language" />
+              <SelectTrigger id="PlaceOfBirthDistrict">
+                <SelectValue placeholder="Select district" />
               </SelectTrigger>
               <SelectContent>
                 {lookupsLoading && (
@@ -441,9 +432,9 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
                     <div className="h-4 w-4 animate-spin border-2 border-primary border-t-transparent rounded-full" />
                   </div>
                 )}
-                {!lookupsLoading && lookups?.motherTongues?.map((m) => (
-                  <SelectItem key={m.ID} value={m.ID.toString()}>
-                    {m.MotherTongue}
+                {!lookupsLoading && lookups?.districts?.map((d) => (
+                  <SelectItem key={d.ID} value={d.ID.toString()}>
+                    {d.District}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -476,6 +467,32 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
             </Select>
           </div>
 
+          {/* Language / Mother Tongue */}
+          <div className="space-y-2">
+            <Label htmlFor="MotherTongue" className="text-sm font-medium">Language</Label>
+            <Select
+              value={formData.MotherTongue?.toString() || ''}
+              onValueChange={(value) => onChange({ ...formData, MotherTongue: value ? parseInt(value) : undefined })}
+              disabled={lookupsLoading}
+            >
+              <SelectTrigger id="MotherTongue">
+                <SelectValue placeholder="Select language" />
+              </SelectTrigger>
+              <SelectContent>
+                {lookupsLoading && (
+                  <div className="flex items-center justify-center p-2">
+                    <div className="h-4 w-4 animate-spin border-2 border-primary border-t-transparent rounded-full" />
+                  </div>
+                )}
+                {!lookupsLoading && lookups?.motherTongues?.map((m) => (
+                  <SelectItem key={m.ID} value={m.ID.toString()}>
+                    {m.MotherTongue}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Contact No */}
           <div className="space-y-2">
             <Label htmlFor="ContactNo" className="text-sm font-medium">Contact No</Label>
@@ -491,7 +508,7 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
           </div>
 
           {/* CNIC */}
-          <div className="space-y-2">
+          <div className="space-y-2 md:col-span-2">
             <Label htmlFor="CNICNo" className="text-sm font-medium">CNIC No</Label>
             <Input
               id="CNICNo"

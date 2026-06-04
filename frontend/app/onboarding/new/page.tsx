@@ -68,6 +68,7 @@ export default function NewPatientOnboardingPage() {
     Occupation: undefined,
     MotherTongue: undefined,
     PlaceOfBirth: undefined,
+    PlaceOfBirthDistrict: undefined,
     NoOfChidren: '',
     NoOfSibling: '',
 
