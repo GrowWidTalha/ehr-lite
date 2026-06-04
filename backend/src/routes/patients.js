@@ -798,4 +798,431 @@ router.post('/:id/reports', upload.array('images', 5), async (req, res) => {
   }
 });
 
+// ============================================================================
+// PAST RECORDS
+// ============================================================================
+
+/**
+ * GET /api/patients/:id/past-records
+ * Get past records for a patient
+ */
+router.get('/:id/past-records', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const patientId = Number(id);
+
+    if (isNaN(patientId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Patient ID must be a number'
+      });
+    }
+
+    const pastRecords = await get(
+      'SELECT * FROM PastRecords WHERE PatientID = ?',
+      patientId
+    );
+
+    if (!pastRecords) {
+      // Return empty past records structure
+      return res.json({
+        success: true,
+        data: {
+          RowID: null,
+          PatientID: patientId,
+          PreviousChemo: null,
+          PreviousRT: null,
+          PreviousTargeted: null,
+          PreviousHT: null,
+          PreviousIT: null,
+          CreatedAt: new Date().toISOString(),
+          UpdatedAt: new Date().toISOString()
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      data: pastRecords
+    });
+  } catch (error) {
+    console.error('Error fetching past records:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * PUT /api/patients/:id/past-records
+ * Update or create past records for a patient
+ */
+router.put('/:id/past-records', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const patientId = Number(id);
+    const data = req.body;
+
+    if (isNaN(patientId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Patient ID must be a number'
+      });
+    }
+
+    // Check if past records exist
+    const existing = await get(
+      'SELECT RowID FROM PastRecords WHERE PatientID = ?',
+      patientId
+    );
+
+    if (existing) {
+      // Update existing records
+      await run(
+        `UPDATE PastRecords
+         SET PreviousChemo = COALESCE(?, PreviousChemo),
+             PreviousRT = COALESCE(?, PreviousRT),
+             PreviousTargeted = COALESCE(?, PreviousTargeted),
+             PreviousHT = COALESCE(?, PreviousHT),
+             PreviousIT = COALESCE(?, PreviousIT),
+             UpdatedAt = ?
+         WHERE PatientID = ?`,
+        data.PreviousChemo || null,
+        data.PreviousRT || null,
+        data.PreviousTargeted || null,
+        data.PreviousHT || null,
+        data.PreviousIT || null,
+        new Date().toISOString(),
+        patientId
+      );
+
+      const updated = await get(
+        'SELECT * FROM PastRecords WHERE PatientID = ?',
+        patientId
+      );
+
+      res.json({
+        success: true,
+        data: updated
+      });
+    } else {
+      // Create new records
+      const now = new Date().toISOString();
+      await run(
+        `INSERT INTO PastRecords (PatientID, PreviousChemo, PreviousRT, PreviousTargeted, PreviousHT, PreviousIT, CreatedAt, UpdatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        patientId,
+        data.PreviousChemo || null,
+        data.PreviousRT || null,
+        data.PreviousTargeted || null,
+        data.PreviousHT || null,
+        data.PreviousIT || null,
+        now,
+        now
+      );
+
+      const created = await get(
+        'SELECT * FROM PastRecords WHERE PatientID = ?',
+        patientId
+      );
+
+      res.status(201).json({
+        success: true,
+        data: created
+      });
+    }
+  } catch (error) {
+    console.error('Error updating past records:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// ============================================================================
+// PAST SURGERIES
+// ============================================================================
+
+/**
+ * GET /api/patients/:id/past-surgeries
+ * Get all past surgeries for a patient
+ */
+router.get('/:id/past-surgeries', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const patientId = Number(id);
+
+    if (isNaN(patientId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Patient ID must be a number'
+      });
+    }
+
+    const surgeries = await all(
+      'SELECT * FROM PastSurgeries WHERE PatientID = ? ORDER BY CreatedAt DESC',
+      patientId
+    );
+
+    res.json({
+      success: true,
+      data: surgeries
+    });
+  } catch (error) {
+    console.error('Error fetching past surgeries:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/patients/:id/past-surgeries
+ * Create a new past surgery for a patient
+ */
+router.post('/:id/past-surgeries', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const patientId = Number(id);
+    const data = req.body;
+
+    if (isNaN(patientId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Patient ID must be a number'
+      });
+    }
+
+    if (!data.Description) {
+      return res.status(400).json({
+        success: false,
+        error: 'Description is required'
+      });
+    }
+
+    const now = new Date().toISOString();
+
+    const result = await run(
+      `INSERT INTO PastSurgeries (PatientID, SurgeryDate, Description, IsCancerSurgery, Notes, HospitalName, SurgeonName, CreatedAt, UpdatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      patientId,
+      data.SurgeryDate || null,
+      data.Description,
+      data.IsCancerSurgery || 0,
+      data.Notes || null,
+      data.HospitalName || null,
+      data.SurgeonName || null,
+      now,
+      now
+    );
+
+    const surgery = await get(
+      'SELECT * FROM PastSurgeries WHERE RowID = ?',
+      result.lastID
+    );
+
+    res.status(201).json({
+      success: true,
+      data: surgery
+    });
+  } catch (error) {
+    console.error('Error creating past surgery:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * PUT /api/past-surgeries/:id
+ * Update a past surgery
+ */
+router.put('/past-surgeries/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const surgeryId = Number(id);
+    const data = req.body;
+
+    if (isNaN(surgeryId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Surgery ID must be a number'
+      });
+    }
+
+    // Build update query dynamically
+    const updates = [];
+    const values = [];
+
+    if (data.SurgeryDate !== undefined) {
+      updates.push('SurgeryDate = ?');
+      values.push(data.SurgeryDate || null);
+    }
+    if (data.Description !== undefined) {
+      updates.push('Description = ?');
+      values.push(data.Description);
+    }
+    if (data.IsCancerSurgery !== undefined) {
+      updates.push('IsCancerSurgery = ?');
+      values.push(data.IsCancerSurgery);
+    }
+    if (data.Notes !== undefined) {
+      updates.push('Notes = ?');
+      values.push(data.Notes || null);
+    }
+    if (data.HospitalName !== undefined) {
+      updates.push('HospitalName = ?');
+      values.push(data.HospitalName || null);
+    }
+    if (data.SurgeonName !== undefined) {
+      updates.push('SurgeonName = ?');
+      values.push(data.SurgeonName || null);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No fields to update'
+      });
+    }
+
+    updates.push('UpdatedAt = ?');
+    values.push(new Date().toISOString());
+
+    values.push(surgeryId);
+
+    await run(
+      `UPDATE PastSurgeries SET ${updates.join(', ')} WHERE RowID = ?`,
+      ...values
+    );
+
+    const surgery = await get(
+      'SELECT * FROM PastSurgeries WHERE RowID = ?',
+      surgeryId
+    );
+
+    if (!surgery) {
+      return res.status(404).json({
+        success: false,
+        error: 'Surgery not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: surgery
+    });
+  } catch (error) {
+    console.error('Error updating past surgery:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/past-surgeries/:id
+ * Delete a past surgery
+ */
+router.delete('/past-surgeries/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const surgeryId = Number(id);
+
+    if (isNaN(surgeryId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Surgery ID must be a number'
+      });
+    }
+
+    await run(
+      'DELETE FROM PastSurgeries WHERE RowID = ?',
+      surgeryId
+    );
+
+    res.json({
+      success: true,
+      data: { deleted: true }
+    });
+  } catch (error) {
+    console.error('Error deleting past surgery:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/past-surgeries/:id/image
+ * Upload an image for a past surgery
+ */
+router.post('/past-surgeries/:id/image', upload.single('image'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const surgeryId = Number(id);
+
+    if (isNaN(surgeryId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Surgery ID must be a number'
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded'
+      });
+    }
+
+    const file = req.file;
+    const fileExt = file.originalname.split('.').pop();
+    const filename = imageHandler.generateImageFilename('surgeries', surgeryId, 0, fileExt);
+
+    // Get patient ID from surgery record for folder structure
+    const surgery = await get(
+      'SELECT PatientID FROM PastSurgeries WHERE RowID = ?',
+      surgeryId
+    );
+
+    if (!surgery) {
+      return res.status(404).json({
+        success: false,
+        error: 'Surgery not found'
+      });
+    }
+
+    const imagePath = imageHandler.saveImage(surgery.PatientID, filename, file.buffer);
+
+    await run(
+      `UPDATE PastSurgeries SET ImagePath = ? WHERE RowID = ?`,
+      imagePath,
+      surgeryId
+    );
+
+    const updated = await get(
+      'SELECT * FROM PastSurgeries WHERE RowID = ?',
+      surgeryId
+    );
+
+    res.json({
+      success: true,
+      data: { ImagePath: imagePath, surgery: updated }
+    });
+  } catch (error) {
+    console.error('Error uploading surgery image:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 export default router;
