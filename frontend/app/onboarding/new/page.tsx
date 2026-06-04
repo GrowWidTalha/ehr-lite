@@ -22,10 +22,9 @@ import { VitalsStep } from '@/components/onboarding/steps/vitals-step';
 type OnboardingStep = 'basic' | 'history' | 'habits' | 'vitals' | 'complete';
 
 const STEPS: { id: OnboardingStep; title: string; description: string }[] = [
-  { id: 'basic', title: 'Basic Info', description: 'Patient demographics and contact' },
-  { id: 'history', title: 'Medical History', description: 'Comorbidities and family history' },
+  { id: 'basic', title: 'Basic Info', description: 'Patient demographics and medical history' },
   { id: 'habits', title: 'Habits', description: 'Smoking, tobacco, alcohol use' },
-  { id: 'vitals', title: 'Vitals', description: 'Physical measurements' },
+  { id: 'vitals', title: 'Vitals', description: 'Blood pressure measurements' },
   { id: 'complete', title: 'Complete', description: 'Patient onboarding finished' },
 ];
 
@@ -44,14 +43,20 @@ export default function NewPatientOnboardingPage() {
     habits: null,
     vitals: null,
     complete: null,
-  });
+  } as Record<OnboardingStep, string | null>);
 
   const [patientId, setPatientId] = useState<number | null>(null);
 
   // Form data state
   const [formData, setFormData] = useState({
-    // Basic Info
+    // Basic Info - Name components
+    FirstName: '',
+    Relation: '',
+    RelativeName: '',
+    Surname: '',
     PatientName: '',
+
+    // Registration
     Age: '',
     Gender: '',
     ContactNo: '',
@@ -66,10 +71,20 @@ export default function NewPatientOnboardingPage() {
     NoOfChidren: '',
     NoOfSibling: '',
 
-    // Medical History
+    // Medical History (now in basic step)
     PresentingComplaint: '',
+    ComorbiditiesList: [] as string[],
     Comorbidities: '',
     FamilyCancerHistory: '',
+
+    // Vitals (now in basic step)
+    height_cm: '',
+    weight_kg: '',
+    blood_group: '',
+
+    // Remaining vitals
+    blood_pressure_systolic: '',
+    blood_pressure_diastolic: '',
 
     // Habits - new array structure
     habits: [] as Array<{
@@ -81,13 +96,6 @@ export default function NewPatientOnboardingPage() {
       quit: boolean;
       quit_period: string;
     }>,
-
-    // Vitals
-    height_cm: '',
-    weight_kg: '',
-    blood_pressure_systolic: '',
-    blood_pressure_diastolic: '',
-    blood_group: '',
   });
 
   const currentStepIndex = STEPS.findIndex((s) => s.id === currentStep);
@@ -96,11 +104,10 @@ export default function NewPatientOnboardingPage() {
   const validateStep = (step: OnboardingStep): { valid: boolean; error: string | null } => {
     switch (step) {
       case 'basic':
-        if (!formData.PatientName?.trim()) {
+        if (!formData.FirstName?.trim()) {
           return { valid: false, error: 'Patient name is required' };
         }
         break;
-      case 'history':
       case 'habits':
       case 'vitals':
         // These are optional in onboarding
@@ -150,8 +157,11 @@ export default function NewPatientOnboardingPage() {
 
   const savePatient = async () => {
     try {
+      // Convert comorbidities list to string
+      const comorbiditiesString = (formData.ComorbiditiesList || []).join(', ');
+
       const patientData = {
-        PatientName: formData.PatientName,
+        PatientName: formData.PatientName || `${formData.FirstName} ${formData.Relation} ${formData.RelativeName} ${formData.Surname}`.trim(),
         Age: formData.Age ? parseInt(formData.Age) : undefined,
         Gender: formData.Gender as 'Male' | 'Female' | 'Other',
         ContactNo: formData.ContactNo,
@@ -169,11 +179,49 @@ export default function NewPatientOnboardingPage() {
 
       const result = await createPatient.mutateAsync(patientData);
       setPatientId(result.PatientID);
+
+      // Save history and vitals immediately after patient creation
+      await saveHistoryAndVitals(result.PatientID, comorbiditiesString);
+
       toast.success('Patient created successfully');
     } catch (error: any) {
       console.error('Failed to create patient:', error);
       throw error;
     }
+  };
+
+  const saveHistoryAndVitals = async (pid: number, comorbiditiesString: string) => {
+    const promises: Promise<any>[] = [];
+
+    // Save history if has data
+    if (formData.PresentingComplaint || comorbiditiesString || formData.FamilyCancerHistory) {
+      promises.push(
+        createHistory.mutateAsync({
+          patientId: pid,
+          data: {
+            PresentingComplaint: formData.PresentingComplaint,
+            Comorbidities: comorbiditiesString,
+            FamilyCancerHistory: formData.FamilyCancerHistory,
+          },
+        })
+      );
+    }
+
+    // Save height/weight/blood group if has data
+    if (formData.height_cm || formData.weight_kg || formData.blood_group) {
+      promises.push(
+        createVitals.mutateAsync({
+          patientId: pid,
+          data: {
+            height_cm: formData.height_cm ? parseFloat(formData.height_cm) : undefined,
+            weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : undefined,
+            blood_group: formData.blood_group as any,
+          },
+        })
+      );
+    }
+
+    await Promise.allSettled(promises);
   };
 
   const handleFinish = async () => {
@@ -183,8 +231,8 @@ export default function NewPatientOnboardingPage() {
     }
 
     try {
-      // Save all remaining data
-      await saveAllData();
+      // Save remaining data (habits, blood pressure)
+      await saveRemainingData();
 
       setCurrentStep('complete');
       toast.success('Patient onboarding completed successfully!');
@@ -194,24 +242,10 @@ export default function NewPatientOnboardingPage() {
     }
   };
 
-  const saveAllData = async () => {
+  const saveRemainingData = async () => {
     if (!patientId) return;
 
     const promises: Promise<any>[] = [];
-
-    // Save history if has data
-    if (formData.PresentingComplaint || formData.Comorbidities || formData.FamilyCancerHistory) {
-      promises.push(
-        createHistory.mutateAsync({
-          patientId,
-          data: {
-            PresentingComplaint: formData.PresentingComplaint,
-            Comorbidities: formData.Comorbidities,
-            FamilyCancerHistory: formData.FamilyCancerHistory,
-          },
-        })
-      );
-    }
 
     // Save habits if has data
     if (formData.habits && formData.habits.length > 0) {
@@ -225,19 +259,8 @@ export default function NewPatientOnboardingPage() {
       );
     }
 
-    // Save vitals if has data
-    if (formData.height_cm || formData.weight_kg || formData.blood_group) {
-      promises.push(
-        createVitals.mutateAsync({
-          patientId,
-          data: {
-            height_cm: formData.height_cm ? parseFloat(formData.height_cm) : undefined,
-            weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : undefined,
-            blood_group: formData.blood_group as any,
-          },
-        })
-      );
-    }
+    // Note: Blood pressure is collected but not saved in current schema
+    // It can be added to patient notes or medical records separately
 
     await Promise.allSettled(promises);
   };
@@ -254,28 +277,28 @@ export default function NewPatientOnboardingPage() {
   const fillMockBasicInfo = () => {
     setFormData({
       ...formData,
-      PatientName: 'John Doe',
+      FirstName: 'John',
+      Relation: 'S/O',
+      RelativeName: 'Akbar Ali',
+      Surname: 'Khan',
+      PatientName: 'John S/O Akbar Ali Khan',
       Age: '45',
       Gender: 'Male',
-      ContactNo: '03001234567',
-      CNICNo: '12345-6789012-3',
+      ContactNo: '0300-00000000',
+      CNICNo: '00000-0000000-0',
       RegistrationNo: 'REG-2024-001',
       RegistrationDate: new Date().toISOString().split('T')[0],
       MaritalStatus: 'Married',
       NoOfChidren: '2',
       NoOfSibling: '3',
+      PresentingComplaint: 'Patient presents with persistent cough and weight loss.',
+      ComorbiditiesList: ['Diabetes Mellitus (DM)', 'Hypertension (HTN)'],
+      FamilyCancerHistory: 'Father had lung cancer at age 65.',
+      height_cm: '175',
+      weight_kg: '72',
+      blood_group: 'A+',
     });
     toast.success('Basic info mock data filled!');
-  };
-
-  const fillMockHistory = () => {
-    setFormData({
-      ...formData,
-      PresentingComplaint: 'Patient presents with persistent cough and weight loss for the past 2 months. Also reports occasional shortness of breath and fatigue.',
-      Comorbidities: 'Hypertension (controlled on medication), Type 2 Diabetes Mellitus (well-managed)',
-      FamilyCancerHistory: 'Father had lung cancer at age 65. Mother had breast cancer at age 58. Maternal aunt had ovarian cancer.',
-    });
-    toast.success('History mock data filled!');
   };
 
   const fillMockHabits = () => {
@@ -293,11 +316,8 @@ export default function NewPatientOnboardingPage() {
   const fillMockVitals = () => {
     setFormData({
       ...formData,
-      height_cm: '175',
-      weight_kg: '72',
       blood_pressure_systolic: '130',
       blood_pressure_diastolic: '85',
-      blood_group: 'A+',
     });
     toast.success('Vitals mock data filled!');
   };
@@ -322,8 +342,8 @@ export default function NewPatientOnboardingPage() {
             {currentStep !== 'complete' && (
               <FormProgress
                 currentStep={currentStepIndex + 1}
-                totalSteps={4}
-                stepNames={['Basic Info', 'Medical History', 'Habits', 'Vitals']}
+                totalSteps={3}
+                stepNames={['Basic Info', 'Habits', 'Vitals']}
                 className="mt-4"
               />
             )}
@@ -342,14 +362,6 @@ export default function NewPatientOnboardingPage() {
                 formData={formData}
                 onChange={setFormData}
                 error={stepErrors.basic}
-              />
-            )}
-
-            {currentStep === 'history' && (
-              <HistoryStep
-                formData={formData}
-                onChange={setFormData}
-                error={stepErrors.history}
               />
             )}
 
@@ -418,15 +430,6 @@ export default function NewPatientOnboardingPage() {
                     <Button
                       variant="secondary"
                       onClick={fillMockBasicInfo}
-                      type="button"
-                    >
-                      🎲 Fill Mock Data
-                    </Button>
-                  )}
-                  {currentStep === 'history' && (
-                    <Button
-                      variant="secondary"
-                      onClick={fillMockHistory}
                       type="button"
                     >
                       🎲 Fill Mock Data

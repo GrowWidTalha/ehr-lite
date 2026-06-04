@@ -2,10 +2,7 @@
 
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Activity, Weight, Ruler, Droplets } from 'lucide-react';
-
-const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+import { Droplets, Activity } from 'lucide-react';
 
 interface VitalsStepProps {
   formData: any;
@@ -13,99 +10,25 @@ interface VitalsStepProps {
   error?: string | null;
 }
 
-function getBMICategory(bmi: number): { label: string; color: string } {
-  if (bmi < 18.5) return { label: 'Underweight', color: 'text-yellow-600' };
-  if (bmi < 25) return { label: 'Normal weight', color: 'text-green-600' };
-  if (bmi < 30) return { label: 'Overweight', color: 'text-yellow-600' };
-  return { label: 'Obese', color: 'text-red-600' };
-}
-
 function getBPCategory(systolic: number, diastolic: number): { label: string; color: string } {
   if (systolic < 120 && diastolic < 80) return { label: 'Normal', color: 'text-green-600' };
   if (systolic < 130 && diastolic < 85) return { label: 'Elevated', color: 'text-yellow-600' };
-  if (systolic < 140 || diastolic < 90) return { label: 'High StAge 1', color: 'text-orange-600' };
-  return { label: 'High StAge 2', color: 'text-red-600' };
+  if (systolic < 140 || diastolic < 90) return { label: 'High Stage 1', color: 'text-orange-600' };
+  return { label: 'High Stage 2', color: 'text-red-600' };
 }
 
 export function VitalsStep({ formData, onChange, error }: VitalsStepProps) {
-  const height = parseFloat(formData.height_cm);
-  const weight = parseFloat(formData.weight_kg);
   const systolic = parseFloat(formData.blood_pressure_systolic);
   const diastolic = parseFloat(formData.blood_pressure_diastolic);
-
-  const bmi = height && weight ? weight / Math.pow(height / 100, 2) : null;
-  const bmiCategory = bmi ? getBMICategory(bmi) : null;
   const bpCategory = systolic && diastolic ? getBPCategory(systolic, diastolic) : null;
 
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
-        Record the patient&apos;s vital measurements. These are optional but recommended for comprehensive care.
+        Record the patient&apos;s blood pressure. These measurements are optional but recommended for comprehensive care.
+        <br />
+        <span className="text-muted-foreground/70">Note: Height, Weight, and Blood Group are now recorded in the Basic Info step.</span>
       </p>
-
-      {/* Body Measurements Section */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 pb-2 border-b">
-          <Activity className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold">Body Measurements</h3>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* Height */}
-          <div className="space-y-2">
-            <Label htmlFor="height_cm" className="text-sm font-medium">Height</Label>
-            <div className="flex items-center gap-2">
-              <Ruler className="h-4 w-4 text-muted-foreground" />
-              <Input
-                id="height_cm"
-                type="number"
-                step="0.1"
-                value={formData.height_cm}
-                onChange={(e) => onChange({ ...formData, height_cm: e.target.value })}
-                placeholder="e.g., 165"
-                className="flex-1"
-              />
-              <span className="text-sm text-muted-foreground w-12">cm</span>
-            </div>
-            <p className="text-xs text-muted-foreground">Patient height in centimeters</p>
-          </div>
-
-          {/* Weight */}
-          <div className="space-y-2">
-            <Label htmlFor="weight_kg" className="text-sm font-medium">Weight</Label>
-            <div className="flex items-center gap-2">
-              <Weight className="h-4 w-4 text-muted-foreground" />
-              <Input
-                id="weight_kg"
-                type="number"
-                step="0.1"
-                value={formData.weight_kg}
-                onChange={(e) => onChange({ ...formData, weight_kg: e.target.value })}
-                placeholder="e.g., 65"
-                className="flex-1"
-              />
-              <span className="text-sm text-muted-foreground w-12">kg</span>
-            </div>
-            <p className="text-xs text-muted-foreground">Patient weight in kilograms</p>
-          </div>
-        </div>
-
-        {/* BMI Display */}
-        {bmi && (
-          <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Calculated BMI</p>
-                <p className="text-2xl font-bold text-foreground">{bmi.toFixed(1)}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Category</p>
-                <p className={`text-lg font-semibold ${bmiCategory?.color}`}>{bmiCategory?.label}</p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Blood Pressure Section */}
       <div className="space-y-4">
@@ -160,33 +83,15 @@ export function VitalsStep({ formData, onChange, error }: VitalsStepProps) {
         )}
       </div>
 
-      {/* Blood Group Section */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 pb-2 border-b">
-          <Activity className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold">Blood Type</h3>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* Blood Group */}
-          <div className="space-y-2">
-            <Label htmlFor="blood_group" className="text-sm font-medium">Blood Group</Label>
-            <Select
-              value={formData.blood_group}
-              onValueChange={(value) => onChange({ ...formData, blood_group: value })}
-            >
-              <SelectTrigger id="blood_group">
-                <SelectValue placeholder="Select blood group" />
-              </SelectTrigger>
-              <SelectContent>
-                {BLOOD_GROUPS.map((group) => (
-                  <SelectItem key={group} value={group}>
-                    {group}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">Important for transfusions and emergencies</p>
+      {/* Info Note */}
+      <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-md border border-blue-200 dark:border-blue-800">
+        <div className="flex items-start gap-2">
+          <Activity className="h-4 w-4 text-blue-600 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-medium text-blue-900 dark:text-blue-100">Additional Measurements</p>
+            <p className="text-blue-700 dark:text-blue-300 mt-1">
+              Height, Weight, and Blood Group have been moved to the Basic Info step for better workflow efficiency.
+            </p>
           </div>
         </div>
       </div>
