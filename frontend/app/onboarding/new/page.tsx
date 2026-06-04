@@ -71,6 +71,7 @@ export default function NewPatientOnboardingPage() {
     PlaceOfBirthDistrict: undefined,
     NoOfChidren: '',
     NoOfSibling: '',
+    Address: '',
 
     // Medical History (now in basic step)
     PresentingComplaint: '',
@@ -292,6 +293,7 @@ export default function NewPatientOnboardingPage() {
       MaritalStatus: 'Married',
       NoOfChidren: '2',
       NoOfSibling: '3',
+      Address: 'House 123, Street 4, Gulberg, Lahore',
       PresentingComplaint: 'Patient presents with persistent cough and weight loss.',
       ComorbiditiesList: ['Diabetes Mellitus (DM)', 'Hypertension (HTN)'],
       FamilyCancerHistory: 'Father had lung cancer at age 65.',

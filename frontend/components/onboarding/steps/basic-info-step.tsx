@@ -198,6 +198,26 @@ export function BasicInfoStep({ formData, onChange, error }: BasicInfoStepProps)
         </div>
       </div>
 
+      {/* Address Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b">
+          <IdCard className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold">Address</h3>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="Address" className="text-sm font-medium">Full Address</Label>
+          <Textarea
+            id="Address"
+            value={formData.Address || ''}
+            onChange={(e) => onChange({ ...formData, Address: e.target.value })}
+            placeholder="Enter complete address..."
+            className="min-h-[80px]"
+          />
+          <p className="text-xs text-muted-foreground">Street, house/flat number, area, postal code</p>
+        </div>
+      </div>
+
       {/* Medical History Section */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 pb-2 border-b">
