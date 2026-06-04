@@ -10,28 +10,27 @@ import { LoadingSpinner } from '@/components/shared/loading-spinner';
 import { FormProgress } from '@/components/shared/form-progress';
 import { toast } from 'sonner';
 import { useCreatePatient } from '@/hooks/use-patients';
-import { useCreateVitals } from '@/hooks/use-vitals';
 import { useUpdateHistory } from '@/hooks/use-history';
 import { useUpdateHabits } from '@/hooks/use-habits';
 
 import { BasicInfoStep } from '@/components/onboarding/steps/basic-info-step';
-import { HistoryStep } from '@/components/onboarding/steps/history-step';
 import { HabitsStep } from '@/components/onboarding/steps/habits-step';
-import { VitalsStep } from '@/components/onboarding/steps/vitals-step';
+import { PastRecordsStep } from '@/components/onboarding/steps/past-records-step';
+import { PastSurgeriesStep } from '@/components/onboarding/steps/past-surgeries-step';
 
-type OnboardingStep = 'basic' | 'history' | 'habits' | 'vitals' | 'complete';
+type OnboardingStep = 'basic' | 'habits' | 'pastRecords' | 'pastSurgeries' | 'complete';
 
 const STEPS: { id: OnboardingStep; title: string; description: string }[] = [
   { id: 'basic', title: 'Basic Info', description: 'Patient demographics and medical history' },
   { id: 'habits', title: 'Habits', description: 'Smoking, tobacco, alcohol use' },
-  { id: 'vitals', title: 'Vitals', description: 'Blood pressure measurements' },
+  { id: 'pastRecords', title: 'Past Records', description: 'Previous treatments and therapies' },
+  { id: 'pastSurgeries', title: 'Past Surgeries', description: 'Previous surgical procedures' },
   { id: 'complete', title: 'Complete', description: 'Patient onboarding finished' },
 ];
 
 export default function NewPatientOnboardingPage() {
   const router = useRouter();
   const createPatient = useCreatePatient();
-  const createVitals = useCreateVitals();
   const createHistory = useUpdateHistory();
   const updateHabits = useUpdateHabits();
 
@@ -39,9 +38,9 @@ export default function NewPatientOnboardingPage() {
   const [completedSteps, setCompletedSteps] = useState<OnboardingStep[]>([]);
   const [stepErrors, setStepErrors] = useState<Record<OnboardingStep, string | null>>({
     basic: null,
-    history: null,
     habits: null,
-    vitals: null,
+    pastRecords: null,
+    pastSurgeries: null,
     complete: null,
   } as Record<OnboardingStep, string | null>);
 
@@ -84,9 +83,21 @@ export default function NewPatientOnboardingPage() {
     weight_kg: '',
     blood_group: '',
 
-    // Remaining vitals
-    blood_pressure_systolic: '',
-    blood_pressure_diastolic: '',
+    // Past Records
+    PreviousChemo: '',
+    PreviousRT: '',
+    PreviousTargeted: '',
+    PreviousHT: '',
+    PreviousIT: '',
+
+    // Past Surgeries
+    Surgeries: [] as Array<{
+      id: string;
+      description: string;
+      isCancerSurgery: boolean;
+      imageUrl: string | null;
+      imageFile: File | null;
+    }>,
 
     // Habits - new array structure
     habits: [] as Array<{
@@ -111,7 +122,8 @@ export default function NewPatientOnboardingPage() {
         }
         break;
       case 'habits':
-      case 'vitals':
+      case 'pastRecords':
+      case 'pastSurgeries':
         // These are optional in onboarding
         break;
       default:
@@ -140,6 +152,11 @@ export default function NewPatientOnboardingPage() {
     // Save patient data on first step completion
     if (currentStep === 'basic' && !patientId) {
       await savePatient();
+    }
+
+    // Save past records and surgeries before moving to complete
+    if (currentStep === 'pastSurgeries' && patientId) {
+      await savePastRecordsAndSurgeries();
     }
 
     // Move to next step
@@ -177,13 +194,17 @@ export default function NewPatientOnboardingPage() {
         PlaceOfBirth: formData.PlaceOfBirth ? parseInt(formData.PlaceOfBirth) : undefined,
         NoOfChidren: formData.NoOfChidren ? parseInt(formData.NoOfChidren) : 0,
         NoOfSibling: formData.NoOfSibling ? parseInt(formData.NoOfSibling) : 0,
+        PresentAddress: formData.Address,
+        Height: formData.height_cm ? parseFloat(formData.height_cm) : undefined,
+        Weight: formData.weight_kg ? parseFloat(formData.weight_kg) : undefined,
+        BloodGroup: formData.blood_group ? (formData.blood_group === 'A+' ? 1 : formData.blood_group === 'A-' ? 2 : formData.blood_group === 'B+' ? 3 : formData.blood_group === 'B-' ? 4 : formData.blood_group === 'AB+' ? 5 : formData.blood_group === 'AB-' ? 6 : formData.blood_group === 'O+' ? 7 : 8) : undefined,
       };
 
       const result = await createPatient.mutateAsync(patientData);
       setPatientId(result.PatientID);
 
-      // Save history and vitals immediately after patient creation
-      await saveHistoryAndVitals(result.PatientID, comorbiditiesString);
+      // Save history immediately after patient creation
+      await saveHistory(result.PatientID, comorbiditiesString);
 
       toast.success('Patient created successfully');
     } catch (error: any) {
@@ -192,38 +213,54 @@ export default function NewPatientOnboardingPage() {
     }
   };
 
-  const saveHistoryAndVitals = async (pid: number, comorbiditiesString: string) => {
-    const promises: Promise<any>[] = [];
-
-    // Save history if has data
+  const saveHistory = async (pid: number, comorbiditiesString: string) => {
     if (formData.PresentingComplaint || comorbiditiesString || formData.FamilyCancerHistory) {
-      promises.push(
-        createHistory.mutateAsync({
-          patientId: pid,
-          data: {
-            PresentingComplaint: formData.PresentingComplaint,
-            Comorbidities: comorbiditiesString,
-            FamilyCancerHistory: formData.FamilyCancerHistory,
-          },
-        })
-      );
+      await createHistory.mutateAsync({
+        patientId: pid,
+        data: {
+          PresentingComplaint: formData.PresentingComplaint,
+          Comorbidities: comorbiditiesString,
+          FamilyCancerHistory: formData.FamilyCancerHistory,
+        },
+      });
     }
+  };
 
-    // Save height/weight/blood group if has data
-    if (formData.height_cm || formData.weight_kg || formData.blood_group) {
-      promises.push(
-        createVitals.mutateAsync({
-          patientId: pid,
-          data: {
-            height_cm: formData.height_cm ? parseFloat(formData.height_cm) : undefined,
-            weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : undefined,
-            blood_group: formData.blood_group as any,
-          },
-        })
-      );
+  const savePastRecordsAndSurgeries = async () => {
+    if (!patientId) return;
+
+    try {
+      // Save past records - these would need to be stored in a new table
+      // For now, we'll store them in the patient's notes or a separate field
+      const pastRecordsData = {
+        PreviousChemo: formData.PreviousChemo,
+        PreviousRT: formData.PreviousRT,
+        PreviousTargeted: formData.PreviousTargeted,
+        PreviousHT: formData.PreviousHT,
+        PreviousIT: formData.PreviousIT,
+      };
+
+      // TODO: Create API endpoint for past records
+      console.log('Past records to save:', pastRecordsData);
+
+      // Save surgeries with images
+      for (const surgery of formData.Surgeries || []) {
+        if (surgery.description || surgery.imageUrl) {
+          // TODO: Create API endpoint for surgeries with image upload
+          console.log('Surgery to save:', surgery);
+
+          if (surgery.imageFile) {
+            // TODO: Upload image to server
+            console.log('Image to upload:', surgery.imageFile);
+          }
+        }
+      }
+
+      toast.success('Past records and surgeries saved');
+    } catch (error: any) {
+      console.error('Failed to save past records:', error);
+      toast.error('Failed to save some data. Please try again.');
     }
-
-    await Promise.allSettled(promises);
   };
 
   const handleFinish = async () => {
@@ -233,8 +270,8 @@ export default function NewPatientOnboardingPage() {
     }
 
     try {
-      // Save remaining data (habits, blood pressure)
-      await saveRemainingData();
+      // Save remaining data (habits)
+      await saveHabits();
 
       setCurrentStep('complete');
       toast.success('Patient onboarding completed successfully!');
@@ -244,27 +281,17 @@ export default function NewPatientOnboardingPage() {
     }
   };
 
-  const saveRemainingData = async () => {
+  const saveHabits = async () => {
     if (!patientId) return;
 
-    const promises: Promise<any>[] = [];
-
-    // Save habits if has data
     if (formData.habits && formData.habits.length > 0) {
-      promises.push(
-        updateHabits.mutateAsync({
-          patientId,
-          data: {
-            habits: formData.habits,
-          },
-        })
-      );
+      await updateHabits.mutateAsync({
+        patientId,
+        data: {
+          habits: formData.habits,
+        },
+      });
     }
-
-    // Note: Blood pressure is collected but not saved in current schema
-    // It can be added to patient notes or medical records separately
-
-    await Promise.allSettled(promises);
   };
 
   const goToPatient = () => {
@@ -316,13 +343,39 @@ export default function NewPatientOnboardingPage() {
     toast.success('Habits mock data filled!');
   };
 
-  const fillMockVitals = () => {
+  const fillMockPastRecords = () => {
     setFormData({
       ...formData,
-      blood_pressure_systolic: '130',
-      blood_pressure_diastolic: '85',
+      PreviousChemo: 'Cisplatin + Etoposide - 4 cycles completed in 2023',
+      PreviousRT: 'Radiation to chest - 50 Gy completed in 2022',
+      PreviousTargeted: 'Gefitinib - 6 months, stopped due to side effects',
+      PreviousHT: 'Tamoxifen - 2 years for breast cancer',
+      PreviousIT: 'Pembrolizumab - 3 cycles, ongoing',
     });
-    toast.success('Vitals mock data filled!');
+    toast.success('Past records mock data filled!');
+  };
+
+  const fillMockPastSurgeries = () => {
+    setFormData({
+      ...formData,
+      Surgeries: [
+        {
+          id: crypto.randomUUID(),
+          description: 'Lumpectomy with axillary node dissection - March 2022 at JPMC',
+          isCancerSurgery: true,
+          imageUrl: null,
+          imageFile: null,
+        },
+        {
+          id: crypto.randomUUID(),
+          description: 'Appendectomy - 2015',
+          isCancerSurgery: false,
+          imageUrl: null,
+          imageFile: null,
+        },
+      ],
+    });
+    toast.success('Past surgeries mock data filled!');
   };
 
   return (
@@ -345,8 +398,8 @@ export default function NewPatientOnboardingPage() {
             {currentStep !== 'complete' && (
               <FormProgress
                 currentStep={currentStepIndex + 1}
-                totalSteps={3}
-                stepNames={['Basic Info', 'Habits', 'Vitals']}
+                totalSteps={4}
+                stepNames={['Basic Info', 'Habits', 'Past Records', 'Past Surgeries']}
                 className="mt-4"
               />
             )}
@@ -376,11 +429,19 @@ export default function NewPatientOnboardingPage() {
               />
             )}
 
-            {currentStep === 'vitals' && (
-              <VitalsStep
+            {currentStep === 'pastRecords' && (
+              <PastRecordsStep
                 formData={formData}
                 onChange={setFormData}
-                error={stepErrors.vitals}
+                error={stepErrors.pastRecords}
+              />
+            )}
+
+            {currentStep === 'pastSurgeries' && (
+              <PastSurgeriesStep
+                formData={formData}
+                onChange={setFormData}
+                error={stepErrors.pastSurgeries}
               />
             )}
 
@@ -447,10 +508,19 @@ export default function NewPatientOnboardingPage() {
                       🎲 Fill Mock Data
                     </Button>
                   )}
-                  {currentStep === 'vitals' && (
+                  {currentStep === 'pastRecords' && (
                     <Button
                       variant="secondary"
-                      onClick={fillMockVitals}
+                      onClick={fillMockPastRecords}
+                      type="button"
+                    >
+                      🎲 Fill Mock Data
+                    </Button>
+                  )}
+                  {currentStep === 'pastSurgeries' && (
+                    <Button
+                      variant="secondary"
+                      onClick={fillMockPastSurgeries}
                       type="button"
                     >
                       🎲 Fill Mock Data
@@ -458,7 +528,7 @@ export default function NewPatientOnboardingPage() {
                   )}
                 </div>
 
-                {currentStep === 'vitals' ? (
+                {currentStep === 'pastSurgeries' ? (
                   <Button
                     onClick={handleFinish}
                     disabled={createPatient.isPending}
