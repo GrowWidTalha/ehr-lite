@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, FileImage, Camera, Eye, Trash2 } from 'lucide-react';
 import { useReports, useDeleteReport } from '@/hooks/use-reports';
+import { useReportTypes } from '@/hooks/use-report-types';
 import { ImageLightbox } from '@/components/reports/image-lightbox';
 import {
   AlertDialog,
@@ -20,7 +21,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
-import { formatDate, REPORT_TYPE_LABELS } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface ReportsTabProps {
@@ -29,6 +30,7 @@ interface ReportsTabProps {
 
 export function ReportsTab({ patientId }: ReportsTabProps) {
   const { data: reports, isLoading } = useReports(parseInt(patientId));
+  const { data: reportTypes } = useReportTypes();
   const deleteReport = useDeleteReport();
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImages, setLightboxImages] = useState<{ url: string; title?: string }[]>([]);
@@ -72,14 +74,17 @@ export function ReportsTab({ patientId }: ReportsTabProps) {
     );
   }
 
-  // Group reports by type
-  const groupedReports = {
-    pathology: reports?.filter((r) => r.report_type === 'pathology') || [],
-    imaging: reports?.filter((r) => r.report_type === 'imaging') || [],
-    lab: reports?.filter((r) => r.report_type === 'lab') || [],
-    consultation: reports?.filter((r) => r.report_type === 'consultation') || [],
-    other: reports?.filter((r) => r.report_type === 'other') || [],
-  };
+  // Group reports by category
+  const groupedReports = reports?.reduce((acc, report) => {
+    const category = report.category || 'Other';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(report);
+    return acc;
+  }, {} as Record<string, any[]>) || {};
+
+  const categories = Object.keys(groupedReports).sort();
 
   const totalReports = reports?.length || 0;
 
@@ -109,15 +114,11 @@ export function ReportsTab({ patientId }: ReportsTabProps) {
                 <TabsTrigger value="all">
                   All ({totalReports})
                 </TabsTrigger>
-                <TabsTrigger value="pathology">
-                  Pathology ({groupedReports.pathology.length})
-                </TabsTrigger>
-                <TabsTrigger value="imaging">
-                  Imaging ({groupedReports.imaging.length})
-                </TabsTrigger>
-                <TabsTrigger value="lab">
-                  Lab ({groupedReports.lab.length})
-                </TabsTrigger>
+                {categories.map((category) => (
+                  <TabsTrigger key={category} value={category}>
+                    {category} ({groupedReports[category]?.length || 0})
+                  </TabsTrigger>
+                ))}
               </TabsList>
 
               <TabsContent value="all" className="space-y-3">
@@ -131,50 +132,22 @@ export function ReportsTab({ patientId }: ReportsTabProps) {
                 ))}
               </TabsContent>
 
-              <TabsContent value="pathology" className="space-y-3">
-                {groupedReports.pathology.length > 0 ? (
-                  groupedReports.pathology.map((report) => (
-                    <ReportCard
-                      key={report.id}
-                      report={report}
-                      onView={() => handleViewImages(report)}
-                      onDelete={() => setDeleteId(report.id)}
-                    />
-                  ))
-                ) : (
-                  <EmptyReportType type="Pathology" />
-                )}
-              </TabsContent>
-
-              <TabsContent value="imaging" className="space-y-3">
-                {groupedReports.imaging.length > 0 ? (
-                  groupedReports.imaging.map((report) => (
-                    <ReportCard
-                      key={report.id}
-                      report={report}
-                      onView={() => handleViewImages(report)}
-                      onDelete={() => setDeleteId(report.id)}
-                    />
-                  ))
-                ) : (
-                  <EmptyReportType type="Imaging" />
-                )}
-              </TabsContent>
-
-              <TabsContent value="lab" className="space-y-3">
-                {groupedReports.lab.length > 0 ? (
-                  groupedReports.lab.map((report) => (
-                    <ReportCard
-                      key={report.id}
-                      report={report}
-                      onView={() => handleViewImages(report)}
-                      onDelete={() => setDeleteId(report.id)}
-                    />
-                  ))
-                ) : (
-                  <EmptyReportType type="Lab" />
-                )}
-              </TabsContent>
+              {categories.map((category) => (
+                <TabsContent key={category} value={category} className="space-y-3">
+                  {groupedReports[category]?.length > 0 ? (
+                    groupedReports[category].map((report) => (
+                      <ReportCard
+                        key={report.id}
+                        report={report}
+                        onView={() => handleViewImages(report)}
+                        onDelete={() => setDeleteId(report.id)}
+                      />
+                    ))
+                  ) : (
+                    <EmptyReportType type={category} />
+                  )}
+                </TabsContent>
+              ))}
             </Tabs>
           ) : (
             <div className="text-center py-12 text-muted-foreground">
@@ -295,7 +268,7 @@ function ReportCard({
 
           {/* Type Badge */}
           <Badge variant="outline" className="flex-shrink-0">
-            {REPORT_TYPE_LABELS[report.report_type] || report.report_type}
+            {report.report_type || 'Report'}
           </Badge>
         </div>
       </CardContent>

@@ -12,6 +12,8 @@ import { toast } from 'sonner';
 import { useCreatePatient } from '@/hooks/use-patients';
 import { useUpdateHistory } from '@/hooks/use-history';
 import { useUpdateHabits } from '@/hooks/use-habits';
+import { useUpdatePastRecords } from '@/hooks/use-past-records';
+import { useCreatePastSurgery, useUploadSurgeryImage } from '@/hooks/use-past-surgeries';
 
 import { BasicInfoStep } from '@/components/onboarding/steps/basic-info-step';
 import { HabitsStep } from '@/components/onboarding/steps/habits-step';
@@ -33,6 +35,9 @@ export default function NewPatientOnboardingPage() {
   const createPatient = useCreatePatient();
   const createHistory = useUpdateHistory();
   const updateHabits = useUpdateHabits();
+  const updatePastRecords = useUpdatePastRecords();
+  const createSurgery = useCreatePastSurgery();
+  const uploadSurgeryImage = useUploadSurgeryImage();
 
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('basic');
   const [completedSteps, setCompletedSteps] = useState<OnboardingStep[]>([]);
@@ -45,6 +50,7 @@ export default function NewPatientOnboardingPage() {
   } as Record<OnboardingStep, string | null>);
 
   const [patientId, setPatientId] = useState<number | null>(null);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -97,6 +103,10 @@ export default function NewPatientOnboardingPage() {
       isCancerSurgery: boolean;
       imageUrl: string | null;
       imageFile: File | null;
+      surgeryDate: string;
+      notes: string;
+      hospitalName: string;
+      surgeonName: string;
     }>,
 
     // Habits - new array structure
@@ -176,6 +186,8 @@ export default function NewPatientOnboardingPage() {
 
   const savePatient = async () => {
     try {
+      console.log('=== Creating patient ===');
+
       // Convert comorbidities list to string
       const comorbiditiesString = (formData.ComorbiditiesList || []).join(', ');
 
@@ -200,7 +212,9 @@ export default function NewPatientOnboardingPage() {
         BloodGroup: formData.blood_group ? (formData.blood_group === 'A+' ? 1 : formData.blood_group === 'A-' ? 2 : formData.blood_group === 'B+' ? 3 : formData.blood_group === 'B-' ? 4 : formData.blood_group === 'AB+' ? 5 : formData.blood_group === 'AB-' ? 6 : formData.blood_group === 'O+' ? 7 : 8) : undefined,
       };
 
+      console.log('Patient data:', patientData);
       const result = await createPatient.mutateAsync(patientData);
+      console.log('Patient created successfully:', result);
       setPatientId(result.PatientID);
 
       // Save history immediately after patient creation
@@ -209,57 +223,128 @@ export default function NewPatientOnboardingPage() {
       toast.success('Patient created successfully');
     } catch (error: any) {
       console.error('Failed to create patient:', error);
+      toast.error(`Failed to create patient: ${error?.message || 'Unknown error'}`);
       throw error;
     }
   };
 
   const saveHistory = async (pid: number, comorbiditiesString: string) => {
     if (formData.PresentingComplaint || comorbiditiesString || formData.FamilyCancerHistory) {
-      await createHistory.mutateAsync({
-        patientId: pid,
-        data: {
-          PresentingComplaint: formData.PresentingComplaint,
-          Comorbidities: comorbiditiesString,
-          FamilyCancerHistory: formData.FamilyCancerHistory,
-        },
-      });
+      try {
+        console.log('Saving history for patient:', pid);
+        await createHistory.mutateAsync({
+          patientId: pid,
+          data: {
+            PresentingComplaint: formData.PresentingComplaint,
+            Comorbidities: comorbiditiesString,
+            FamilyCancerHistory: formData.FamilyCancerHistory,
+          },
+        });
+        console.log('History saved successfully');
+      } catch (error: any) {
+        console.error('Failed to save history:', error);
+        toast.warning(`Failed to save medical history: ${error?.message || 'Unknown error'}`);
+        // Don't throw - patient creation is more important
+      }
     }
   };
 
   const savePastRecordsAndSurgeries = async () => {
-    if (!patientId) return;
+    if (!patientId) {
+      throw new Error('Patient ID is required');
+    }
+
+    console.log('=== Starting savePastRecordsAndSurgeries ===');
+    console.log('Patient ID:', patientId);
+    console.log('Form data:', {
+      PreviousChemo: formData.PreviousChemo,
+      PreviousRT: formData.PreviousRT,
+      PreviousTargeted: formData.PreviousTargeted,
+      PreviousHT: formData.PreviousHT,
+      PreviousIT: formData.PreviousIT,
+      Surgeries: formData.Surgeries,
+    });
 
     try {
-      // Save past records - these would need to be stored in a new table
-      // For now, we'll store them in the patient's notes or a separate field
-      const pastRecordsData = {
-        PreviousChemo: formData.PreviousChemo,
-        PreviousRT: formData.PreviousRT,
-        PreviousTargeted: formData.PreviousTargeted,
-        PreviousHT: formData.PreviousHT,
-        PreviousIT: formData.PreviousIT,
-      };
+      // Save past records
+      const hasPastRecords = formData.PreviousChemo || formData.PreviousRT ||
+                             formData.PreviousTargeted || formData.PreviousHT || formData.PreviousIT;
 
-      // TODO: Create API endpoint for past records
-      console.log('Past records to save:', pastRecordsData);
-
-      // Save surgeries with images
-      for (const surgery of formData.Surgeries || []) {
-        if (surgery.description || surgery.imageUrl) {
-          // TODO: Create API endpoint for surgeries with image upload
-          console.log('Surgery to save:', surgery);
-
-          if (surgery.imageFile) {
-            // TODO: Upload image to server
-            console.log('Image to upload:', surgery.imageFile);
-          }
+      if (hasPastRecords) {
+        console.log('Saving past records...');
+        try {
+          const result = await updatePastRecords.mutateAsync({
+            patientId,
+            data: {
+              PreviousChemo: formData.PreviousChemo || undefined,
+              PreviousRT: formData.PreviousRT || undefined,
+              PreviousTargeted: formData.PreviousTargeted || undefined,
+              PreviousHT: formData.PreviousHT || undefined,
+              PreviousIT: formData.PreviousIT || undefined,
+            },
+          });
+          console.log('Past records saved successfully:', result);
+        } catch (error: any) {
+          console.error('Failed to save past records:', error);
+          throw new Error(`Failed to save past records: ${error?.message || 'Unknown error'}`);
         }
+      } else {
+        console.log('No past records to save');
       }
 
-      toast.success('Past records and surgeries saved');
+      // Save surgeries with images
+      const surgeries = formData.Surgeries || [];
+      console.log('Processing surgeries:', surgeries);
+      if (surgeries.length > 0) {
+        for (const surgery of surgeries) {
+          if (surgery.description || surgery.imageUrl) {
+            try {
+              const surgeryData = {
+                SurgeryDate: surgery.surgeryDate || undefined,
+                Description: surgery.description || '',
+                IsCancerSurgery: surgery.isCancerSurgery ? 1 : 0,
+                Notes: surgery.notes || undefined,
+                HospitalName: surgery.hospitalName || undefined,
+                SurgeonName: surgery.surgeonName || undefined,
+              };
+
+              console.log('Saving surgery:', surgeryData);
+              const result = await createSurgery.mutateAsync({
+                patientId,
+                data: surgeryData,
+              });
+              console.log('Surgery saved successfully:', result);
+
+              // Upload image if exists
+              if (surgery.imageFile && result && typeof result === 'object' && 'RowID' in result) {
+                try {
+                  console.log('Uploading image for surgery:', (result as any).RowID);
+                  await uploadSurgeryImage.mutateAsync({
+                    surgeryId: (result as any).RowID,
+                    file: surgery.imageFile,
+                  });
+                  console.log('Image uploaded successfully');
+                } catch (imgError: any) {
+                  console.error('Failed to upload surgery image:', imgError);
+                  // Don't throw - continue with other surgeries
+                  toast.warning(`Failed to upload image for surgery: ${imgError?.message || 'Unknown error'}`);
+                }
+              }
+            } catch (error: any) {
+              console.error('Failed to save surgery:', error);
+              throw new Error(`Failed to save surgery: ${error?.message || 'Unknown error'}`);
+            }
+          }
+        }
+      } else {
+        console.log('No surgeries to save');
+      }
+
+      console.log('=== savePastRecordsAndSurgeries completed successfully ===');
     } catch (error: any) {
-      console.error('Failed to save past records:', error);
-      toast.error('Failed to save some data. Please try again.');
+      console.error('=== savePastRecordsAndSurgeries FAILED ===');
+      console.error('Failed to save past records/surgeries:', error);
+      throw error; // Re-throw to let caller handle
     }
   };
 
@@ -269,8 +354,15 @@ export default function NewPatientOnboardingPage() {
       return;
     }
 
+    setIsCompleting(true);
+
     try {
+      // Save past records and surgeries first
+      console.log('Saving past records and surgeries...');
+      await savePastRecordsAndSurgeries();
+
       // Save remaining data (habits)
+      console.log('Saving habits...');
       await saveHabits();
 
       setCurrentStep('complete');
@@ -278,19 +370,28 @@ export default function NewPatientOnboardingPage() {
     } catch (error: any) {
       console.error('Failed to complete onboarding:', error);
       toast.error(error?.message || 'Failed to save some data. Please try again.');
+    } finally {
+      setIsCompleting(false);
     }
   };
 
   const saveHabits = async () => {
-    if (!patientId) return;
+    if (!patientId) {
+      throw new Error('Patient ID is required');
+    }
 
     if (formData.habits && formData.habits.length > 0) {
-      await updateHabits.mutateAsync({
-        patientId,
-        data: {
-          habits: formData.habits,
-        },
-      });
+      try {
+        await updateHabits.mutateAsync({
+          patientId,
+          data: {
+            habits: formData.habits,
+          },
+        });
+      } catch (error: any) {
+        console.error('Failed to save habits:', error);
+        throw new Error(`Failed to save habits: ${error?.message || 'Unknown error'}`);
+      }
     }
   };
 
@@ -365,6 +466,10 @@ export default function NewPatientOnboardingPage() {
           isCancerSurgery: true,
           imageUrl: null,
           imageFile: null,
+          surgeryDate: '2022-03-15',
+          notes: 'Successful procedure with clear margins',
+          hospitalName: 'JPMC',
+          surgeonName: 'Dr. Ahmed',
         },
         {
           id: crypto.randomUUID(),
@@ -372,6 +477,10 @@ export default function NewPatientOnboardingPage() {
           isCancerSurgery: false,
           imageUrl: null,
           imageFile: null,
+          surgeryDate: '2015-08-20',
+          notes: 'Routine appendectomy',
+          hospitalName: 'City Hospital',
+          surgeonName: 'Dr. Khan',
         },
       ],
     });
@@ -531,9 +640,9 @@ export default function NewPatientOnboardingPage() {
                 {currentStep === 'pastSurgeries' ? (
                   <Button
                     onClick={handleFinish}
-                    disabled={createPatient.isPending}
+                    disabled={createPatient.isPending || isCompleting}
                   >
-                    {createPatient.isPending ? (
+                    {isCompleting ? (
                       <>
                         <LoadingSpinner />
                         Saving...

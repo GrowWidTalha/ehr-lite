@@ -56,8 +56,12 @@ async function initializeDatabase() {
       diagnosis_id INTEGER,
       title TEXT,
       report_type TEXT,
+      category TEXT DEFAULT 'Other',
       notes TEXT,
       report_date DATETIME,
+      facility_name TEXT,
+      ordering_physician TEXT,
+      clinical_context TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
@@ -74,7 +78,106 @@ async function initializeDatabase() {
       captured_at DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
+
+    // Create ReportTypes table
+    db.run(`CREATE TABLE IF NOT EXISTS ReportTypes (
+      ID INTEGER PRIMARY KEY AUTOINCREMENT,
+      TypeCode TEXT UNIQUE NOT NULL,
+      TypeName TEXT NOT NULL,
+      Category TEXT NOT NULL,
+      Description TEXT,
+      DisplayOrder INTEGER DEFAULT 0,
+      IsActive INTEGER DEFAULT 1
+    )`);
+
+    // Check if ReportTypes is empty, if so seed it
+    const reportTypesCount = db.exec('SELECT COUNT(*) as count FROM ReportTypes');
+    if (reportTypesCount.length === 0 || reportTypesCount[0].values[0][0] === 0) {
+      console.log('Seeding ReportTypes table...');
+
+      // Use individual INSERT statements for sql.js compatibility
+      const insertStatements = [
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('CT_SCAN', 'CT Scan', 'Imaging', 'Computed Tomography scan', 1)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('MRI', 'MRI', 'Imaging', 'Magnetic Resonance Imaging', 2)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('PET_SCAN', 'PET Scan', 'Imaging', 'Positron Emission Tomography', 3)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('ULTRASOUND', 'Ultrasound', 'Imaging', 'Ultrasound imaging', 4)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('MAMMOGRAM', 'Mammogram', 'Imaging', 'Breast mammography', 5)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('BONE_SCAN', 'Bone Scan', 'Imaging', 'Nuclear bone scan', 6)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('X_RAY', 'X-Ray', 'Imaging', 'X-ray imaging', 7)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('ECHOCARDIOGRAM', 'Echocardiogram', 'Imaging', 'Heart ultrasound', 8)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('ELECTROCARDIOGRAM', 'ECG/EKG', 'Imaging', 'Heart electrical activity', 9)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('BIOPSY', 'Biopsy Report', 'Pathology', 'Tissue biopsy analysis', 10)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('SURGICAL_PATHOLOGY', 'Surgical Pathology', 'Pathology', 'Surgical specimen analysis', 11)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('CYTOLOGY', 'Cytology Report', 'Pathology', 'Cell analysis (Pap smear, etc.)', 12)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('MOLECULAR', 'Molecular Pathology', 'Pathology', 'DNA/RNA analysis', 13)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('IHC_MARKERS', 'IHC Markers', 'Pathology', 'Immunohistochemistry markers', 14)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('BONE_MARROW', 'Bone Marrow Biopsy', 'Pathology', 'Bone marrow analysis', 15)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('BLOOD_WORK', 'Blood Work', 'Lab', 'Complete blood count, chemistry', 16)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('TUMOR_MARKERS', 'Tumor Markers', 'Lab', 'CEA, CA125, CA19-9, PSA, AFP', 17)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('HORMONE_RECEPTORS', 'Hormone Receptors', 'Lab', 'ER, PR status and percentages', 18)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('HER2_TEST', 'HER2 Testing', 'Lab', 'HER2/neu status', 19)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('KI67', 'Ki-67 Index', 'Lab', 'Proliferation marker', 20)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('GENETIC_TEST', 'Genetic Testing', 'Lab', 'EGFR, ALK, KRAS, MSI, PD-L1', 21)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('COAGULATION', 'Coagulation Profile', 'Lab', 'PT, INR, APTT', 22)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('LIVER_FUNCTION', 'Liver Function', 'Lab', 'LFT: bilirubin, SGPT, SGOT, ALP', 23)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('KIDNEY_FUNCTION', 'Kidney Function', 'Lab', 'Renal function tests', 24)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('CHEMOTHERAPY', 'Chemotherapy Record', 'Treatment', 'Chemo regimen and cycles', 25)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('RADIOTHERAPY', 'Radiotherapy Record', 'Treatment', 'Radiation dose and fields', 26)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('SURGICAL_REPORT', 'Surgical Report', 'Treatment', 'Operative report', 27)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('TARGETED_THERAPY', 'Targeted Therapy', 'Treatment', 'TKI and targeted agents', 28)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('IMMUNOTHERAPY', 'Immunotherapy', 'Treatment', 'Immunotherapy records', 29)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('HORMONE_THERAPY', 'Hormone Therapy', 'Treatment', 'Hormonal treatment records', 30)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('CONSULTATION', 'Consultation Note', 'Clinical', 'Specialist consultation', 31)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('DISCHARGE_SUMMARY', 'Discharge Summary', 'Clinical', 'Hospital discharge summary', 32)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('PROGRESS_NOTE', 'Progress Note', 'Clinical', 'Clinical progress notes', 33)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('REFERRAL', 'Referral Letter', 'Clinical', 'Doctor referral letter', 34)",
+        "INSERT OR IGNORE INTO ReportTypes (TypeCode, TypeName, Category, Description, DisplayOrder) VALUES ('GENERAL', 'General Report', 'Other', 'Other medical reports', 35)"
+      ];
+
+      insertStatements.forEach(statement => {
+        try {
+          db.run(statement);
+        } catch (error) {
+          // Ignore duplicates
+        }
+      });
+
+      // Create indexes
+      db.run('CREATE INDEX IF NOT EXISTS idx_reporttypes_category ON ReportTypes(Category)');
+      db.run('CREATE INDEX IF NOT EXISTS idx_reporttypes_code ON ReportTypes(TypeCode)');
+
+      const count = db.exec('SELECT COUNT(*) as count FROM ReportTypes');
+      console.log(`✅ Seeded ${count[0].values[0][0]} report types`);
+    }
+
     console.log('Reports tables verified/created');
+
+    // Add missing columns to reports table if they don't exist
+    try {
+      const reportsColumns = db.exec("PRAGMA table_info(reports)");
+      if (reportsColumns.length > 0) {
+        const columns = reportsColumns[0].values.map(v => v[1]);
+
+        if (!columns.includes('category')) {
+          db.run('ALTER TABLE reports ADD COLUMN category TEXT DEFAULT "Other"');
+          console.log('Added category column to reports table');
+        }
+        if (!columns.includes('facility_name')) {
+          db.run('ALTER TABLE reports ADD COLUMN facility_name TEXT');
+          console.log('Added facility_name column to reports table');
+        }
+        if (!columns.includes('ordering_physician')) {
+          db.run('ALTER TABLE reports ADD COLUMN ordering_physician TEXT');
+          console.log('Added ordering_physician column to reports table');
+        }
+        if (!columns.includes('clinical_context')) {
+          db.run('ALTER TABLE reports ADD COLUMN clinical_context TEXT');
+          console.log('Added clinical_context column to reports table');
+        }
+      }
+    } catch (e) {
+      console.error('Error adding columns to reports table:', e.message);
+    }
   } catch (e) {
     console.error('Error creating reports tables:', e.message);
   }

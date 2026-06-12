@@ -645,6 +645,85 @@ router.get('/:id/lifestyle', async (req, res) => {
 });
 
 // ============================================================================
+// REPORT TYPES
+// ============================================================================
+
+/**
+ * GET /api/reports/types
+ * Get all report types organized by category
+ */
+router.get('/reports/types', async (req, res) => {
+  try {
+    const { category } = req.query;
+
+    let query = 'SELECT * FROM ReportTypes WHERE IsActive = 1';
+    const params = [];
+
+    if (category) {
+      query += ' AND Category = ?';
+      params.push(category);
+    }
+
+    query += ' ORDER BY DisplayOrder ASC';
+
+    const reportTypes = await all(query, ...params);
+
+    // Group by category
+    const grouped = reportTypes.reduce((acc, type) => {
+      if (!acc[type.Category]) {
+        acc[type.Category] = [];
+      }
+      acc[type.Category].push({
+        id: type.ID,
+        code: type.TypeCode,
+        name: type.TypeName,
+        category: type.Category,
+        description: type.Description,
+        displayOrder: type.DisplayOrder
+      });
+      return acc;
+    }, {});
+
+    res.json({
+      success: true,
+      data: grouped
+    });
+  } catch (error) {
+    console.error('Error fetching report types:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/reports/categories
+ * Get all unique report categories
+ */
+router.get('/reports/categories', async (req, res) => {
+  try {
+    const categories = await all(`
+      SELECT DISTINCT Category
+      FROM ReportTypes
+      WHERE IsActive = 1
+      ORDER BY Category ASC
+    `);
+
+    res.json({
+      success: true,
+      data: categories.map(c => c.Category)
+    });
+  } catch (error) {
+    console.error('Error fetching report categories:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// ============================================================================
 // REPORTS - Convenience route for patient reports
 // ============================================================================
 
@@ -744,7 +823,7 @@ router.post('/:id/reports', upload.array('images', 5), async (req, res) => {
       });
     }
 
-    const { title, report_type, notes, report_date } = req.body;
+    const { title, report_type, notes, report_date, category, facility_name, ordering_physician, clinical_context } = req.body;
 
     // Validate report_type
     if (!report_type) {
@@ -754,6 +833,13 @@ router.post('/:id/reports', upload.array('images', 5), async (req, res) => {
       });
     }
 
+    // Get category from report type if not provided
+    let finalCategory = category;
+    if (!finalCategory) {
+      const reportTypeData = await get('SELECT Category FROM ReportTypes WHERE TypeCode = ?', report_type);
+      finalCategory = reportTypeData?.Category || 'Other';
+    }
+
     // Use report_type as title if title not provided
     const finalTitle = title || report_type;
 
@@ -761,9 +847,10 @@ router.post('/:id/reports', upload.array('images', 5), async (req, res) => {
     const now = new Date().toISOString();
 
     await run(
-      `INSERT INTO reports (id, patient_id, title, report_type, notes, report_date, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      reportId, patientId, finalTitle, report_type, notes || null, report_date || null, now
+      `INSERT INTO reports (id, patient_id, title, report_type, category, notes, report_date, facility_name, ordering_physician, clinical_context, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      reportId, patientId, finalTitle, report_type, finalCategory, notes || null, report_date || null,
+      facility_name || null, ordering_physician || null, clinical_context || null, now
     );
 
     // Handle image uploads if present
@@ -1021,7 +1108,7 @@ router.post('/:id/past-surgeries', async (req, res) => {
 
     const surgery = await get(
       'SELECT * FROM PastSurgeries WHERE RowID = ?',
-      result.lastID
+      result.lastInsertRowid
     );
 
     res.status(201).json({

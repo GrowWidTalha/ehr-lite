@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Upload, X, Camera, Loader2, Video } from 'lucide-react';
-import { useReportTypes } from '@/hooks/use-reports';
+import { useReportTypes } from '@/hooks/use-report-types';
 import { useUploadReport } from '@/hooks/use-reports';
 import { toast } from 'sonner';
 
@@ -54,8 +54,12 @@ export function ReportUploadForm({
 
   // Set default report type when types are loaded
   useEffect(() => {
-    if (reportTypes && reportTypes.length > 0 && !reportType) {
-      setReportType(reportTypes[0].report_type.trim());
+    if (reportTypes && Object.keys(reportTypes).length > 0 && !reportType) {
+      // Get first type from first category
+      const firstCategory = Object.keys(reportTypes)[0];
+      if (reportTypes[firstCategory] && reportTypes[firstCategory].length > 0) {
+        setReportType(reportTypes[firstCategory][0].code);
+      }
     }
   }, [reportTypes]);
 
@@ -226,7 +230,10 @@ export function ReportUploadForm({
 
       // Only reset if we have a success callback (standalone page mode)
       if (onSuccess) {
-        setReportType(reportTypes?.[0]?.report_type.trim() || '');
+        // Get first type from first category
+        const firstCategory = Object.keys(reportTypes || {})[0];
+        const firstType = reportTypes?.[firstCategory]?.[0]?.code || '';
+        setReportType(firstType);
         setNotes('');
         setReportDate('');
         setCapturedImage(null);
@@ -253,26 +260,32 @@ export function ReportUploadForm({
           <Label htmlFor="report_type">Report Type *</Label>
           {typesLoading ? (
             <div className="text-sm text-muted-foreground">Loading report types...</div>
-          ) : reportTypes && reportTypes.length > 0 ? (
+          ) : reportTypes && Object.keys(reportTypes).length > 0 ? (
             <Select value={reportType} onValueChange={setReportType} required>
               <SelectTrigger id="report_type">
                 <SelectValue placeholder="Select report type" />
               </SelectTrigger>
               <SelectContent>
-                {reportTypes
-                  .filter((type, index, self) =>
-                    index === self.findIndex((t) => t.report_type.trim() === type.report_type.trim())
-                  )
-                  .map((type) => (
-                    <SelectItem key={type.ID} value={type.report_type.trim()}>
-                      {type.report_type.trim()}
-                    </SelectItem>
-                  ))}
+                {Object.entries(reportTypes).map(([category, types]) => (
+                  <div key={category}>
+                    <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
+                      {category}
+                    </div>
+                    {types.map((type: any) => (
+                      <SelectItem key={type.id} value={type.code}>
+                        {type.name}
+                      </SelectItem>
+                    ))}
+                  </div>
+                ))}
               </SelectContent>
             </Select>
           ) : (
             <div className="text-sm text-destructive">Failed to load report types</div>
           )}
+          <p className="text-xs text-muted-foreground">
+            Select the type of medical report you're uploading
+          </p>
         </div>
 
         {/* Date */}

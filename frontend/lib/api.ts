@@ -37,19 +37,39 @@ async function api<T>(
     const data = await response.json();
 
     if (!response.ok) {
-      return { success: false, error: data.error || 'Request failed' };
+      const errorMessage = data.error || data.message || `Request failed with status ${response.status}`;
+      console.error('API Error:', {
+        endpoint,
+        status: response.status,
+        error: errorMessage,
+        data
+      });
+      return { success: false, error: errorMessage };
     }
 
     // If response has success field and data, extract data
     if ('success' in data && 'data' in data) {
+      if (!data.success) {
+        console.error('API Error: Response indicates failure', {
+          endpoint,
+          error: data.error,
+          data
+        });
+        return { success: false, error: data.error || 'Request failed' };
+      }
       return data;
     }
 
     return data;
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Network error';
+    console.error('API Network Error:', {
+      endpoint,
+      error: errorMessage
+    });
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Network error',
+      error: errorMessage,
     };
   }
 }
@@ -68,19 +88,39 @@ async function uploadApi<T>(
     const data = await response.json();
 
     if (!response.ok) {
-      return { success: false, error: data.error || 'Upload failed' };
+      const errorMessage = data.error || data.message || `Upload failed with status ${response.status}`;
+      console.error('Upload API Error:', {
+        endpoint,
+        status: response.status,
+        error: errorMessage,
+        data
+      });
+      return { success: false, error: errorMessage };
     }
 
     // If response has success field and data, extract data
     if ('success' in data && 'data' in data) {
+      if (!data.success) {
+        console.error('Upload API Error: Response indicates failure', {
+          endpoint,
+          error: data.error,
+          data
+        });
+        return { success: false, error: data.error || 'Upload failed' };
+      }
       return data;
     }
 
     return data;
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Network error';
+    console.error('Upload Network Error:', {
+      endpoint,
+      error: errorMessage
+    });
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Network error',
+      error: errorMessage,
     };
   }
 }
@@ -134,13 +174,10 @@ export const lookupsApi = {
   getAll: () => api<LookupsResponse>('/lookups'),
 };
 
-// Reports API (unchanged - uses polymorphic entity_type)
+// Reports API (updated with new report types system)
 export const reportsApi = {
   list: (patientId: number, type?: string) =>
     api<any[]>(`/patients/${patientId}/reports${type ? `?type=${type}` : ''}`),
-
-  getTypes: () =>
-    api<Array<{ ID: number; report_type: string }>>('/reports/types'),
 
   upload: (patientId: number, formData: FormData) =>
     uploadApi<any>(`/patients/${patientId}/reports`, formData),

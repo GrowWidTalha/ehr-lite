@@ -353,10 +353,10 @@ export function ReportsStep({ formData, onChange, error }: ReportsStepProps) {
                       </SelectTrigger>
                       <SelectContent>
                         {reportTypes
-                          .filter((type, index, self) =>
+                          .filter((type: any, index: number, self: any[]) =>
                             index === self.findIndex((t) => t.report_type.trim() === type.report_type.trim())
                           )
-                          .map((type) => (
+                          .map((type: any) => (
                             <SelectItem key={type.ID} value={type.report_type.trim()}>
                               {type.report_type.trim()}
                             </SelectItem>

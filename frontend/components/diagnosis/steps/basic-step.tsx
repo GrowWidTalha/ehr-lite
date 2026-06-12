@@ -73,14 +73,23 @@ export function BasicStep({ formData, onChange, error }: BasicStepProps) {
         {/* WHO Classification */}
         <div className="space-y-2">
           <Label htmlFor="who_classification" className="text-sm font-medium">WHO Classification</Label>
-          <Input
-            id="who_classification"
+          <Select
             value={formData.who_classification}
-            onChange={(e) => onChange({ ...formData, who_classification: e.target.value })}
-            placeholder="e.g., Infiltrating ductal carcinoma"
-          />
+            onValueChange={(value) => onChange({ ...formData, who_classification: value })}
+          >
+            <SelectTrigger id="who_classification">
+              <SelectValue placeholder="Select WHO classification" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">0 - Normal. Able to carry on normal activities</SelectItem>
+              <SelectItem value="1">1 - Symptoms but ambulatory, able to live at home with tolerable tumor manifestation</SelectItem>
+              <SelectItem value="2">2 - With disabling tumor manifestation but less than 50% of time in bed</SelectItem>
+              <SelectItem value="3">3 - Severely disabled and more than 50% of time in bed, able to stand up</SelectItem>
+              <SelectItem value="4">4 - Very sick, 100% bedridden</SelectItem>
+            </SelectContent>
+          </Select>
           <p className="text-xs text-muted-foreground">
-            Histological classification per WHO guidelines
+            Performance status according to WHO classification
           </p>
         </div>
       </div>

@@ -32,18 +32,72 @@ const upload = multer({
 
 /**
  * GET /api/reports/types
- * Get available report types (from TypeOfSamples table)
+ * Get available report types organized by category
  */
 router.get('/types', async (req, res) => {
   try {
-    const types = await all(`SELECT ID, TypeOfSample as report_type FROM TypeOfSamples ORDER BY TypeOfSample`);
+    const { category } = req.query;
+
+    let query = 'SELECT * FROM ReportTypes WHERE IsActive = 1';
+    const params = [];
+
+    if (category) {
+      query += ' AND Category = ?';
+      params.push(category);
+    }
+
+    query += ' ORDER BY DisplayOrder ASC';
+
+    const reportTypes = await all(query, ...params);
+
+    // Group by category
+    const grouped = reportTypes.reduce((acc, type) => {
+      if (!acc[type.Category]) {
+        acc[type.Category] = [];
+      }
+      acc[type.Category].push({
+        id: type.ID,
+        code: type.TypeCode,
+        name: type.TypeName,
+        category: type.Category,
+        description: type.Description,
+        displayOrder: type.DisplayOrder
+      });
+      return acc;
+    }, {});
 
     res.json({
       success: true,
-      data: types
+      data: grouped
     });
   } catch (error) {
     console.error('Error fetching report types:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/reports/categories
+ * Get all unique report categories
+ */
+router.get('/categories', async (req, res) => {
+  try {
+    const categories = await all(`
+      SELECT DISTINCT Category
+      FROM ReportTypes
+      WHERE IsActive = 1
+      ORDER BY Category ASC
+    `);
+
+    res.json({
+      success: true,
+      data: categories.map(c => c.Category)
+    });
+  } catch (error) {
+    console.error('Error fetching report categories:', error);
     res.status(500).json({
       success: false,
       error: error.message

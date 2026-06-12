@@ -20,9 +20,9 @@ import { toast } from 'sonner';
 type DiagnosisStep = 'basic' | 'pathology' | 'biomarker' | 'imaging' | 'treatment';
 
 const STEPS: { id: DiagnosisStep; title: string; description: string }[] = [
-  { id: 'basic', title: 'Basic', description: 'Cancer type, stAge, grade' },
-  { id: 'pathology', title: 'Pathology', description: 'Tumor details' },
-  { id: 'biomarker', title: 'Biomarkers', description: 'ER, PR, HER2' },
+  { id: 'basic', title: 'Basic', description: 'Cancer type, stage, grade' },
+  { id: 'pathology', title: 'Pathology', description: 'Essential staging data' },
+  { id: 'biomarker', title: 'Biomarker Reports', description: 'Upload pathology reports' },
   { id: 'imaging', title: 'Imaging', description: 'CT, MRI, PET' },
   { id: 'treatment', title: 'Treatment', description: 'Plan' },
 ];
@@ -65,21 +65,12 @@ export default function NewDiagnosisPage() {
     grade: '',
     who_classification: '',
     diagnosis_date: '',
-    // Pathology (Optional)
-    tumor_size: '',
-    depth: '',
+    // Pathology (Optional - essential staging only)
+    nodes_recovered: '',
+    nodes_involved: '',
     margins: '',
     lvi: '',
     pni: '',
-    nodes_recovered: '',
-    nodes_involved: '',
-    // Biomarkers (Optional)
-    er_status: '',
-    er_percentAge: '',
-    pr_status: '',
-    pr_percentAge: '',
-    her2_status: '',
-    ki67_percentAge: '',
     // Imaging (Optional)
     study_type: '',
     study_date: '',
@@ -201,6 +192,7 @@ export default function NewDiagnosisPage() {
                 formData={formData}
                 onChange={setFormData}
                 error={stepErrors.biomarker}
+                patientId={patientId}
               />
             )}
 
@@ -209,6 +201,7 @@ export default function NewDiagnosisPage() {
                 formData={formData}
                 onChange={setFormData}
                 error={stepErrors.imaging}
+                patientId={patientId}
               />
             )}
 
