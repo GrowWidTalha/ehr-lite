@@ -260,14 +260,29 @@ router.put('/:id', async (req, res) => {
       indication: 'Indication',
       plan_type: 'PlanType',
       surgery_planned: 'SurgeryPlanned',
-      neoadjuvant_chemo: 'NeoadjuvantChemo'
+      neoadjuvant_chemo: 'NeoadjuvantChemo',
+      margins: 'Margins',
+      lvi: 'LVI',
+      pni: 'PNI',
+      notes: 'Notes',
+      // Also accept PascalCase directly from frontend
+      CancerType: 'CancerType',
+      DiagnosisDate: 'ExaminationDate',
+      StAge: 'StAge',
+      Notes: 'Notes',
+      WHOClassification: 'WHOClassification',
+      Margins: 'Margins',
+      LVI: 'LVI',
+      PNI: 'PNI',
     };
 
     // Apply field mapping
     const mappedData = {};
     for (const [key, value] of Object.entries(data)) {
       if (key === 'cancer_type') {
-        // Map cancer_type to specific cancer column based on value
+        // Store the raw cancer type value
+        mappedData.CancerType = value;
+        // Also map to specific cancer column based on value
         const cancerType = value?.toLowerCase();
         if (cancerType?.includes('brain')) mappedData.BrainTumor = value;
         else if (cancerType?.includes('head') || cancerType?.includes('neck')) mappedData.HeadAndNeck = value;
@@ -280,6 +295,10 @@ router.put('/:id', async (req, res) => {
         else if (cancerType?.includes('hematological') || cancerType?.includes('blood')) mappedData.Hematological = value;
         else if (cancerType?.includes('sarcoma')) mappedData.Sarcoma = value;
         else if (cancerType?.includes('carcinoma')) mappedData.Carcinoma = value;
+      } else if (key === 'uploadedReports' || key === 'uploaded_reports') {
+        // Skip - these are handled separately, not stored on Patient table
+      } else if (key === 'notes') {
+        mappedData.Notes = value;
       } else {
         const mappedKey = fieldMapping[key] || key;
         mappedData[mappedKey] = value;
@@ -315,7 +334,8 @@ router.put('/:id', async (req, res) => {
       'PresentingComplaint', 'Comorbidities', 'FamilyCancerHistory',
       'WHOClassification', 'ERStatus', 'ERPercent', 'PRStatus', 'PRPercent',
       'HER2Status', 'Ki67Percent', 'StudyType', 'StudyDate', 'Findings',
-      'Indication', 'PlanType', 'SurgeryPlanned', 'NeoadjuvantChemo'
+      'Indication', 'PlanType', 'SurgeryPlanned', 'NeoadjuvantChemo',
+      'CancerType', 'Notes'
     ];
 
     for (const field of updatableFields) {
