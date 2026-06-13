@@ -12,18 +12,16 @@ import { FormProgress } from '@/components/shared/form-progress';
 import { LoadingSpinner } from '@/components/shared/loading-spinner';
 import { BasicStep } from '@/components/diagnosis/steps/basic-step';
 import { PathologyStep } from '@/components/diagnosis/steps/pathology-step';
-import { BiomarkerStep } from '@/components/diagnosis/steps/biomarker-step';
-import { ImagingStep } from '@/components/diagnosis/steps/imaging-step';
+import { ReportsUploadStep } from '@/components/diagnosis/steps/reports-upload-step';
 import { TreatmentStep } from '@/components/diagnosis/steps/treatment-step';
 import { toast } from 'sonner';
 
-type DiagnosisStep = 'basic' | 'pathology' | 'biomarker' | 'imaging' | 'treatment';
+type DiagnosisStep = 'basic' | 'pathology' | 'reports' | 'treatment';
 
 const STEPS: { id: DiagnosisStep; title: string; description: string }[] = [
   { id: 'basic', title: 'Basic', description: 'Cancer type, stage, grade' },
   { id: 'pathology', title: 'Pathology', description: 'Essential staging data' },
-  { id: 'biomarker', title: 'Biomarker Reports', description: 'Upload pathology reports' },
-  { id: 'imaging', title: 'Imaging', description: 'CT, MRI, PET' },
+  { id: 'reports', title: 'Reports Upload', description: 'Attach reports & imaging' },
   { id: 'treatment', title: 'Treatment', description: 'Plan' },
 ];
 
@@ -53,8 +51,7 @@ export default function NewDiagnosisPage() {
   const [stepErrors, setStepErrors] = useState<Record<DiagnosisStep, string | null>>({
     basic: null,
     pathology: null,
-    biomarker: null,
-    imaging: null,
+    reports: null,
     treatment: null,
   });
 
@@ -71,7 +68,7 @@ export default function NewDiagnosisPage() {
     margins: '',
     lvi: '',
     pni: '',
-    // Imaging (Optional)
+    // Imaging (Optional - manual entry)
     study_type: '',
     study_date: '',
     findings: '',
@@ -156,8 +153,8 @@ export default function NewDiagnosisPage() {
             <CardDescription>{STEPS[currentStepIndex].description}</CardDescription>
             <FormProgress
               currentStep={currentStepIndex + 1}
-              totalSteps={5}
-              stepNames={['Basic', 'Pathology', 'Biomarkers', 'Imaging', 'Treatment']}
+              totalSteps={4}
+              stepNames={['Basic', 'Pathology', 'Reports', 'Treatment']}
               className="mt-4"
             />
           </CardHeader>
@@ -187,20 +184,11 @@ export default function NewDiagnosisPage() {
               />
             )}
 
-            {currentStep === 'biomarker' && (
-              <BiomarkerStep
+            {currentStep === 'reports' && (
+              <ReportsUploadStep
                 formData={formData}
                 onChange={setFormData}
-                error={stepErrors.biomarker}
-                patientId={patientId}
-              />
-            )}
-
-            {currentStep === 'imaging' && (
-              <ImagingStep
-                formData={formData}
-                onChange={setFormData}
-                error={stepErrors.imaging}
+                error={stepErrors.reports}
                 patientId={patientId}
               />
             )}

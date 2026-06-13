@@ -12,18 +12,16 @@ import { FormProgress } from '@/components/shared/form-progress';
 import { LoadingSpinner } from '@/components/shared/loading-spinner';
 import { BasicStep } from '@/components/diagnosis/steps/basic-step';
 import { PathologyStep } from '@/components/diagnosis/steps/pathology-step';
-import { BiomarkerStep } from '@/components/diagnosis/steps/biomarker-step';
-import { ImagingStep } from '@/components/diagnosis/steps/imaging-step';
+import { ReportsUploadStep } from '@/components/diagnosis/steps/reports-upload-step';
 import { TreatmentStep } from '@/components/diagnosis/steps/treatment-step';
 import { toast } from 'sonner';
 
-type DiagnosisStep = 'basic' | 'pathology' | 'biomarker' | 'imaging' | 'treatment';
+type DiagnosisStep = 'basic' | 'pathology' | 'reports' | 'treatment';
 
 const STEPS: { id: DiagnosisStep; title: string; description: string }[] = [
   { id: 'basic', title: 'Basic', description: 'Cancer type, stAge, grade' },
   { id: 'pathology', title: 'Pathology', description: 'Tumor details' },
-  { id: 'biomarker', title: 'Biomarkers', description: 'ER, PR, HER2' },
-  { id: 'imaging', title: 'Imaging', description: 'CT, MRI, PET' },
+  { id: 'reports', title: 'Reports Upload', description: 'Attach reports & imaging' },
   { id: 'treatment', title: 'Treatment', description: 'Plan' },
 ];
 
@@ -35,7 +33,6 @@ const validateStep = (step: DiagnosisStep, formData: any): { valid: boolean; err
         return { valid: false, error: 'Cancer type is required' };
       }
       break;
-    // Other steps are optional
     default:
       break;
   }
@@ -56,39 +53,25 @@ export default function EditDiagnosisPage() {
   const [stepErrors, setStepErrors] = useState<Record<DiagnosisStep, string | null>>({
     basic: null,
     pathology: null,
-    biomarker: null,
-    imaging: null,
+    reports: null,
     treatment: null,
   });
 
   const [formData, setFormData] = useState({
-    // Basic (Required: cancer_type)
     cancer_type: '',
     stAge: '',
     grade: '',
     who_classification: '',
     diagnosis_date: '',
-    // Pathology (Optional)
-    tumor_size: '',
-    depth: '',
     margins: '',
     lvi: '',
     pni: '',
     nodes_recovered: '',
     nodes_involved: '',
-    // Biomarkers (Optional)
-    er_status: '',
-    er_percentAge: '',
-    pr_status: '',
-    pr_percentAge: '',
-    her2_status: '',
-    ki67_percentAge: '',
-    // Imaging (Optional)
     study_type: '',
     study_date: '',
     findings: '',
     indication: '',
-    // Treatment (Optional)
     plan_type: '',
     surgery_planned: '',
     neoadjuvant_chemo: '',
@@ -96,33 +79,28 @@ export default function EditDiagnosisPage() {
 
   // Load existing diagnosis data
   useEffect(() => {
-    if (diagnosis && 'cancer_type' in diagnosis) {
+    if (diagnosis) {
+      const d = diagnosis as any;
+      // Handle both single diagnosis and {treatments, pathology} format
+      const diag = d.cancer_type ? d : (Array.isArray(d.treatments) ? {} : d);
       setFormData({
-        cancer_type: (diagnosis as any).cancer_type || '',
-        stAge: (diagnosis as any).stAge || '',
-        grade: (diagnosis as any).grade || '',
-        who_classification: (diagnosis as any).who_classification || '',
-        diagnosis_date: (diagnosis as any).diagnosis_date?.split('T')[0] || '',
-        tumor_size: (diagnosis as any).tumor_size || '',
-        depth: (diagnosis as any).depth || '',
-        margins: (diagnosis as any).margins || '',
-        lvi: (diagnosis as any).lvi || '',
-        pni: (diagnosis as any).pni || '',
-        nodes_recovered: (diagnosis as any).nodes_recovered?.toString() || '',
-        nodes_involved: (diagnosis as any).nodes_involved?.toString() || '',
-        er_status: (diagnosis as any).er_status || '',
-        er_percentAge: (diagnosis as any).er_percentAge || '',
-        pr_status: (diagnosis as any).pr_status || '',
-        pr_percentAge: (diagnosis as any).pr_percentAge || '',
-        her2_status: (diagnosis as any).her2_status || '',
-        ki67_percentAge: (diagnosis as any).ki67_percentAge || '',
-        study_type: (diagnosis as any).study_type || '',
-        study_date: (diagnosis as any).study_date?.split('T')[0] || '',
-        findings: (diagnosis as any).findings || '',
-        indication: (diagnosis as any).indication || '',
-        plan_type: (diagnosis as any).plan_type || '',
-        surgery_planned: (diagnosis as any).surgery_planned || '',
-        neoadjuvant_chemo: (diagnosis as any).neoadjuvant_chemo || '',
+        cancer_type: diag.cancer_type || d.cancer_type || '',
+        stAge: diag.stAge || d.stAge || '',
+        grade: diag.grade || d.grade || '',
+        who_classification: diag.who_classification || d.who_classification || '',
+        diagnosis_date: (diag.diagnosis_date || d.diagnosis_date || '').split('T')[0],
+        margins: diag.margins || d.margins || '',
+        lvi: diag.lvi || d.lvi || '',
+        pni: diag.pni || d.pni || '',
+        nodes_recovered: (diag.nodes_recovered || d.nodes_recovered || '').toString(),
+        nodes_involved: (diag.nodes_involved || d.nodes_involved || '').toString(),
+        study_type: diag.study_type || d.study_type || '',
+        study_date: (diag.study_date || d.study_date || '').split('T')[0],
+        findings: diag.findings || d.findings || '',
+        indication: diag.indication || d.indication || '',
+        plan_type: diag.plan_type || d.plan_type || '',
+        surgery_planned: diag.surgery_planned || d.surgery_planned || '',
+        neoadjuvant_chemo: diag.neoadjuvant_chemo || d.neoadjuvant_chemo || '',
       });
     }
   }, [diagnosis]);
@@ -130,24 +108,16 @@ export default function EditDiagnosisPage() {
   const currentStepIndex = STEPS.findIndex((s) => s.id === currentStep);
 
   const handleNext = () => {
-    // Validate current step
     const validation = validateStep(currentStep, formData);
-
     if (!validation.valid) {
       setStepErrors({ ...stepErrors, [currentStep]: validation.error });
       toast.error(validation.error || 'Please fix the errors before continuing');
       return;
     }
-
-    // Clear error for current step
     setStepErrors({ ...stepErrors, [currentStep]: null });
-
-    // Mark current step as completed
     if (!completedSteps.includes(currentStep)) {
       setCompletedSteps([...completedSteps, currentStep]);
     }
-
-    // Move to next step
     const nextIndex = currentStepIndex + 1;
     if (nextIndex < STEPS.length) {
       setCurrentStep(STEPS[nextIndex].id);
@@ -158,29 +128,23 @@ export default function EditDiagnosisPage() {
     const prevIndex = currentStepIndex - 1;
     if (prevIndex >= 0) {
       setCurrentStep(STEPS[prevIndex].id);
-      // Clear error when going back
       setStepErrors({ ...stepErrors, [STEPS[prevIndex].id]: null });
     }
   };
 
   const handleFinish = async () => {
-    // Validate final step
     const validation = validateStep(currentStep, formData);
-
     if (!validation.valid) {
       setStepErrors({ ...stepErrors, [currentStep]: validation.error });
       toast.error(validation.error || 'Please fix the errors before submitting');
       return;
     }
-
     try {
       await updateDiagnosis.mutateAsync({
         patientId: parseInt(patientId),
         data: formData as any,
       });
-
       toast.success('Diagnosis updated successfully');
-      // Redirect to patient detail
       router.push(`/patients/${patientId}`);
     } catch (error: any) {
       console.error('Failed to update diagnosis:', error);
@@ -227,94 +191,51 @@ export default function EditDiagnosisPage() {
             <CardDescription>{STEPS[currentStepIndex].description}</CardDescription>
             <FormProgress
               currentStep={currentStepIndex + 1}
-              totalSteps={5}
-              stepNames={['Basic', 'Pathology', 'Biomarkers', 'Imaging', 'Treatment']}
+              totalSteps={4}
+              stepNames={['Basic', 'Pathology', 'Reports', 'Treatment']}
               className="mt-4"
             />
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Error message */}
             {stepErrors[currentStep] && (
               <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
                 {stepErrors[currentStep]}
               </div>
             )}
 
-            {/* Step content */}
             {currentStep === 'basic' && (
-              <BasicStep
-                formData={formData}
-                onChange={setFormData}
-                error={stepErrors.basic}
-              />
+              <BasicStep formData={formData} onChange={setFormData} error={stepErrors.basic} />
             )}
 
             {currentStep === 'pathology' && (
-              <PathologyStep
-                formData={formData}
-                onChange={setFormData}
-                error={stepErrors.pathology}
-              />
+              <PathologyStep formData={formData} onChange={setFormData} error={stepErrors.pathology} />
             )}
 
-            {currentStep === 'biomarker' && (
-              <BiomarkerStep
-                formData={formData}
-                onChange={setFormData}
-                error={stepErrors.biomarker}
-              />
-            )}
-
-            {currentStep === 'imaging' && (
-              <ImagingStep
-                formData={formData}
-                onChange={setFormData}
-                error={stepErrors.imaging}
-              />
+            {currentStep === 'reports' && (
+              <ReportsUploadStep formData={formData} onChange={setFormData} error={stepErrors.reports} patientId={patientId} />
             )}
 
             {currentStep === 'treatment' && (
-              <TreatmentStep
-                formData={formData}
-                onChange={setFormData}
-                error={stepErrors.treatment}
-              />
+              <TreatmentStep formData={formData} onChange={setFormData} error={stepErrors.treatment} />
             )}
 
-            {/* Navigation buttons */}
             <div className="flex justify-between pt-6 border-t">
-              <Button
-                variant="outline"
-                onClick={handlePrevious}
-                disabled={currentStepIndex === 0}
-              >
+              <Button variant="outline" onClick={handlePrevious} disabled={currentStepIndex === 0}>
                 <ChevronLeft className="mr-2 h-4 w-4" />
                 Previous
               </Button>
 
               {currentStepIndex === STEPS.length - 1 ? (
-                <Button
-                  onClick={handleFinish}
-                  disabled={updateDiagnosis.isPending}
-                >
+                <Button onClick={handleFinish} disabled={updateDiagnosis.isPending}>
                   {updateDiagnosis.isPending ? (
-                    <>
-                      <LoadingSpinner />
-                      Saving...
-                    </>
+                    <><LoadingSpinner /> Saving...</>
                   ) : (
-                    <>
-                      <Check className="mr-2 h-4 w-4" />
-                      Save Changes
-                    </>
+                    <><Check className="mr-2 h-4 w-4" /> Save Changes</>
                   )}
                 </Button>
               ) : (
-                <Button
-                  onClick={handleNext}
-                >
-                  Next
-                  <ChevronRight className="ml-2 h-4 w-4" />
+                <Button onClick={handleNext}>
+                  Next <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
               )}
             </div>
