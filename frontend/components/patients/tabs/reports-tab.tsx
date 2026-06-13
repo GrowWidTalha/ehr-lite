@@ -128,6 +128,7 @@ export function ReportsTab({ patientId }: ReportsTabProps) {
                     report={report}
                     onView={() => handleViewImages(report)}
                     onDelete={() => setDeleteId(report.id)}
+                    reportTypes={reportTypes}
                   />
                 ))}
               </TabsContent>
@@ -141,6 +142,7 @@ export function ReportsTab({ patientId }: ReportsTabProps) {
                         report={report}
                         onView={() => handleViewImages(report)}
                         onDelete={() => setDeleteId(report.id)}
+                        reportTypes={reportTypes}
                       />
                     ))
                   ) : (
@@ -200,12 +202,26 @@ function ReportCard({
   report,
   onView,
   onDelete,
+  reportTypes,
 }: {
   report: any;
   onView: () => void;
   onDelete: () => void;
+  reportTypes?: Record<string, any[]>;
 }) {
   const hasImages = report.images?.length > 0;
+
+  // Resolve report type name from code
+  const getTypeName = (code: string) => {
+    if (!reportTypes) return code;
+    for (const types of Object.values(reportTypes)) {
+      const found = (types as any[]).find((t: any) => t.code === code);
+      if (found) return found.name;
+    }
+    return code;
+  };
+
+  const typeName = getTypeName(report.report_type);
 
   return (
     <Card className="border hover:shadow-md transition-shadow">
@@ -219,7 +235,7 @@ function ReportCard({
             >
               <img
                 src={report.images?.[0]?.url}
-                alt={report.title}
+                alt={typeName}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -232,44 +248,38 @@ function ReportCard({
           {/* Content */}
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2 mb-1">
-              <h4 className="font-medium truncate">{report.title}</h4>
+              <h4 className="font-medium truncate">{typeName}</h4>
               <div className="flex gap-1 flex-shrink-0">
-                {onView && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onView}
-                    className="h-8 w-8 p-0"
-                  >
+                {hasImages && (
+                  <Button variant="ghost" size="sm" onClick={onView} className="h-8 w-8 p-0">
                     <Eye className="h-4 w-4" />
                   </Button>
                 )}
-                {onDelete && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onDelete}
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onDelete}
+                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 mb-1">
+              <Badge variant="outline" className="text-[10px]">
+                {report.category || 'Other'}
+              </Badge>
+              {hasImages && report.images.length > 1 && (
+                <span className="text-[10px] text-muted-foreground">
+                  {report.images.length} images
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
               {report.report_date ? formatDate(report.report_date) : 'No date'}
+              {report.notes && <span className="ml-2">• {report.notes}</span>}
             </p>
-            {report.notes && (
-              <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                {report.notes}
-              </p>
-            )}
           </div>
-
-          {/* Type Badge */}
-          <Badge variant="outline" className="flex-shrink-0">
-            {report.report_type || 'Report'}
-          </Badge>
         </div>
       </CardContent>
     </Card>

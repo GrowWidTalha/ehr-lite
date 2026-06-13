@@ -68,8 +68,7 @@ export function ReportsUploadStep({ formData, onChange, error, patientId }: Repo
   const [activeCategory, setActiveCategory] = useState('Pathology');
   const [notes, setNotes] = useState('');
   const [reportDate, setReportDate] = useState('');
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [pendingImages, setPendingImages] = useState<string[]>([]); // multiple images
 
   // Camera state
   const [cameras, setCameras] = useState<CameraDevice[]>([]);
@@ -174,8 +173,7 @@ export function ReportsUploadStep({ formData, onChange, error, patientId }: Repo
       if (!ctx) { setUploadError('Capture failed.'); setIsCapturing(false); return; }
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-      setCapturedImage(dataUrl);
-      setPreviewUrl(dataUrl);
+      setPendingImages(prev => [...prev, dataUrl]);
       stopCamera();
     } catch (err) {
       setUploadError('Failed to capture image.');
@@ -190,13 +188,15 @@ export function ReportsUploadStep({ formData, onChange, error, patientId }: Repo
     if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) { setUploadError('Only JPG/PNG allowed.'); return; }
     setUploadError(null);
     const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    setCapturedImage(url);
+    setPendingImages(prev => [...prev, url]);
   }, []);
 
-  const clearImage = useCallback(() => {
-    setCapturedImage(null);
-    setPreviewUrl(null);
+  const removeImage = useCallback((index: number) => {
+    setPendingImages(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const clearAllImages = useCallback(() => {
+    setPendingImages([]);
     if (fileInputRef.current) fileInputRef.current.value = '';
     setUploadError(null);
   }, []);
@@ -206,9 +206,9 @@ export function ReportsUploadStep({ formData, onChange, error, patientId }: Repo
     setSelectedReportType(code);
   };
 
-  // Submit one report upload
+  // Submit one report upload with multiple images
   const handleAttach = async () => {
-    if (!previewUrl) { setUploadError('Please capture or select an image first.'); return; }
+    if (pendingImages.length === 0) { setUploadError('Please capture or select at least one image.'); return; }
     if (!selectedReportType) { setUploadError('Please select a report type.'); return; }
 
     try {
@@ -217,9 +217,12 @@ export function ReportsUploadStep({ formData, onChange, error, patientId }: Repo
       if (notes) formDataObj.append('notes', notes);
       if (reportDate) formDataObj.append('report_date', reportDate);
 
-      const response = await fetch(previewUrl);
-      const blob = await response.blob();
-      formDataObj.append('images', blob, 'report.jpg');
+      // Append all pending images
+      for (let i = 0; i < pendingImages.length; i++) {
+        const response = await fetch(pendingImages[i]);
+        const blob = await response.blob();
+        formDataObj.append('images', blob, `report_${i + 1}.jpg`);
+      }
 
       await uploadReport.mutateAsync({ patientId: parseInt(patientId || '0'), formData: formDataObj });
 
@@ -241,22 +244,20 @@ export function ReportsUploadStep({ formData, onChange, error, patientId }: Repo
         category: reportCategory,
         notes,
         reportDate,
-        imageUrl: previewUrl,
+        imageCount: pendingImages.length,
       };
 
       // Update parent form data
       const updated = [...uploadedReports, reportData];
       onChange({ ...formData, uploadedReports: updated });
 
-      toast.success(`${reportData.reportTypeName} attached`);
+      toast.success(`${reportData.reportTypeName} attached (${pendingImages.length} image${pendingImages.length > 1 ? 's' : ''})`);
 
       // Reset upload form state
       setNotes('');
       setReportDate('');
-      setCapturedImage(null);
-      setPreviewUrl(null);
+      setPendingImages([]);
       setUploadError(null);
-      // Keep selectedReportType so user can upload another of same type
     } catch (err) {
       console.error('Upload error:', err);
       setUploadError('Failed to upload report. Please try again.');
@@ -320,6 +321,9 @@ export function ReportsUploadStep({ formData, onChange, error, patientId }: Repo
                     <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
                     <span className="font-medium">{report.reportTypeName}</span>
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0">{report.category}</Badge>
+                    {report.imageCount > 1 && (
+                      <span className="text-[10px] text-muted-foreground">{report.imageCount} images</span>
+                    )}
                   </div>
                   <Button
                     type="button"
@@ -396,7 +400,7 @@ export function ReportsUploadStep({ formData, onChange, error, patientId }: Repo
                   <Label className="text-sm font-medium">Capture or Upload Image</Label>
 
                   {/* Camera selector (multi-camera) */}
-                  {cameras.length > 1 && !showCamera && !previewUrl && (
+                  {cameras.length > 1 && !showCamera && (
                     <div className="flex gap-2">
                       <select
                         value={selectedCamera}
@@ -428,20 +432,43 @@ export function ReportsUploadStep({ formData, onChange, error, patientId }: Repo
                     </div>
                   )}
 
-                  {/* Image preview */}
-                  {previewUrl && (
+                  {/* Pending images preview (multiple) */}
+                  {pendingImages.length > 0 && (
                     <div className="space-y-2">
-                      <div className="relative rounded-lg overflow-hidden border">
-                        <img src={previewUrl} alt="Preview" className="w-full max-h-[200px] object-contain bg-muted" />
-                        <Button type="button" variant="ghost" size="sm" onClick={clearImage} className="absolute top-1 right-1 h-6 w-6 p-0">
-                          <X className="h-3 w-3" />
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs text-muted-foreground">{pendingImages.length} image{pendingImages.length > 1 ? 's' : ''} selected</Label>
+                        <Button type="button" variant="ghost" size="sm" onClick={clearAllImages} className="h-6 text-xs text-destructive hover:text-destructive">
+                          Clear all
                         </Button>
+                      </div>
+                      <div className="flex gap-2 overflow-x-auto pb-2">
+                        {pendingImages.map((img, idx) => (
+                          <div key={idx} className="relative flex-shrink-0 w-24 h-24 rounded-md overflow-hidden border">
+                            <img src={img} alt={`Image ${idx + 1}`} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(idx)}
+                              className="absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center"
+                            >
+                              <X className="h-2.5 w-2.5" />
+                            </button>
+                          </div>
+                        ))}
+                        {/* Add more button */}
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="flex-shrink-0 w-24 h-24 rounded-md border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 hover:border-primary/50 transition-colors"
+                        >
+                          <Upload className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground">Add</span>
+                        </button>
                       </div>
                     </div>
                   )}
 
-                  {/* Upload / Camera buttons (when no preview) */}
-                  {!previewUrl && !showCamera && (
+                  {/* Upload / Camera buttons (always visible to allow adding more) */}
+                  {!showCamera && pendingImages.length === 0 && (
                     <div className="grid grid-cols-2 gap-2">
                       <Button type="button" onClick={startCamera} variant="outline" size="sm" className="h-14 flex flex-col items-center justify-center gap-1">
                         <Camera className="h-5 w-5" />
@@ -450,6 +477,19 @@ export function ReportsUploadStep({ formData, onChange, error, patientId }: Repo
                       <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="h-14 flex flex-col items-center justify-center gap-1">
                         <Upload className="h-5 w-5" />
                         <span className="text-xs">Upload</span>
+                      </Button>
+                      <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png" onChange={handleFileSelect} className="hidden" />
+                    </div>
+                  )}
+
+                  {/* Add more images button when images already present */}
+                  {!showCamera && pendingImages.length > 0 && (
+                    <div className="flex gap-2">
+                      <Button type="button" onClick={startCamera} variant="outline" size="sm" className="flex-1">
+                        <Camera className="mr-1 h-3.5 w-3.5" /> Camera
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="flex-1">
+                        <Upload className="mr-1 h-3.5 w-3.5" /> File
                       </Button>
                       <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png" onChange={handleFileSelect} className="hidden" />
                     </div>
@@ -474,7 +514,7 @@ export function ReportsUploadStep({ formData, onChange, error, patientId }: Repo
                 </div>
 
                 {/* Attach button */}
-                {previewUrl && selectedReportType && (
+                {pendingImages.length > 0 && selectedReportType && (
                   <Button
                     type="button"
                     onClick={handleAttach}
@@ -485,7 +525,7 @@ export function ReportsUploadStep({ formData, onChange, error, patientId }: Repo
                     {uploadReport.isPending ? (
                       <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</>
                     ) : (
-                      <><Check className="mr-2 h-4 w-4" /> Attach {reportTypes[cat]?.find((t: any) => t.code === selectedReportType)?.name || 'Report'}</>
+                      <><Check className="mr-2 h-4 w-4" /> Attach {reportTypes[cat]?.find((t: any) => t.code === selectedReportType)?.name || 'Report'} ({pendingImages.length} image{pendingImages.length > 1 ? 's' : ''})</>
                     )}
                   </Button>
                 )}
