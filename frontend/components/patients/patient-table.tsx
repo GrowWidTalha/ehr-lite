@@ -21,10 +21,10 @@ interface PatientTableProps {
 
 export function PatientTable({ patients }: PatientTableProps) {
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="bg-[var(--color-blue)]/5 hover:bg-[var(--color-blue)]/10">
             <TableHead>Name</TableHead>
             <TableHead>Age</TableHead>
             <TableHead>Gender</TableHead>
@@ -45,13 +45,13 @@ export function PatientTable({ patients }: PatientTableProps) {
                 {patient.RegistrationDate ? formatDate(patient.RegistrationDate) : '-'}
               </TableCell>
               <TableCell>
-                <span className="inline-flex items-center gap-1">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--color-green)]/10 text-[var(--color-green)] text-xs font-medium">
                   {patient.report_count || 0}
                 </span>
               </TableCell>
               <TableCell className="text-right">
                 <Link href={`/patients/${patient.PatientID}`}>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="hover:bg-[var(--color-blue-light)] hover:text-[var(--color-blue)] transition-colors">
                     <Eye className="h-4 w-4" />
                   </Button>
                 </Link>

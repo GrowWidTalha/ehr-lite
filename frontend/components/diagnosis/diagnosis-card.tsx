@@ -16,17 +16,17 @@ interface DiagnosisCardProps {
 
 export function DiagnosisCard({ diagnosis, onView, onEdit, onDelete }: DiagnosisCardProps) {
   return (
-    <Card className="border hover:shadow-md transition-shadow">
+    <Card className="border hover:shadow-lg transition-all duration-200 hover:-translate-y-1 group">
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
             <h4 className="font-medium text-base mb-1">{diagnosis.cancer_type}</h4>
             <div className="flex flex-wrap gap-2">
               {diagnosis.stAge && (
-                <Badge variant="secondary">StAge {diagnosis.stAge}</Badge>
+                <Badge variant="purple">StAge {diagnosis.stAge}</Badge>
               )}
               {diagnosis.grade && (
-                <Badge variant="outline">Grade {diagnosis.grade}</Badge>
+                <Badge variant="blue">Grade {diagnosis.grade}</Badge>
               )}
             </div>
           </div>
@@ -36,7 +36,7 @@ export function DiagnosisCard({ diagnosis, onView, onEdit, onDelete }: Diagnosis
                 variant="ghost"
                 size="sm"
                 onClick={() => onView(diagnosis.id)}
-                className="h-8 w-8 p-0"
+                className="h-8 w-8 p-0 hover:bg-[var(--color-blue-light)] hover:text-[var(--color-blue)] transition-colors"
               >
                 <Eye className="h-4 w-4" />
               </Button>
@@ -46,7 +46,7 @@ export function DiagnosisCard({ diagnosis, onView, onEdit, onDelete }: Diagnosis
                 variant="ghost"
                 size="sm"
                 onClick={() => onEdit(diagnosis.id)}
-                className="h-8 w-8 p-0"
+                className="h-8 w-8 p-0 hover:bg-[var(--color-green-light)] hover:text-[var(--color-green)] transition-colors"
               >
                 <FileText className="h-4 w-4" />
               </Button>
@@ -56,7 +56,7 @@ export function DiagnosisCard({ diagnosis, onView, onEdit, onDelete }: Diagnosis
                 variant="ghost"
                 size="sm"
                 onClick={() => onDelete(diagnosis.id)}
-                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

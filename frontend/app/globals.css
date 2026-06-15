@@ -55,31 +55,43 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.47 0.13 250);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.70 0.12 170);
+  --secondary-foreground: oklch(0.99 0 0);
+  --muted: oklch(0.96 0.01 250);
+  --muted-foreground: oklch(0.50 0.01 250);
+  --accent: oklch(0.65 0.15 330);
+  --accent-foreground: oklch(0.99 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --border: oklch(0.90 0.01 250);
+  --input: oklch(0.92 0.01 250);
+  --ring: oklch(0.47 0.13 250);
+  --chart-1: oklch(0.55 0.15 250);
+  --chart-2: oklch(0.60 0.12 170);
+  --chart-3: oklch(0.65 0.15 330);
+  --chart-4: oklch(0.70 0.14 45);
+  --chart-5: oklch(0.60 0.10 140);
+  --sidebar: oklch(0.97 0.01 250);
+  --sidebar-foreground: oklch(0.30 0.01 250);
+  --sidebar-primary: oklch(0.47 0.13 250);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.94 0.02 250);
+  --sidebar-accent-foreground: oklch(0.30 0.01 250);
+  --sidebar-border: oklch(0.88 0.01 250);
+  --sidebar-ring: oklch(0.47 0.13 250);
+
+  /* Additional professional colors */
+  --color-blue: oklch(0.55 0.16 250);
+  --color-blue-light: oklch(0.85 0.08 250);
+  --color-green: oklch(0.60 0.14 170);
+  --color-green-light: oklch(0.88 0.08 170);
+  --color-purple: oklch(0.60 0.18 290);
+  --color-purple-light: oklch(0.88 0.10 290);
+  --color-orange: oklch(0.70 0.16 45);
+  --color-orange-light: oklch(0.92 0.08 45);
+  --color-rose: oklch(0.65 0.18 350);
+  --color-rose-light: oklch(0.90 0.10 350);
 }
 
 .dark {
@@ -139,5 +151,58 @@
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  /* Professional color utilities */
+  .bg-blue { background-color: var(--color-blue); }
+  .bg-blue-light { background-color: var(--color-blue-light); }
+  .hover\:bg-blue\/80:hover { background-color: oklch(from var(--color-blue) l c h / 0.8); }
+  .hover\:bg-blue-light\/90:hover { background-color: oklch(from var(--color-blue-light) l c h / 0.9); }
+
+  .bg-green { background-color: var(--color-green); }
+  .bg-green-light { background-color: var(--color-green-light); }
+  .hover\:bg-green\/80:hover { background-color: oklch(from var(--color-green) l c h / 0.8); }
+  .hover\:bg-green-light\/90:hover { background-color: oklch(from var(--color-green-light) l c h / 0.9); }
+
+  .bg-purple { background-color: var(--color-purple); }
+  .bg-purple-light { background-color: var(--color-purple-light); }
+  .hover\:bg-purple\/80:hover { background-color: oklch(from var(--color-purple) l c h / 0.8); }
+  .hover\:bg-purple-light\/90:hover { background-color: oklch(from var(--color-purple-light) l c h / 0.9); }
+
+  .bg-orange { background-color: var(--color-orange); }
+  .bg-orange-light { background-color: var(--color-orange-light); }
+  .hover\:bg-orange\/80:hover { background-color: oklch(from var(--color-orange) l c h / 0.8); }
+  .hover\:bg-orange-light\/90:hover { background-color: oklch(from var(--color-orange-light) l c h / 0.9); }
+
+  .bg-rose { background-color: var(--color-rose); }
+  .bg-rose-light { background-color: var(--color-rose-light); }
+  .hover\:bg-rose\/80:hover { background-color: oklch(from var(--color-rose) l c h / 0.8); }
+  .hover\:bg-rose-light\/90:hover { background-color: oklch(from var(--color-rose-light) l c h / 0.9); }
+
+  /* Card hover effects */
+  .card-lift {
+    transition: all 0.2s ease-out;
+  }
+  .card-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Input focus enhancements */
+  .input-glow:focus {
+    box-shadow: 0 0 0 3px oklch(0.47 0.13 250 / 0.15);
+  }
+
+  /* Smooth color transitions */
+  .transition-colors {
+    transition-property: color, background-color, border-color;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+
+  .transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
   }
 }

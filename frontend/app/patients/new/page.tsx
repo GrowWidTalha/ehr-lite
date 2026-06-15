@@ -61,21 +61,21 @@ export default function NewPatientPage() {
     return (
       <div className="min-h-screen p-6">
         <div className="max-w-2xl mx-auto">
-          <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
+          <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-[var(--color-blue)] transition-colors mb-6">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Patients
           </Link>
 
-          <Card>
+          <Card className="transition-all duration-200 hover:shadow-lg">
             <CardHeader>
-              <CardTitle>Register New Patient</CardTitle>
+              <CardTitle className="text-[var(--color-blue)]">Register New Patient</CardTitle>
               <CardDescription>
                 Before registering a new patient, let's check if they already exist in the system.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="search">Search by name or ContactNo</Label>
+                <Label htmlFor="search" className="text-[var(--color-blue)]">Search by name or ContactNo</Label>
                 <Input
                   id="search"
                   placeholder="Enter patient name or ContactNo number..."
@@ -89,7 +89,7 @@ export default function NewPatientPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1"
+                  className="flex-1 hover:bg-[var(--color-blue-light)] hover:text-[var(--color-blue)] hover:border-[var(--color-blue)] transition-colors"
                   onClick={() => {
                     // TODO: Implement search functionality
                     if (searchQuery) {
@@ -101,7 +101,7 @@ export default function NewPatientPage() {
                 </Button>
                 <Button
                   type="button"
-                  className="flex-1"
+                  className="flex-1 bg-[var(--color-green)] hover:bg-[var(--color-green)]/90"
                   onClick={() => setShowForm(true)}
                 >
                   Patient is New - Continue
@@ -117,14 +117,14 @@ export default function NewPatientPage() {
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-2xl mx-auto">
-        <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
+        <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-[var(--color-blue)] transition-colors mb-6">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Patients
         </Link>
 
-        <Card>
+        <Card className="transition-all duration-200 hover:shadow-lg">
           <CardHeader>
-            <CardTitle>Patient Information</CardTitle>
+            <CardTitle className="text-[var(--color-blue)]">Patient Information</CardTitle>
             <CardDescription>
               Enter the patient's basic information. Fields marked with * are required.
             </CardDescription>

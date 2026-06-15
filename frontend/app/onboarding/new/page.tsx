@@ -585,16 +585,16 @@ export default function NewPatientOnboardingPage() {
             onClick={
               currentStep === "complete" ? goToPatient : () => router.push("/")
             }
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-[var(--color-blue)] transition-colors"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             {currentStep === "complete" ? "Go to Patient" : "Back to Home"}
           </button>
         </div>
 
-        <Card>
+        <Card className="transition-all duration-200 hover:shadow-lg">
           <CardHeader>
-            <CardTitle>{STEPS[currentStepIndex].title}</CardTitle>
+            <CardTitle className="text-[var(--color-blue)]">{STEPS[currentStepIndex].title}</CardTitle>
             <CardDescription>
               {STEPS[currentStepIndex].description}
             </CardDescription>
@@ -614,7 +614,7 @@ export default function NewPatientOnboardingPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             {stepErrors[currentStep] && currentStep !== "complete" && (
-              <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+              <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm border border-destructive/20">
                 {stepErrors[currentStep]}
               </div>
             )}
@@ -650,10 +650,10 @@ export default function NewPatientOnboardingPage() {
 
             {currentStep === "complete" && (
               <div className="text-center py-8">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="h-8 w-8 text-green-600" />
+                <div className="w-16 h-16 bg-[var(--color-green)]/10 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-[var(--color-green)]/20">
+                  <Check className="h-8 w-8 text-[var(--color-green)]" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">
+                <h3 className="text-xl font-semibold mb-2 text-[var(--color-green)]">
                   Patient Onboarding Complete!
                 </h3>
                 <p className="text-muted-foreground mb-6">
@@ -664,10 +664,11 @@ export default function NewPatientOnboardingPage() {
                   <Button
                     variant="outline"
                     onClick={() => router.push("/onboarding/new")}
+                    className="hover:bg-[var(--color-blue-light)] hover:text-[var(--color-blue)] hover:border-[var(--color-blue)] transition-colors"
                   >
                     Add Another Patient
                   </Button>
-                  <Button onClick={goToPatient}>View Patient Profile</Button>
+                  <Button onClick={goToPatient} className="bg-[var(--color-green)] hover:bg-[var(--color-green)]/90">View Patient Profile</Button>
                 </div>
                 <div className="border-t pt-4 mt-4">
                   <p className="text-sm text-muted-foreground mb-3">
@@ -679,6 +680,7 @@ export default function NewPatientOnboardingPage() {
                       onClick={() =>
                         router.push(`/patients/${patientId}/diagnoses/new`)
                       }
+                      className="hover:bg-[var(--color-orange)] hover:text-white transition-colors"
                     >
                       <FileText className="mr-2 h-4 w-4" />
                       Upload Reports
@@ -688,6 +690,7 @@ export default function NewPatientOnboardingPage() {
                       onClick={() =>
                         router.push(`/patients/${patientId}/diagnoses/new`)
                       }
+                      className="hover:bg-[var(--color-purple)] hover:text-white transition-colors"
                     >
                       <Stethoscope className="mr-2 h-4 w-4" />
                       Add Diagnosis
@@ -704,6 +707,7 @@ export default function NewPatientOnboardingPage() {
                     variant="outline"
                     onClick={handlePrevious}
                     disabled={currentStepIndex === 0}
+                    className="hover:bg-[var(--color-blue-light)] hover:text-[var(--color-blue)] hover:border-[var(--color-blue)] transition-colors"
                   >
                     <ChevronLeft className="mr-2 h-4 w-4" />
                     Previous
@@ -713,6 +717,7 @@ export default function NewPatientOnboardingPage() {
                       variant="secondary"
                       onClick={fillMockBasicInfo}
                       type="button"
+                      className="hover:bg-[var(--color-purple)] hover:text-white transition-colors"
                     >
                       🎲 Fill Mock Data
                     </Button>
@@ -722,6 +727,7 @@ export default function NewPatientOnboardingPage() {
                       variant="secondary"
                       onClick={fillMockHabits}
                       type="button"
+                      className="hover:bg-[var(--color-purple)] hover:text-white transition-colors"
                     >
                       🎲 Fill Mock Data
                     </Button>
@@ -731,6 +737,7 @@ export default function NewPatientOnboardingPage() {
                       variant="secondary"
                       onClick={fillMockPastRecords}
                       type="button"
+                      className="hover:bg-[var(--color-purple)] hover:text-white transition-colors"
                     >
                       🎲 Fill Mock Data
                     </Button>
@@ -740,6 +747,7 @@ export default function NewPatientOnboardingPage() {
                       variant="secondary"
                       onClick={fillMockPastSurgeries}
                       type="button"
+                      className="hover:bg-[var(--color-purple)] hover:text-white transition-colors"
                     >
                       🎲 Fill Mock Data
                     </Button>
@@ -750,6 +758,7 @@ export default function NewPatientOnboardingPage() {
                   <Button
                     onClick={handleFinish}
                     disabled={createPatient.isPending || isCompleting}
+                    className="bg-[var(--color-green)] hover:bg-[var(--color-green)]/90"
                   >
                     {isCompleting ? (
                       <>
@@ -767,6 +776,7 @@ export default function NewPatientOnboardingPage() {
                   <Button
                     onClick={handleNext}
                     disabled={createPatient.isPending}
+                    className="bg-[var(--color-blue)] hover:bg-[var(--color-blue)]/90"
                   >
                     Next
                     <ChevronRight className="ml-2 h-4 w-4" />

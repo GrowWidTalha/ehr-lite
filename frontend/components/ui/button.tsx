@@ -9,16 +9,24 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md",
         destructive:
-          "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+          "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60 shadow-sm hover:shadow-md",
         outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 transition-colors hover:shadow-sm",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-sm hover:shadow-md",
         ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        link: "text-primary underline-offset-4 hover:underline",
+          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 transition-colors",
+        link: "text-primary underline-offset-4 hover:underline transition-colors",
+        blue: "bg-[var(--color-blue)] text-white hover:bg-[var(--color-blue)]/90 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all",
+        green: "bg-[var(--color-green)] text-white hover:bg-[var(--color-green)]/90 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all",
+        purple: "bg-[var(--color-purple)] text-white hover:bg-[var(--color-purple)]/90 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all",
+        orange: "bg-[var(--color-orange)] text-white hover:bg-[var(--color-orange)]/90 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all",
+        rose: "bg-[var(--color-rose)] text-white hover:bg-[var(--color-rose)]/90 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all",
+        "blue-outline": "border-2 border-[var(--color-blue)] text-[var(--color-blue)] hover:bg-[var(--color-blue-light)] transition-colors",
+        "green-outline": "border-2 border-[var(--color-green)] text-[var(--color-green)] hover:bg-[var(--color-green-light)] transition-colors",
+        "purple-outline": "border-2 border-[var(--color-purple)] text-[var(--color-purple)] hover:bg-[var(--color-purple-light)] transition-colors",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",

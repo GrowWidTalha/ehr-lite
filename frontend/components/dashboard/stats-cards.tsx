@@ -13,7 +13,7 @@ interface StatCardProps {
 
 function StatCard({ title, value, change, icon, className }: StatCardProps) {
   return (
-    <Card className={className}>
+    <Card className={`${className} transition-all duration-200 hover:shadow-lg hover:-translate-y-1`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
@@ -24,7 +24,7 @@ function StatCard({ title, value, change, icon, className }: StatCardProps) {
         <div className="text-2xl font-bold">{value}</div>
         {change && (
           <p className="text-xs text-muted-foreground mt-1">
-            <span className={change.startsWith('+') ? 'text-green-600' : 'text-muted-foreground'}>
+            <span className={change.startsWith('+') ? 'text-[var(--color-green)] font-semibold' : 'text-muted-foreground'}>
               {change}
             </span>
             {' '}this month
@@ -61,18 +61,18 @@ export function DashboardStats({
       <StatCard
         title="Active Diagnoses"
         value={activeDiagnoses}
-        icon={<Activity className="h-4 w-4" />}
+        icon={<Activity className="h-4 w-4 text-[var(--color-purple)]" />}
       />
       <StatCard
         title="Medical Reports"
         value={totalReports}
-        icon={<FileText className="h-4 w-4" />}
+        icon={<FileText className="h-4 w-4 text-[var(--color-orange)]" />}
       />
       <StatCard
         title="Patient Growth"
         value={totalPatients > 0 ? `${Math.round((newThisMonth / totalPatients) * 100)}%` : '0%'}
         change={newThisMonth > 0 ? 'Growing' : undefined}
-        icon={<TrendingUp className="h-4 w-4" />}
+        icon={<TrendingUp className="h-4 w-4 text-[var(--color-green)]" />}
       />
     </div>
   );

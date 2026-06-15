@@ -15,12 +15,12 @@ interface PatientCardProps {
 export function PatientCard({ patient }: PatientCardProps) {
   return (
     <Link href={`/patients/${patient.PatientID}`}>
-      <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+      <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer h-full group">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="h-5 w-5 text-primary" />
+              <div className="h-10 w-10 rounded-full bg-[var(--color-blue)]/10 flex items-center justify-center group-hover:bg-[var(--color-blue)]/20 transition-colors">
+                <User className="h-5 w-5 text-[var(--color-blue)]" />
               </div>
               <div>
                 <CardTitle className="text-lg leading-tight">
@@ -45,7 +45,7 @@ export function PatientCard({ patient }: PatientCardProps) {
           </div>
 
           <div className="flex items-center gap-2 pt-2">
-            <Badge variant="outline" className="gap-1">
+            <Badge variant="blue" className="gap-1">
               <FileText className="h-3 w-3" />
               {patient.report_count || 0} Reports
             </Badge>

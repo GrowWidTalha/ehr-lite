@@ -56,24 +56,24 @@ export default function PatientDetailPage() {
     <div className="min-h-screen bg-background">
       <NavBar />
       {/* Header */}
-      <header className="border-b bg-card">
+      <header className="border-b bg-card hover:shadow-md transition-shadow duration-200">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link href="/">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="hover:bg-[var(--color-blue-light)] hover:text-[var(--color-blue)] transition-colors">
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>
               </Link>
               <div>
-                <h1 className="text-2xl font-bold">{patient.PatientName}</h1>
+                <h1 className="text-2xl font-bold text-[var(--color-blue)]">{patient.PatientName}</h1>
                 <p className="text-sm text-muted-foreground">
                   {patient.Age ? `${patient.Age} years` : 'Age unknown'} • {patient.Gender || 'Unknown'}
                 </p>
               </div>
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="hover:bg-[var(--color-green)] hover:text-[var(--color-green)] hover:border-[var(--color-green)] transition-colors">
               <Edit className="mr-2 h-4 w-4" />
               Edit Patient
             </Button>
@@ -84,11 +84,11 @@ export default function PatientDetailPage() {
       {/* Main Content */}
       <main className="container mx-auto px-6 py-6">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:min-w-[400px]">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="habits">Habits</TabsTrigger>
-            <TabsTrigger value="clinical">Clinical Records</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:min-w-[400px] bg-[var(--color-blue)]/5 p-1 rounded-lg">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-[var(--color-blue)] data-[state=active]:text-white transition-colors">Overview</TabsTrigger>
+            <TabsTrigger value="habits" className="data-[state=active]:bg-[var(--color-blue)] data-[state=active]:text-white transition-colors">Habits</TabsTrigger>
+            <TabsTrigger value="clinical" className="data-[state=active]:bg-[var(--color-blue)] data-[state=active]:text-white transition-colors">Clinical Records</TabsTrigger>
+            <TabsTrigger value="reports" className="data-[state=active]:bg-[var(--color-blue)] data-[state=active]:text-white transition-colors">Reports</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
