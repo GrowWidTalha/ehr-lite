@@ -260,6 +260,10 @@ async function initializeDatabase() {
         db.run('ALTER TABLE Patient ADD COLUMN NeoadjuvantChemo TEXT');
         console.log('Added NeoadjuvantChemo column to Patient table');
       }
+      if (!columns.includes('Notes')) {
+        db.run('ALTER TABLE Patient ADD COLUMN Notes TEXT');
+        console.log('Added Notes column to Patient table');
+      }
     }
   } catch (e) {
     console.error('Error adding history columns:', e.message);
@@ -295,54 +299,44 @@ async function initializeDatabase() {
     console.error('Error migrating PatientAddictions:', e.message);
   }
 
-  // Recreate vw_patient_detail view with CancerType field
+  // Recreate vw_patient_detail view with CancerType field (always recreate to ensure correct logic)
   try {
-    // Check if view has CancerType column
-    const viewInfo = db.exec("PRAGMA table_info(vw_patient_detail)");
-    let hasCancerType = false;
-    if (viewInfo.length > 0) {
-      const columns = viewInfo[0].values.map(v => v[1]);
-      hasCancerType = columns.includes('CancerType');
-    }
-
-    if (!hasCancerType) {
-      db.run('DROP VIEW IF EXISTS vw_patient_detail');
-      db.run(`
-        CREATE VIEW vw_patient_detail AS
-        SELECT
-          p.*,
-          bg.BloodGroup AS BloodGroupName,
-          q.QLevel AS QualificationName,
-          o.Occupation AS OccupationName,
-          mt.MotherTongue AS MotherTongueName,
-          d.District AS PlaceOfBirthName,
-          sp.Sports AS SportsName,
-          h.Hospitals AS HospitalName,
-          CASE
-            WHEN p.BrainTumor IS NOT NULL AND p.BrainTumor != '' THEN 'brain'
-            WHEN p.HeadAndNeck IS NOT NULL AND p.HeadAndNeck != '' THEN 'head/neck'
-            WHEN p.BreastCancer IS NOT NULL AND p.BreastCancer != '' THEN 'breast'
-            WHEN p.Genitourinary IS NOT NULL AND p.Genitourinary != '' THEN 'genitourinary'
-            WHEN p.Gyneacological IS NOT NULL AND p.Gyneacological != '' THEN 'gynecological'
-            WHEN p.LungsCancer IS NOT NULL AND p.LungsCancer != '' THEN 'lungs'
-            WHEN p.GITumor IS NOT NULL AND p.GITumor != '' THEN 'gi/gastro'
-            WHEN p.SkinTumor IS NOT NULL AND p.SkinTumor != '' THEN 'skin'
-            WHEN p.Hematological IS NOT NULL AND p.Hematological != '' THEN 'hematological/blood'
-            WHEN p.Sarcoma IS NOT NULL AND p.Sarcoma != '' THEN 'sarcoma'
-            WHEN p.Carcinoma IS NOT NULL AND p.Carcinoma != '' THEN 'carcinoma'
-            ELSE NULL
-          END AS CancerType
-        FROM Patient p
-        LEFT JOIN BloodGroups bg ON p.BloodGroup = bg.ID
-        LEFT JOIN Qualifications q ON p.Qualifications = q.ID
-        LEFT JOIN Occupation o ON p.Occupation = o.ID
-        LEFT JOIN MotherTongue mt ON p.MotherTongue = mt.ID
-        LEFT JOIN District d ON p.PlaceOfBirth = d.ID
-        LEFT JOIN Sports sp ON p.Sports = sp.ID
-        LEFT JOIN Hospitals h ON p.Hospital = h.ID
-      `);
-      console.log('Recreated vw_patient_detail view with CancerType field');
-    }
+    db.run('DROP VIEW IF EXISTS vw_patient_detail');
+    db.run(`
+      CREATE VIEW vw_patient_detail AS
+      SELECT
+        p.*,
+        bg.BloodGroup AS BloodGroupName,
+        q.QLevel AS QualificationName,
+        o.Occupation AS OccupationName,
+        mt.MotherTongue AS MotherTongueName,
+        d.District AS PlaceOfBirthName,
+        sp.Sports AS SportsName,
+        h.Hospitals AS HospitalName,
+        CASE
+          WHEN p.BrainTumor IS NOT NULL AND p.BrainTumor != '' THEN p.BrainTumor
+          WHEN p.HeadAndNeck IS NOT NULL AND p.HeadAndNeck != '' THEN p.HeadAndNeck
+          WHEN p.BreastCancer IS NOT NULL AND p.BreastCancer != '' THEN p.BreastCancer
+          WHEN p.Genitourinary IS NOT NULL AND p.Genitourinary != '' THEN p.Genitourinary
+          WHEN p.Gyneacological IS NOT NULL AND p.Gyneacological != '' THEN p.Gyneacological
+          WHEN p.LungsCancer IS NOT NULL AND p.LungsCancer != '' THEN p.LungsCancer
+          WHEN p.GITumor IS NOT NULL AND p.GITumor != '' THEN p.GITumor
+          WHEN p.SkinTumor IS NOT NULL AND p.SkinTumor != '' THEN p.SkinTumor
+          WHEN p.Hematological IS NOT NULL AND p.Hematological != '' THEN p.Hematological
+          WHEN p.Sarcoma IS NOT NULL AND p.Sarcoma != '' THEN p.Sarcoma
+          WHEN p.Carcinoma IS NOT NULL AND p.Carcinoma != '' THEN p.Carcinoma
+          ELSE NULL
+        END AS CancerType
+      FROM Patient p
+      LEFT JOIN BloodGroups bg ON p.BloodGroup = bg.ID
+      LEFT JOIN Qualifications q ON p.Qualifications = q.ID
+      LEFT JOIN Occupation o ON p.Occupation = o.ID
+      LEFT JOIN MotherTongue mt ON p.MotherTongue = mt.ID
+      LEFT JOIN District d ON p.PlaceOfBirth = d.ID
+      LEFT JOIN Sports sp ON p.Sports = sp.ID
+      LEFT JOIN Hospitals h ON p.Hospital = h.ID
+    `);
+    console.log('Recreated vw_patient_detail view (returns actual cancer values, not categories)');
   } catch (e) {
     console.error('Error recreating view:', e.message);
   }

@@ -66,7 +66,14 @@ export function DiagnosisCard({ diagnosis, onView, onEdit, onDelete }: Diagnosis
 
         <div className="text-sm text-muted-foreground space-y-1">
           {diagnosis.who_classification && (
-            <p>WHO: {diagnosis.who_classification}</p>
+            <p>WHO: {
+              diagnosis.who_classification === '0' ? '0 - Normal' :
+              diagnosis.who_classification === '1' ? '1 - Ambulatory' :
+              diagnosis.who_classification === '2' ? '2 - < 50% in bed' :
+              diagnosis.who_classification === '3' ? '3 - > 50% in bed' :
+              diagnosis.who_classification === '4' ? '4 - 100% bedridden' :
+              diagnosis.who_classification
+            }</p>
           )}
           {diagnosis.diagnosis_date && (
             <p>Diagnosed: {formatDate(diagnosis.diagnosis_date)}</p>
@@ -78,19 +85,14 @@ export function DiagnosisCard({ diagnosis, onView, onEdit, onDelete }: Diagnosis
 
         {/* Quick summary indicators */}
         <div className="flex gap-2 mt-3 pt-3 border-t">
-          {diagnosis.tumor_size && (
+          {diagnosis.plan_type && (
             <span className="text-xs text-muted-foreground">
-              Size: {diagnosis.tumor_size}
+              Plan: {diagnosis.plan_type}
             </span>
           )}
-          {diagnosis.er_status && (
+          {diagnosis.surgery_planned && (
             <span className="text-xs text-muted-foreground">
-              ER: {diagnosis.er_status}
-            </span>
-          )}
-          {diagnosis.her2_status && (
-            <span className="text-xs text-muted-foreground">
-              HER2: {diagnosis.her2_status}
+              Surgery: {diagnosis.surgery_planned}
             </span>
           )}
         </div>

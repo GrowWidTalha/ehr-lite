@@ -99,7 +99,7 @@ export function ReportsTab({ patientId }: ReportsTabProps) {
                 {totalReports} report{totalReports !== 1 ? 's' : ''} uploaded
               </CardDescription>
             </div>
-            <Link href={`/patients/${patientId}/reports/new`}>
+            <Link href={`/patients/${patientId}/diagnoses/new`}>
               <Button>
                 <Camera className="mr-2 h-4 w-4" />
                 Upload Report
@@ -155,7 +155,7 @@ export function ReportsTab({ patientId }: ReportsTabProps) {
             <div className="text-center py-12 text-muted-foreground">
               <FileImage className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p className="mb-4">No reports uploaded yet.</p>
-              <Link href={`/patients/${patientId}/reports/new`}>
+              <Link href={`/patients/${patientId}/diagnoses/new`}>
                 <Button>
                   <Camera className="mr-2 h-4 w-4" />
                   Upload First Report

@@ -1,45 +1,88 @@
-// Past Surgeries tab component - Display and edit past surgeries with images
-'use client';
+// Past Surgeries tab component - Uses onboarding form for consistency
+"use client";
 
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Scissors, Loader2, Calendar, Hospital, User } from 'lucide-react';
-import { usePastSurgeries, useCreatePastSurgery, useDeletePastSurgery, useUploadSurgeryImage } from '@/hooks/use-past-surgeries';
-import { ImageLightbox } from '@/components/reports/image-lightbox';
-import { toast } from 'sonner';
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Plus, Trash2, Loader2, Scissors } from "lucide-react";
+import {
+  usePastSurgeries,
+  useDeletePastSurgery,
+  useCreatePastSurgery,
+  useUploadSurgeryImages,
+} from "@/hooks/use-past-surgeries";
+import { ImageLightbox } from "@/components/reports/image-lightbox";
+import { toast } from "sonner";
+import { PastSurgeriesStep } from "@/components/onboarding/steps/past-surgeries-step";
+import { STATIC_BASE_URL } from "@/lib/api";
+
+interface SurgeryRecord {
+  id: string;
+  description: string;
+  isCancerSurgery: boolean;
+  imageUrls: string[];
+  imageFiles: File[];
+  surgeryDate: string;
+  notes: string;
+  hospitalName: string;
+  surgeonName: string;
+}
 
 interface PastSurgeriesTabProps {
   patientId: string;
 }
 
 export function PastSurgeriesTab({ patientId }: PastSurgeriesTabProps) {
-  const { data: surgeries, isLoading } = usePastSurgeries(parseInt(patientId));
-  const createSurgery = useCreatePastSurgery();
+  const {
+    data: surgeries,
+    isLoading,
+    refetch,
+  } = usePastSurgeries(parseInt(patientId));
   const deleteSurgery = useDeletePastSurgery();
-  const uploadSurgeryImage = useUploadSurgeryImage();
+  const createSurgery = useCreatePastSurgery();
+  const uploadSurgeryImages = useUploadSurgeryImages();
 
-  const [isAdding, setIsAdding] = useState(false);
-  const [newSurgery, setNewSurgery] = useState({
-    SurgeryDate: '',
-    Description: '',
-    IsCancerSurgery: 0,
-    Notes: '',
-    HospitalName: '',
-    SurgeonName: '',
+  const [formData, setFormData] = useState({
+    Surgeries: [] as SurgeryRecord[],
   });
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
 
-  const handleAddSurgery = async () => {
-    if (!newSurgery.Description.trim()) {
-      toast.error('Please enter a surgery description');
+  // Sync surgeries from API with form data for the component
+  const syncSurgeries = () => {
+    if (surgeries && Array.isArray(surgeries)) {
+      const formattedSurgeries = surgeries.map((s: any) => ({
+        id: crypto.randomUUID(),
+        description: s.Description || "",
+        isCancerSurgery: s.IsCancerSurgery === 1,
+        imageUrls: s.images?.map((img: any) => `${STATIC_BASE_URL}${img.url}`) || [],
+        imageFiles: [],
+        surgeryDate: s.SurgeryDate
+          ? new Date(s.SurgeryDate).toISOString().split("T")[0]
+          : "",
+        notes: s.Notes || "",
+        hospitalName: s.HospitalName || "",
+        surgeonName: s.SurgeonName || "",
+      }));
+      setFormData({ Surgeries: formattedSurgeries });
+    } else {
+      // Set empty array if no surgeries
+      setFormData({ Surgeries: [] });
+    }
+  };
+
+  // Load surgeries on mount and when surgeries data changes
+  useEffect(() => {
+    syncSurgeries();
+  }, [surgeries]); // Only re-run when surgeries data changes
+
+  const handleSaveSurgery = async (surgery: SurgeryRecord) => {
+    if (!surgery.description?.trim()) {
+      toast.error("Please enter a surgery description");
       return;
     }
 
@@ -47,33 +90,81 @@ export function PastSurgeriesTab({ patientId }: PastSurgeriesTabProps) {
       const result = await createSurgery.mutateAsync({
         patientId: parseInt(patientId),
         data: {
-          SurgeryDate: newSurgery.SurgeryDate || undefined,
-          Description: newSurgery.Description,
-          IsCancerSurgery: newSurgery.IsCancerSurgery,
-          Notes: newSurgery.Notes || undefined,
-          HospitalName: newSurgery.HospitalName || undefined,
-          SurgeonName: newSurgery.SurgeonName || undefined,
+          SurgeryDate: surgery.surgeryDate || undefined,
+          Description: surgery.description,
+          IsCancerSurgery: surgery.isCancerSurgery ? 1 : 0,
+          Notes: surgery.notes || undefined,
+          HospitalName: surgery.hospitalName || undefined,
+          SurgeonName: surgery.surgeonName || undefined,
         },
       });
 
-      // Upload image if selected
-      if (imageFile && result && typeof result === 'object' && 'RowID' in result) {
-        await uploadSurgeryImage.mutateAsync({
-          surgeryId: (result as any).RowID,
-          file: imageFile,
-        });
+      console.log("Surgery created:", result);
+
+      // Upload images if provided (handle both file objects and data URLs from camera)
+      const hasImages =
+        (surgery.imageFiles && surgery.imageFiles.length > 0) ||
+        (surgery.imageUrls && surgery.imageUrls.length > 0);
+
+      console.log(
+        "Has images:",
+        hasImages,
+        "imageFiles:",
+        surgery.imageFiles?.length,
+        "imageUrls:",
+        surgery.imageUrls?.length,
+      );
+
+      if (
+        hasImages &&
+        result &&
+        typeof result === "object" &&
+        "RowID" in result
+      ) {
+        // Convert data URLs to Files if needed
+        let filesToUpload: File[] = surgery.imageFiles || [];
+
+        if (surgery.imageUrls && surgery.imageUrls.length > 0) {
+          console.log("Converting data URLs to files...");
+          const dataUrlFiles = await Promise.all(
+            surgery.imageUrls
+              .filter((url) => url.startsWith("data:"))
+              .map(async (dataUrl) => {
+                const response = await fetch(dataUrl);
+                const blob = await response.blob();
+                const extension = dataUrl.split(";")[0].split("/")[1] || "jpg";
+                return new File(
+                  [blob],
+                  `camera-capture-${Date.now()}.${extension}`,
+                  { type: blob.type },
+                );
+              }),
+          );
+          filesToUpload = [...filesToUpload, ...dataUrlFiles];
+          console.log("Files to upload:", filesToUpload.length);
+        }
+
+        if (filesToUpload.length > 0) {
+          console.log("Uploading files for surgery:", (result as any).RowID);
+          await uploadSurgeryImages.mutateAsync({
+            surgeryId: (result as any).RowID,
+            files: filesToUpload,
+            patientId: parseInt(patientId),
+          });
+          console.log("Upload complete");
+        }
       }
 
-      toast.success('Surgery added successfully');
-      resetForm();
+      toast.success("Surgery added successfully");
+      syncSurgeries(); // Reload to show updated list
     } catch (error) {
-      console.error('Failed to add surgery:', error);
-      toast.error('Failed to add surgery. Please try again.');
+      console.error("Failed to add surgery:", error);
+      toast.error("Failed to add surgery. Please try again.");
     }
   };
 
   const handleDeleteSurgery = async (surgeryId: number) => {
-    if (!confirm('Are you sure you want to delete this surgery record?')) {
+    if (!confirm("Are you sure you want to delete this surgery record?")) {
       return;
     }
 
@@ -82,308 +173,178 @@ export function PastSurgeriesTab({ patientId }: PastSurgeriesTabProps) {
         patientId: parseInt(patientId),
         surgeryId,
       });
-      toast.success('Surgery deleted successfully');
+      toast.success("Surgery deleted successfully");
+      syncSurgeries();
     } catch (error) {
-      console.error('Failed to delete surgery:', error);
-      toast.error('Failed to delete surgery. Please try again.');
+      console.error("Failed to delete surgery:", error);
+      toast.error("Failed to delete surgery. Please try again.");
     }
   };
 
-  const resetForm = () => {
-    setNewSurgery({
-      SurgeryDate: '',
-      Description: '',
-      IsCancerSurgery: 0,
-      Notes: '',
-      HospitalName: '',
-      SurgeonName: '',
-    });
-    setImageFile(null);
-    setIsAdding(false);
-  };
+  // Lightbox state
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState<
+    { url: string; title?: string }[]
+  >([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const MAX_SIZE = 5 * 1024 * 1024;
-    if (file.size > MAX_SIZE) {
-      toast.error('File too large. Maximum size is 5MB.');
-      return;
+  const handleViewImages = (surgery: any) => {
+    const images = surgery.imageUrls || [];
+    if (images.length > 0) {
+      setLightboxImages(
+        images.map((url: string) => ({
+          url: url,
+          title: surgery.description || `Surgery`,
+        })),
+      );
+      setLightboxIndex(0);
+      setLightboxOpen(true);
+    } else {
+      toast.error("No images available for this surgery");
     }
-
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-    if (!validTypes.includes(file.type)) {
-      toast.error('Invalid file type. Please upload JPG or PNG images only.');
-      return;
-    }
-
-    setImageFile(file);
-    const url = URL.createObjectURL(file);
-    setSelectedImage(url);
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
-  }
 
   return (
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Past Surgeries</CardTitle>
-              <CardDescription>Previous surgical procedures with supporting documents</CardDescription>
-            </div>
-            {!isAdding && (
-              <Button onClick={() => setIsAdding(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Surgery
-              </Button>
-            )}
-          </div>
+          <CardTitle>Past Surgeries</CardTitle>
+          <CardDescription>
+            Previous surgical procedures with supporting documents
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Add Surgery Form */}
-          {isAdding && (
-            <Card className="border-primary">
-              <CardHeader>
-                <CardTitle className="text-lg">Add New Surgery</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="SurgeryDate">Surgery Date</Label>
-                    <Input
-                      id="SurgeryDate"
-                      type="date"
-                      value={newSurgery.SurgeryDate}
-                      onChange={(e) => setNewSurgery({ ...newSurgery, SurgeryDate: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="HospitalName">Hospital Name</Label>
-                    <Input
-                      id="HospitalName"
-                      value={newSurgery.HospitalName}
-                      onChange={(e) => setNewSurgery({ ...newSurgery, HospitalName: e.target.value })}
-                      placeholder="Hospital where surgery was performed"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="SurgeonName">Surgeon Name</Label>
-                    <Input
-                      id="SurgeonName"
-                      value={newSurgery.SurgeonName}
-                      onChange={(e) => setNewSurgery({ ...newSurgery, SurgeonName: e.target.value })}
-                      placeholder="Name of surgeon"
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-2 pt-6">
-                    <Checkbox
-                      id="IsCancerSurgery"
-                      checked={newSurgery.IsCancerSurgery === 1}
-                      onCheckedChange={(checked) =>
-                        setNewSurgery({ ...newSurgery, IsCancerSurgery: checked ? 1 : 0 })
-                      }
-                    />
-                    <Label htmlFor="IsCancerSurgery" className="cursor-pointer">
-                      Cancer-related surgery
-                    </Label>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="Description">Procedure Details *</Label>
-                  <Textarea
-                    id="Description"
-                    value={newSurgery.Description}
-                    onChange={(e) => setNewSurgery({ ...newSurgery, Description: e.target.value })}
-                    placeholder="Type of surgery, procedure details, outcomes..."
-                    rows={3}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="Notes">Additional Notes</Label>
-                  <Textarea
-                    id="Notes"
-                    value={newSurgery.Notes}
-                    onChange={(e) => setNewSurgery({ ...newSurgery, Notes: e.target.value })}
-                    placeholder="Any additional notes or observations..."
-                    rows={2}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Surgery Document/Image (Optional)</Label>
-                  <div className="flex gap-3">
-                    <Input
-                      type="file"
-                      accept="image/jpeg,image/jpg,image/png"
-                      onChange={handleImageSelect}
-                      className="flex-1"
-                    />
-                    {selectedImage && (
-                      <div className="relative w-24 h-24">
-                        <img
-                          src={selectedImage}
-                          alt="Preview"
-                          className="w-full h-full object-cover rounded border cursor-pointer"
-                          onClick={() => setSelectedImage(selectedImage)}
-                        />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          className="absolute top-1 right-1 h-6 w-6 p-0"
-                          onClick={() => {
-                            setSelectedImage(null);
-                            setImageFile(null);
-                          }}
-                        >
-                          ×
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <Button
-                    onClick={handleAddSurgery}
-                    disabled={createSurgery.isPending || !newSurgery.Description}
-                  >
-                    {createSurgery.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Adding...
-                      </>
-                    ) : (
-                      'Add Surgery'
-                    )}
-                  </Button>
-                  <Button variant="outline" onClick={resetForm} disabled={createSurgery.isPending}>
-                    Cancel
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+              <p className="text-sm text-muted-foreground">Loading surgeries...</p>
+            </div>
           )}
 
+          {/* Add Surgery Form - Always visible */}
+          <PastSurgeriesStep
+            formData={formData}
+            onChange={setFormData}
+            onSave={handleSaveSurgery}
+            error={null}
+          />
+
           {/* Surgeries List */}
-          <div className="space-y-4">
-            {surgeries && Array.isArray(surgeries) && surgeries.length > 0 ? (
-              surgeries.map((surgery: any) => (
-                <Card key={surgery.RowID} className="relative">
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Scissors className="h-4 w-4 text-primary" />
-                          <h4 className="font-medium">Surgery #{surgery.RowID}</h4>
-                          {surgery.IsCancerSurgery === 1 && (
-                            <Badge variant="destructive">Cancer Surgery</Badge>
+          {!isLoading && formData.Surgeries.length > 0 ? (
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium">
+                Recorded Surgeries ({formData.Surgeries.length})
+              </h3>
+              {formData.Surgeries.map((surgery, index) => {
+                const hasImages = surgery.imageUrls?.length > 0;
+                return (
+                  <Card key={surgery.id} className="relative">
+                    <CardContent className="pt-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <h4 className="font-medium mb-1">
+                            Surgery #{index + 1}
+                          </h4>
+                          {surgery.isCancerSurgery && (
+                            <span className="inline-block px-2 py-0.5 rounded-md bg-destructive text-destructive-foreground text-xs">
+                              Cancer Surgery
+                            </span>
                           )}
-                          {surgery.IsCancerSurgery !== 1 && (
-                            <Badge variant="secondary">Non-Cancer</Badge>
+                          {surgery.surgeryDate && (
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(
+                                surgery.surgeryDate,
+                              ).toLocaleDateString()}
+                            </p>
                           )}
                         </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const surgeryData = surgeries?.find(
+                              (s: any) => s.RowID === index + 1,
+                            );
+                            if (surgeryData)
+                              handleDeleteSurgery(surgeryData.RowID);
+                          }}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
 
-                        {surgery.SurgeryDate && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                            <Calendar className="h-3 w-3" />
-                            {new Date(surgery.SurgeryDate).toLocaleDateString()}
-                          </div>
+                      <div className="space-y-3">
+                        <div>
+                          <h5 className="text-sm font-medium">
+                            Procedure Details
+                          </h5>
+                          <p className="text-sm text-muted-foreground">
+                            {surgery.description}
+                          </p>
+                        </div>
+
+                        {surgery.surgeonName && (
+                          <p className="text-xs text-muted-foreground">
+                            <span className="font-medium">Surgeon:</span>{" "}
+                            {surgery.surgeonName}
+                          </p>
+                        )}
+                        {surgery.hospitalName && (
+                          <p className="text-xs text-muted-foreground">
+                            <span className="font-medium">Hospital:</span>{" "}
+                            {surgery.hospitalName}
+                          </p>
+                        )}
+                        {surgery.notes && (
+                          <p className="text-xs text-muted-foreground">
+                            <span className="font-medium">Notes:</span>{" "}
+                            {surgery.notes}
+                          </p>
                         )}
 
-                        {surgery.HospitalName && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                            <Hospital className="h-3 w-3" />
-                            {surgery.HospitalName}
-                          </div>
-                        )}
-
-                        {surgery.SurgeonName && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                            <User className="h-3 w-3" />
-                            Dr. {surgery.SurgeonName}
+                        {hasImages && (
+                          <div>
+                            <h5 className="text-sm font-medium mb-2">
+                              Attached Documents ({surgery.imageUrls.length})
+                            </h5>
+                            <div className="flex flex-wrap gap-2">
+                              {surgery.imageUrls.map((url, idx) => (
+                                <div key={idx} className="relative w-24 h-24">
+                                  <img
+                                    src={url}
+                                    alt={`Surgery #${index + 1} - Image ${idx + 1}`}
+                                    className="w-full h-full object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={() => handleViewImages(surgery)}
+                                  />
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteSurgery(surgery.RowID!)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div>
-                        <h5 className="text-sm font-medium mb-1">Procedure Details</h5>
-                        <p className="text-sm text-muted-foreground">{surgery.Description}</p>
-                      </div>
-
-                      {surgery.Notes && (
-                        <div>
-                          <h5 className="text-sm font-medium mb-1">Notes</h5>
-                          <p className="text-sm text-muted-foreground">{surgery.Notes}</p>
-                        </div>
-                      )}
-
-                      {surgery.ImagePath && (
-                        <div>
-                          <h5 className="text-sm font-medium mb-2">Attached Document</h5>
-                          <div className="relative w-32 h-32">
-                            <img
-                              src={`/uploads/surgeries/${surgery.ImagePath}`}
-                              alt={`Surgery #${surgery.RowID}`}
-                              className="w-full h-full object-cover rounded border cursor-pointer"
-                              onClick={() => {
-                                setSelectedImage(`/uploads/surgeries/${surgery.ImagePath}`);
-                                setLightboxOpen(true);
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Scissors className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>No past surgeries recorded</p>
-                <p className="text-sm">Click "Add Surgery" to record a surgical procedure</p>
-              </div>
-            )}
-          </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : !isLoading && formData.Surgeries.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <Scissors className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-sm mb-1">No surgeries recorded</p>
+              <p className="text-xs">Use the form above to add a surgery</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Image Lightbox */}
       <ImageLightbox
-        imAges={selectedImage ? [{ url: selectedImage, title: 'Surgery document' }] : []}
-        initialIndex={0}
+        imAges={lightboxImages}
+        initialIndex={lightboxIndex}
         open={lightboxOpen}
-        onOpenChange={(open) => {
-          setLightboxOpen(open);
-          if (!open) setSelectedImage(null);
-        }}
+        onOpenChange={setLightboxOpen}
       />
     </>
   );

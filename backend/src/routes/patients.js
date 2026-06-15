@@ -265,6 +265,7 @@ router.put('/:id', async (req, res) => {
       lvi: 'LVI',
       pni: 'PNI',
       notes: 'Notes',
+      treatment_plan: 'Notes',
       // Also accept PascalCase directly from frontend
       CancerType: 'CancerType',
       DiagnosisDate: 'ExaminationDate',
@@ -285,14 +286,14 @@ router.put('/:id', async (req, res) => {
         // Also map to specific cancer column based on value
         const cancerType = value?.toLowerCase();
         if (cancerType?.includes('brain')) mappedData.BrainTumor = value;
-        else if (cancerType?.includes('head') || cancerType?.includes('neck')) mappedData.HeadAndNeck = value;
+        else if (cancerType?.includes('head') || cancerType?.includes('neck') || cancerType?.includes('oral') || cancerType?.includes('thyroid')) mappedData.HeadAndNeck = value;
         else if (cancerType?.includes('breast')) mappedData.BreastCancer = value;
-        else if (cancerType?.includes('genitourinary')) mappedData.Genitourinary = value;
-        else if (cancerType?.includes('gynecological')) mappedData.Gyneacological = value;
+        else if (cancerType?.includes('genitourinary') || cancerType?.includes('prostate') || cancerType?.includes('bladder') || cancerType?.includes('kidney')) mappedData.Genitourinary = value;
+        else if (cancerType?.includes('gynecological') || cancerType?.includes('ovarian') || cancerType?.includes('cervical') || cancerType?.includes('endometrial') || cancerType?.includes('uterine')) mappedData.Gyneacological = value;
         else if (cancerType?.includes('lung')) mappedData.LungsCancer = value;
-        else if (cancerType?.includes('gi') || cancerType?.includes('gastro')) mappedData.GITumor = value;
+        else if (cancerType?.includes('colorectal') || cancerType?.includes('colon') || cancerType?.includes('rectal') || cancerType?.includes('gi') || cancerType?.includes('gastro') || cancerType?.includes('gastric') || cancerType?.includes('stomach') || cancerType?.includes('pancreatic') || cancerType?.includes('liver') || cancerType?.includes('esophageal') || cancerType?.includes('esophagus')) mappedData.GITumor = value;
         else if (cancerType?.includes('skin')) mappedData.SkinTumor = value;
-        else if (cancerType?.includes('hematological') || cancerType?.includes('blood')) mappedData.Hematological = value;
+        else if (cancerType?.includes('hematological') || cancerType?.includes('blood') || cancerType?.includes('lymphoma') || cancerType?.includes('leukemia') || cancerType?.includes('myeloma')) mappedData.Hematological = value;
         else if (cancerType?.includes('sarcoma')) mappedData.Sarcoma = value;
         else if (cancerType?.includes('carcinoma')) mappedData.Carcinoma = value;
       } else if (key === 'uploadedReports' || key === 'uploaded_reports') {
@@ -302,6 +303,26 @@ router.put('/:id', async (req, res) => {
       } else {
         const mappedKey = fieldMapping[key] || key;
         mappedData[mappedKey] = value;
+      }
+    }
+
+    // When setting a cancer type, clear all OTHER cancer columns to ensure view computes correctly
+    if (mappedData.BrainTumor !== undefined || mappedData.HeadAndNeck !== undefined ||
+        mappedData.BreastCancer !== undefined || mappedData.Genitourinary !== undefined ||
+        mappedData.Gyneacological !== undefined || mappedData.LungsCancer !== undefined ||
+        mappedData.GITumor !== undefined || mappedData.SkinTumor !== undefined ||
+        mappedData.Hematological !== undefined || mappedData.Sarcoma !== undefined ||
+        mappedData.Carcinoma !== undefined) {
+      const cancerColumns = ['BrainTumor', 'HeadAndNeck', 'BreastCancer', 'Genitourinary',
+                           'Gyneacological', 'LungsCancer', 'GITumor', 'SkinTumor',
+                           'Hematological', 'Sarcoma', 'Carcinoma'];
+      const setColumn = cancerColumns.find(col => mappedData[col] && mappedData[col].trim());
+      if (setColumn) {
+        cancerColumns.forEach(col => {
+          if (col !== setColumn) {
+            mappedData[col] = '';
+          }
+        });
       }
     }
 
@@ -335,7 +356,7 @@ router.put('/:id', async (req, res) => {
       'WHOClassification', 'ERStatus', 'ERPercent', 'PRStatus', 'PRPercent',
       'HER2Status', 'Ki67Percent', 'StudyType', 'StudyDate', 'Findings',
       'Indication', 'PlanType', 'SurgeryPlanned', 'NeoadjuvantChemo',
-      'CancerType', 'Notes'
+      'Notes'
     ];
 
     for (const field of updatableFields) {
@@ -1073,9 +1094,33 @@ router.get('/:id/past-surgeries', async (req, res) => {
       patientId
     );
 
+    // Fetch images for each surgery (support both new report_images table and old ImagePath column)
+    const surgeriesWithImages = await Promise.all(
+      surgeries.map(async (surgery) => {
+        console.log('Fetching images for surgery:', surgery.RowID);
+        const images = await all(
+          'SELECT id, image_path as url, file_name as fileName FROM report_images WHERE entity_type = ? AND entity_id = ? ORDER BY sequence ASC',
+          ['surgery', String(surgery.RowID)]
+        );
+        console.log('Images found for surgery', surgery.RowID, ':', images);
+
+        // Include legacy ImagePath if it exists (backwards compatibility)
+        let allImages = [...images];
+        if (surgery.ImagePath) {
+          allImages.unshift({
+            id: `legacy-${surgery.RowID}`,
+            url: surgery.ImagePath,
+            fileName: 'Legacy Image'
+          });
+        }
+
+        return { ...surgery, images: allImages };
+      })
+    );
+
     res.json({
       success: true,
-      data: surgeries
+      data: surgeriesWithImages
     });
   } catch (error) {
     console.error('Error fetching past surgeries:', error);
@@ -1268,9 +1313,9 @@ router.delete('/past-surgeries/:id', async (req, res) => {
 
 /**
  * POST /api/past-surgeries/:id/image
- * Upload an image for a past surgery
+ * Upload images for a past surgery (supports multiple)
  */
-router.post('/past-surgeries/:id/image', upload.single('image'), async (req, res) => {
+router.post('/past-surgeries/:id/images', upload.array('images', 5), async (req, res) => {
   try {
     const { id } = req.params;
     const surgeryId = Number(id);
@@ -1282,20 +1327,16 @@ router.post('/past-surgeries/:id/image', upload.single('image'), async (req, res
       });
     }
 
-    if (!req.file) {
+    if (!req.files || req.files.length === 0) {
       return res.status(400).json({
         success: false,
-        error: 'No file uploaded'
+        error: 'No files uploaded'
       });
     }
 
-    const file = req.file;
-    const fileExt = file.originalname.split('.').pop();
-    const filename = imageHandler.generateImageFilename('surgeries', surgeryId, 0, fileExt);
-
-    // Get patient ID from surgery record for folder structure
+    // Get patient ID from surgery record
     const surgery = await get(
-      'SELECT PatientID FROM PastSurgeries WHERE RowID = ?',
+      'SELECT PatientID, RowID FROM PastSurgeries WHERE RowID = ?',
       surgeryId
     );
 
@@ -1306,25 +1347,42 @@ router.post('/past-surgeries/:id/image', upload.single('image'), async (req, res
       });
     }
 
-    const imagePath = imageHandler.saveImage(surgery.PatientID, filename, file.buffer);
+    const uploadedImages = [];
 
-    await run(
-      `UPDATE PastSurgeries SET ImagePath = ? WHERE RowID = ?`,
-      imagePath,
-      surgeryId
-    );
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i];
+      const fileExt = file.originalname.split('.').pop();
+      const imageId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const filename = imageHandler.generateImageFilename('surgeries', surgeryId, i, fileExt);
 
-    const updated = await get(
-      'SELECT * FROM PastSurgeries WHERE RowID = ?',
-      surgeryId
-    );
+      const imagePath = imageHandler.saveImage(surgery.PatientID, filename, file.buffer);
+
+      // Store in report_images table with entity_type='surgery'
+      await run(
+        `INSERT INTO report_images (id, entity_type, entity_id, image_path, file_name, file_type, file_size, sequence)
+         VALUES (?, 'surgery', ?, ?, ?, ?, ?, ?)`,
+        imageId,
+        String(surgeryId),
+        imagePath,
+        file.originalname,
+        file.mimetype,
+        file.size,
+        i
+      );
+
+      uploadedImages.push({
+        id: imageId,
+        url: imagePath,
+        fileName: file.originalname,
+      });
+    }
 
     res.json({
       success: true,
-      data: { ImagePath: imagePath, surgery: updated }
+      data: { images: uploadedImages, count: uploadedImages.length }
     });
   } catch (error) {
-    console.error('Error uploading surgery image:', error);
+    console.error('Error uploading surgery images:', error);
     res.status(500).json({
       success: false,
       error: error.message

@@ -19,6 +19,7 @@ export interface PastSurgery {
   Description: string;
   IsCancerSurgery: number;
   ImagePath?: string | null;
+  images?: Array<{ id: string; url: string; fileName: string }>;
   Notes?: string | null;
   HospitalName?: string | null;
   SurgeonName?: string | null;
@@ -30,7 +31,6 @@ export interface CreatePastSurgeryInput {
   SurgeryDate?: string;
   Description: string;
   IsCancerSurgery: number;
-  ImagePath?: string;
   Notes?: string;
   HospitalName?: string;
   SurgeonName?: string;
@@ -63,6 +63,10 @@ export function useCreatePastSurgery() {
       const id = typeof variables.patientId === 'string' ? parseInt(variables.patientId) : variables.patientId;
       queryClient.invalidateQueries({ queryKey: pastSurgeriesKeys.patient(id) });
       queryClient.invalidateQueries({ queryKey: ['patients', id] });
+    },
+    onError: (error: any) => {
+      console.error('Failed to create past surgery:', error);
+      throw error;
     },
   });
 }
@@ -97,17 +101,53 @@ export function useDeletePastSurgery() {
       queryClient.invalidateQueries({ queryKey: pastSurgeriesKeys.patient(id) });
       queryClient.invalidateQueries({ queryKey: ['patients', id] });
     },
+    onError: (error: any) => {
+      console.error('Failed to delete past surgery:', error);
+      throw error;
+    },
   });
 }
 
-// Upload surgery image
+// Upload surgery images (multiple)
+export function useUploadSurgeryImages() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ surgeryId, files, patientId }: { surgeryId: number; files: File[]; patientId: number }) => {
+      const formData = new FormData();
+      files.forEach(file => formData.append('images', file));
+
+      return uploadApi<{ images: Array<{ id: string; url: string; fileName: string }> }>(
+        `/patients/past-surgeries/${surgeryId}/images`,
+        formData
+      );
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: pastSurgeriesKeys.patient(variables.patientId) });
+    },
+    onError: (error: any) => {
+      console.error('Failed to upload surgery images:', error);
+      throw error;
+    },
+  });
+}
+
+// Upload single surgery image (legacy, for compatibility)
 export function useUploadSurgeryImage() {
   return useMutation({
     mutationFn: ({ surgeryId, file }: { surgeryId: number; file: File }) => {
       const formData = new FormData();
-      formData.append('image', file);
+      const files = [file];
+      files.forEach(f => formData.append('images', f));
 
-      return uploadApi<{ ImagePath: string }>(`/past-surgeries/${surgeryId}/image`, formData);
+      return uploadApi<{ images: Array<{ id: string; url: string; fileName: string }> }>(
+        `/patients/past-surgeries/${surgeryId}/images`,
+        formData
+      );
+    },
+    onError: (error: any) => {
+      console.error('Failed to upload surgery image:', error);
+      throw error;
     },
   });
 }

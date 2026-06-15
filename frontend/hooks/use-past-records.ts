@@ -60,5 +60,10 @@ export function useUpdatePastRecords() {
       queryClient.invalidateQueries({ queryKey: pastRecordsKeys.patient(id) });
       queryClient.invalidateQueries({ queryKey: ['patients', id] });
     },
+    onError: (error: any) => {
+      console.error('Failed to update past records:', error);
+      // Error will be caught by the caller
+      throw error;
+    },
   });
 }

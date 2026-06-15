@@ -476,6 +476,47 @@ const statements = [
     Hospital INTEGER REFERENCES Hospitals(ID)
   )`,
 
+  // Report Types for categorizing medical reports
+  `CREATE TABLE IF NOT EXISTS ReportTypes (
+    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    TypeCode TEXT UNIQUE NOT NULL,
+    TypeName TEXT NOT NULL,
+    Category TEXT NOT NULL,
+    Description TEXT,
+    DisplayOrder INTEGER DEFAULT 0,
+    IsActive INTEGER DEFAULT 1
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS reports (
+    id TEXT PRIMARY KEY,
+    patient_id INTEGER NOT NULL REFERENCES Patient(PatientID),
+    diagnosis_id INTEGER,
+    title TEXT,
+    report_type TEXT,
+    category TEXT DEFAULT 'Other',
+    notes TEXT,
+    report_date DATETIME,
+    facility_name TEXT,
+    ordering_physician TEXT,
+    clinical_context TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS report_images (
+    id TEXT PRIMARY KEY,
+    entity_type TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    image_path TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+
+  `CREATE INDEX IF NOT EXISTS idx_reporttypes_category ON ReportTypes(Category)`,
+  `CREATE INDEX IF NOT EXISTS idx_reporttypes_code ON ReportTypes(TypeCode)`,
+  `CREATE INDEX IF NOT EXISTS idx_reports_category ON reports(category)`,
+  `CREATE INDEX IF NOT EXISTS idx_reports_type ON reports(report_type)`,
+  `CREATE INDEX IF NOT EXISTS idx_reports_date ON reports(report_date)`,
+  `CREATE INDEX IF NOT EXISTS idx_reports_diagnosis ON reports(diagnosis_id)`,
+
   // Past Records and Past Surgeries tables
   `CREATE TABLE IF NOT EXISTS PastRecords (
     RowID INTEGER PRIMARY KEY AUTOINCREMENT,

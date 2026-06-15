@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -51,7 +51,14 @@ export function DiagnosisDetail({ diagnosis, onEdit, onClose }: DiagnosisDetailP
             {diagnosis.who_classification && (
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">WHO Classification</span>
-                <span className="text-sm font-medium">{diagnosis.who_classification}</span>
+                <span className="text-sm font-medium">
+                  {diagnosis.who_classification === '0' && '0 - Normal'}
+                  {diagnosis.who_classification === '1' && '1 - Ambulatory'}
+                  {diagnosis.who_classification === '2' && '2 - < 50% in bed'}
+                  {diagnosis.who_classification === '3' && '3 - > 50% in bed'}
+                  {diagnosis.who_classification === '4' && '4 - 100% bedridden'}
+                  {diagnosis.who_classification}
+                </span>
               </div>
             )}
             {diagnosis.diagnosis_date && (
@@ -64,25 +71,14 @@ export function DiagnosisDetail({ diagnosis, onEdit, onClose }: DiagnosisDetailP
         </Card>
       ) : null}
 
-      {/* Pathology Details */}
-      {diagnosis.tumor_size || diagnosis.margins || diagnosis.lvi || diagnosis.pni ? (
+      {/* Pathology Details - Essential Staging Data Only */}
+      {diagnosis.margins || diagnosis.lvi || diagnosis.pni ||
+       (diagnosis.nodes_recovered !== undefined) || (diagnosis.nodes_involved !== undefined) ? (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Pathology Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {diagnosis.tumor_size && (
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Tumor Size</span>
-                <span className="text-sm font-medium">{diagnosis.tumor_size}</span>
-              </div>
-            )}
-            {diagnosis.depth && (
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Depth</span>
-                <span className="text-sm font-medium">{diagnosis.depth}</span>
-              </div>
-            )}
             {diagnosis.margins && (
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Margins</span>
@@ -110,49 +106,9 @@ export function DiagnosisDetail({ diagnosis, onEdit, onClose }: DiagnosisDetailP
               </div>
             )}
           </CardContent>
-        </Card>
-      ) : null}
-
-      {/* Biomarker Results */}
-      {diagnosis.er_status || diagnosis.pr_status || diagnosis.her2_status || diagnosis.ki67_percentAge ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Biomarker Results</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {diagnosis.er_status && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">ER Status</span>
-                <Badge variant={diagnosis.er_status === 'positive' ? 'default' : 'secondary'}>
-                  {diagnosis.er_status}
-                  {diagnosis.er_percentAge && ` (${diagnosis.er_percentAge}%)`}
-                </Badge>
-              </div>
-            )}
-            {diagnosis.pr_status && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">PR Status</span>
-                <Badge variant={diagnosis.pr_status === 'positive' ? 'default' : 'secondary'}>
-                  {diagnosis.pr_status}
-                  {diagnosis.pr_percentAge && ` (${diagnosis.pr_percentAge}%)`}
-                </Badge>
-              </div>
-            )}
-            {diagnosis.her2_status && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">HER2 Status</span>
-                <Badge variant={diagnosis.her2_status === '3+' ? 'default' : 'secondary'}>
-                  {diagnosis.her2_status}
-                </Badge>
-              </div>
-            )}
-            {diagnosis.ki67_percentAge && (
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Ki-67 Index</span>
-                <span className="text-sm font-medium">{diagnosis.ki67_percentAge}%</span>
-              </div>
-            )}
-          </CardContent>
+          <CardFooter className="text-xs text-muted-foreground border-t pt-4">
+            <p>For detailed biomarker testing (ER, PR, HER2, Ki-67), molecular markers, and tumor measurements, see uploaded pathology reports in the Reports tab.</p>
+          </CardFooter>
         </Card>
       ) : null}
 

@@ -463,19 +463,13 @@ export interface CancerDiagnosis {
   who_classification?: string;
   diagnosis_date?: string;
   notes?: string;
-  tumor_size?: string;
-  depth?: string;
+  // Essential staging data (kept - required for TNM staging)
   margins?: string;
   lvi?: string;
   pni?: string;
   nodes_recovered?: string;
   nodes_involved?: string;
-  er_status?: string;
-  er_percentAge?: string;
-  pr_status?: string;
-  pr_percentAge?: string;
-  her2_status?: string;
-  ki67_percentAge?: string;
+  // Treatment planning
   findings?: string;
   indication?: string;
   plan_type?: string;
@@ -489,4 +483,5 @@ export interface CancerDiagnosis {
   cycles?: string;
   radio_dose?: string;
   response?: string;
+  // Note: ER, PR, HER2, Ki-67, tumor_size, depth removed - should come from uploaded reports
 }

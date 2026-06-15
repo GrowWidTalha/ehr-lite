@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -24,6 +24,11 @@ interface DiagnosisReportUploadProps {
   description?: string;
   defaultReportType?: string;
   compact?: boolean;
+  categoryFilter?: string[]; // Filter to show only specific categories
+  allowedCategories?: {
+    title: string;
+    categories: string[];
+  }[]; // Show categories grouped by section
 }
 
 export function DiagnosisReportUpload({
@@ -33,10 +38,43 @@ export function DiagnosisReportUpload({
   title = 'Attach Supporting Report',
   description = 'Upload pathology, biomarker, or imaging reports to support this diagnosis',
   defaultReportType,
-  compact = false
+  compact = false,
+  categoryFilter,
+  allowedCategories
 }: DiagnosisReportUploadProps) {
   const uploadReport = useUploadReport();
   const { data: reportTypes, isLoading: typesLoading } = useReportTypes();
+
+  // Filter report types based on category filter or allowed categories
+  const filteredReportTypes = React.useMemo(() => {
+    if (!reportTypes) return {};
+
+    if (categoryFilter && categoryFilter.length > 0) {
+      // Show only specified categories
+      const filtered: Record<string, any[]> = {};
+      categoryFilter.forEach(cat => {
+        if (reportTypes[cat]) {
+          filtered[cat] = reportTypes[cat];
+        }
+      });
+      return filtered;
+    }
+
+    if (allowedCategories && allowedCategories.length > 0) {
+      // Show categories grouped by sections
+      const filtered: Record<string, any[]> = {};
+      allowedCategories.forEach(section => {
+        section.categories.forEach(cat => {
+          if (reportTypes[cat]) {
+            filtered[cat] = reportTypes[cat];
+          }
+        });
+      });
+      return filtered;
+    }
+
+    return reportTypes;
+  }, [reportTypes, categoryFilter, allowedCategories]);
 
   const [reportType, setReportType] = useState(defaultReportType || '');
   const [notes, setNotes] = useState('');
@@ -57,20 +95,20 @@ export function DiagnosisReportUpload({
 
   // Set default report type when types are loaded
   useEffect(() => {
-    if (reportTypes && Object.keys(reportTypes).length > 0 && !reportType && !defaultReportType) {
+    if (filteredReportTypes && Object.keys(filteredReportTypes).length > 0 && !reportType && !defaultReportType) {
       // Default to first pathology type for biomarker step
-      const pathologyTypes = reportTypes['Pathology'];
+      const pathologyTypes = filteredReportTypes['Pathology'];
       if (pathologyTypes && pathologyTypes.length > 0) {
         setReportType(pathologyTypes[0].code);
       } else {
         // Fallback to first available type
-        const firstCategory = Object.keys(reportTypes)[0];
-        if (reportTypes[firstCategory] && reportTypes[firstCategory].length > 0) {
-          setReportType(reportTypes[firstCategory][0].code);
+        const firstCategory = Object.keys(filteredReportTypes)[0];
+        if (filteredReportTypes[firstCategory] && filteredReportTypes[firstCategory].length > 0) {
+          setReportType(filteredReportTypes[firstCategory][0].code);
         }
       }
     }
-  }, [reportTypes, defaultReportType]);
+  }, [filteredReportTypes, defaultReportType]);
 
   // Get all available cameras on mount
   useEffect(() => {
@@ -249,8 +287,8 @@ export function DiagnosisReportUpload({
       toast.success('Report attached successfully');
 
       // Reset form
-      const firstCategory = Object.keys(reportTypes || {})[0];
-      const firstType = reportTypes?.[firstCategory]?.[0]?.code || defaultReportType || '';
+      const firstCategory = Object.keys(filteredReportTypes || {})[0];
+      const firstType = filteredReportTypes?.[firstCategory]?.[0]?.code || defaultReportType || '';
       setReportType(firstType);
       setNotes('');
       setReportDate('');
@@ -406,13 +444,13 @@ export function DiagnosisReportUpload({
                   <Label className="text-xs">Report Type</Label>
                   {typesLoading ? (
                     <div className="text-xs text-muted-foreground">Loading...</div>
-                  ) : reportTypes ? (
+                  ) : filteredReportTypes && Object.keys(filteredReportTypes).length > 0 ? (
                     <Select value={reportType} onValueChange={setReportType} required>
                       <SelectTrigger className="h-8">
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.entries(reportTypes || {}).map(([category, types]) => (
+                        {Object.entries(filteredReportTypes).map(([category, types]) => (
                           <div key={category}>
                             <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">
                               {category}
@@ -476,13 +514,13 @@ export function DiagnosisReportUpload({
             <Label htmlFor="report_type">Report Type *</Label>
             {typesLoading ? (
               <div className="text-sm text-muted-foreground">Loading report types...</div>
-            ) : reportTypes && Object.keys(reportTypes).length > 0 ? (
+            ) : filteredReportTypes && Object.keys(filteredReportTypes).length > 0 ? (
               <Select value={reportType} onValueChange={setReportType} required>
                 <SelectTrigger id="report_type">
                   <SelectValue placeholder="Select report type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(reportTypes || {}).map(([category, types]) => (
+                  {Object.entries(filteredReportTypes).map(([category, types]) => (
                     <div key={category}>
                       <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
                         {category}

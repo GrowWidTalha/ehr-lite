@@ -25,10 +25,8 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`}>
         <Providers>
           <BackupReminderWrapper />
-          <div className="min-h-screen bg-background">
-            {children}
-          </div>
-          <Toaster />
+          <div className="min-h-screen bg-background">{children}</div>
+          <Toaster position="top-center" />
         </Providers>
       </body>
     </html>

@@ -20,6 +20,9 @@ import type {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
+// Get base URL for static assets (images, etc) - same as API but without /api
+export const STATIC_BASE_URL = API_BASE_URL.replace('/api', '');
+
 // Generic API fetch wrapper
 async function api<T>(
   endpoint: string,

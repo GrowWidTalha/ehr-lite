@@ -12,12 +12,9 @@ import { Calendar, User, FileText, Edit, ArrowLeft } from 'lucide-react';
 import { LoadingSpinner } from '@/components/shared/loading-spinner';
 import { formatDate } from '@/lib/utils';
 import { OverviewTab } from '@/components/patients/tabs/overview-tab';
-import { HistoryTab } from '@/components/patients/tabs/history-tab';
 import { HabitsTab } from '@/components/patients/tabs/habits-tab';
-import { DiagnosesTab } from '@/components/patients/tabs/diagnoses-tab';
+import { ClinicalRecordsTab } from '@/components/patients/tabs/clinical-records-tab';
 import { ReportsTab } from '@/components/patients/tabs/reports-tab';
-import { PastRecordsTab } from '@/components/patients/tabs/past-records-tab';
-import { PastSurgeriesTab } from '@/components/patients/tabs/past-surgeries-tab';
 import { NavBar } from '@/components/navigation/navbar';
 
 export default function PatientDetailPage() {
@@ -87,13 +84,10 @@ export default function PatientDetailPage() {
       {/* Main Content */}
       <main className="container mx-auto px-6 py-6">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:min-w-[600px]">
+          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:min-w-[400px]">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="habits">Habits</TabsTrigger>
-            <TabsTrigger value="pastRecords">Past Records</TabsTrigger>
-            <TabsTrigger value="pastSurgeries">Surgeries</TabsTrigger>
-            <TabsTrigger value="diagnoses">Diagnoses</TabsTrigger>
+            <TabsTrigger value="clinical">Clinical Records</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
           </TabsList>
 
@@ -101,24 +95,12 @@ export default function PatientDetailPage() {
             <OverviewTab patient={patient} />
           </TabsContent>
 
-          <TabsContent value="history" className="space-y-6">
-            <HistoryTab patientId={patient.PatientID.toString()} />
-          </TabsContent>
-
           <TabsContent value="habits" className="space-y-6">
             <HabitsTab patientId={patient.PatientID.toString()} />
           </TabsContent>
 
-          <TabsContent value="pastRecords" className="space-y-6">
-            <PastRecordsTab patientId={patient.PatientID.toString()} />
-          </TabsContent>
-
-          <TabsContent value="pastSurgeries" className="space-y-6">
-            <PastSurgeriesTab patientId={patient.PatientID.toString()} />
-          </TabsContent>
-
-          <TabsContent value="diagnoses" className="space-y-6">
-            <DiagnosesTab patientId={patient.PatientID.toString()} />
+          <TabsContent value="clinical" className="space-y-6">
+            <ClinicalRecordsTab patientId={patient.PatientID.toString()} />
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-6">

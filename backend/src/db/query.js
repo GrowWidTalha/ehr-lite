@@ -12,7 +12,9 @@ export async function all(query, ...params) {
   const db = await getConnection();
 
   try {
-    const result = db.exec(query, params);
+    // Handle case where params is passed as a single array (common pattern)
+    const bindParams = params.length === 1 && Array.isArray(params[0]) ? params[0] : params;
+    const result = db.exec(query, bindParams);
 
     if (result.length === 0) {
       return [];

@@ -119,8 +119,9 @@ export function ImagingStep({ formData, onChange, error, patientId }: ImagingSte
             onUploadComplete={handleUploadComplete}
             title='Attach Imaging Report'
             description='Upload or capture CT, MRI, PET, ultrasound, or other imaging studies'
-            defaultReportType='IMG_CT'
+            defaultReportType='CT_SCAN'
             compact={true}
+            categoryFilter={['Imaging']}
           />
         </div>
       )}

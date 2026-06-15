@@ -11,18 +11,17 @@ import { ArrowLeft, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { FormProgress } from '@/components/shared/form-progress';
 import { LoadingSpinner } from '@/components/shared/loading-spinner';
 import { BasicStep } from '@/components/diagnosis/steps/basic-step';
-import { PathologyStep } from '@/components/diagnosis/steps/pathology-step';
 import { ReportsUploadStep } from '@/components/diagnosis/steps/reports-upload-step';
-import { TreatmentStep } from '@/components/diagnosis/steps/treatment-step';
 import { toast } from 'sonner';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
-type DiagnosisStep = 'basic' | 'pathology' | 'reports' | 'treatment';
+type DiagnosisStep = 'basic' | 'reports' | 'treatment';
 
 const STEPS: { id: DiagnosisStep; title: string; description: string }[] = [
   { id: 'basic', title: 'Basic', description: 'Cancer type, stage, grade' },
-  { id: 'pathology', title: 'Pathology', description: 'Essential staging data' },
   { id: 'reports', title: 'Reports Upload', description: 'Attach reports & imaging' },
-  { id: 'treatment', title: 'Treatment', description: 'Plan' },
+  { id: 'treatment', title: 'Treatment', description: 'Treatment plan' },
 ];
 
 // Validation rules for each step
@@ -50,32 +49,17 @@ export default function NewDiagnosisPage() {
   const [completedSteps, setCompletedSteps] = useState<DiagnosisStep[]>([]);
   const [stepErrors, setStepErrors] = useState<Record<DiagnosisStep, string | null>>({
     basic: null,
-    pathology: null,
     reports: null,
     treatment: null,
   });
 
   const [formData, setFormData] = useState({
-    // Basic (Required: cancer_type)
     cancer_type: '',
     stAge: '',
     grade: '',
     who_classification: '',
     diagnosis_date: '',
-    // Pathology (Optional - essential staging only)
-    nodes_recovered: '',
-    nodes_involved: '',
-    margins: '',
-    lvi: '',
-    pni: '',
-    // Imaging (Optional - manual entry)
-    study_type: '',
-    study_date: '',
-    findings: '',
-    indication: '',
-    // Treatment (Optional)
-    plan_type: '',
-    surgery_planned: '',
+    treatment_plan: '',
   });
 
   const currentStepIndex = STEPS.findIndex((s) => s.id === currentStep);
@@ -153,8 +137,8 @@ export default function NewDiagnosisPage() {
             <CardDescription>{STEPS[currentStepIndex].description}</CardDescription>
             <FormProgress
               currentStep={currentStepIndex + 1}
-              totalSteps={4}
-              stepNames={['Basic', 'Pathology', 'Reports', 'Treatment']}
+              totalSteps={3}
+              stepNames={['Basic', 'Reports', 'Treatment']}
               className="mt-4"
             />
           </CardHeader>
@@ -176,14 +160,6 @@ export default function NewDiagnosisPage() {
               />
             )}
 
-            {currentStep === 'pathology' && (
-              <PathologyStep
-                formData={formData}
-                onChange={setFormData}
-                error={stepErrors.pathology}
-              />
-            )}
-
             {currentStep === 'reports' && (
               <ReportsUploadStep
                 formData={formData}
@@ -194,11 +170,30 @@ export default function NewDiagnosisPage() {
             )}
 
             {currentStep === 'treatment' && (
-              <TreatmentStep
-                formData={formData}
-                onChange={setFormData}
-                error={stepErrors.treatment}
-              />
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-semibold">Treatment Plan</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Enter the complete treatment plan (optional)
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="treatment_plan" className="text-sm font-medium">
+                    Treatment Plan
+                  </Label>
+                  <Textarea
+                    id="treatment_plan"
+                    placeholder="Enter detailed treatment plan including surgery, chemotherapy, radiotherapy, hormonal therapy, targeted therapy, immunotherapy, etc."
+                    value={formData.treatment_plan}
+                    onChange={(e) => setFormData({ ...formData, treatment_plan: e.target.value })}
+                    rows={12}
+                    className="resize-none"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Free-form field for detailed treatment documentation
+                  </p>
+                </div>
+              </div>
             )}
 
             {/* Navigation buttons */}

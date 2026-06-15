@@ -4,25 +4,24 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useDiagnosis, useUpdateDiagnosis } from '@/hooks/use-diagnosis';
+import { useDiagnoses, useUpdateDiagnosis } from '@/hooks/use-diagnosis';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { FormProgress } from '@/components/shared/form-progress';
 import { LoadingSpinner } from '@/components/shared/loading-spinner';
 import { BasicStep } from '@/components/diagnosis/steps/basic-step';
-import { PathologyStep } from '@/components/diagnosis/steps/pathology-step';
 import { ReportsUploadStep } from '@/components/diagnosis/steps/reports-upload-step';
-import { TreatmentStep } from '@/components/diagnosis/steps/treatment-step';
 import { toast } from 'sonner';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
-type DiagnosisStep = 'basic' | 'pathology' | 'reports' | 'treatment';
+type DiagnosisStep = 'basic' | 'reports' | 'treatment';
 
 const STEPS: { id: DiagnosisStep; title: string; description: string }[] = [
   { id: 'basic', title: 'Basic', description: 'Cancer type, stAge, grade' },
-  { id: 'pathology', title: 'Pathology', description: 'Tumor details' },
   { id: 'reports', title: 'Reports Upload', description: 'Attach reports & imaging' },
-  { id: 'treatment', title: 'Treatment', description: 'Plan' },
+  { id: 'treatment', title: 'Treatment', description: 'Treatment plan' },
 ];
 
 // Validation rules for each step
@@ -45,14 +44,13 @@ export default function EditDiagnosisPage() {
   const patientId = params.id as string;
   const diagnosisId = params.diagnosisId as string;
 
-  const { data: diagnosis, isLoading } = useDiagnosis(parseInt(patientId));
+  const { data: diagnoses, isLoading } = useDiagnoses(parseInt(patientId));
   const updateDiagnosis = useUpdateDiagnosis();
 
   const [currentStep, setCurrentStep] = useState<DiagnosisStep>('basic');
   const [completedSteps, setCompletedSteps] = useState<DiagnosisStep[]>([]);
   const [stepErrors, setStepErrors] = useState<Record<DiagnosisStep, string | null>>({
     basic: null,
-    pathology: null,
     reports: null,
     treatment: null,
   });
@@ -63,47 +61,23 @@ export default function EditDiagnosisPage() {
     grade: '',
     who_classification: '',
     diagnosis_date: '',
-    margins: '',
-    lvi: '',
-    pni: '',
-    nodes_recovered: '',
-    nodes_involved: '',
-    study_type: '',
-    study_date: '',
-    findings: '',
-    indication: '',
-    plan_type: '',
-    surgery_planned: '',
-    neoadjuvant_chemo: '',
+    treatment_plan: '',
   });
 
   // Load existing diagnosis data
   useEffect(() => {
-    if (diagnosis) {
-      const d = diagnosis as any;
-      // Handle both single diagnosis and {treatments, pathology} format
-      const diag = d.cancer_type ? d : (Array.isArray(d.treatments) ? {} : d);
+    if (diagnoses && diagnoses.length > 0) {
+      const d = diagnoses[0];
       setFormData({
-        cancer_type: diag.cancer_type || d.cancer_type || '',
-        stAge: diag.stAge || d.stAge || '',
-        grade: diag.grade || d.grade || '',
-        who_classification: diag.who_classification || d.who_classification || '',
-        diagnosis_date: (diag.diagnosis_date || d.diagnosis_date || '').split('T')[0],
-        margins: diag.margins || d.margins || '',
-        lvi: diag.lvi || d.lvi || '',
-        pni: diag.pni || d.pni || '',
-        nodes_recovered: (diag.nodes_recovered || d.nodes_recovered || '').toString(),
-        nodes_involved: (diag.nodes_involved || d.nodes_involved || '').toString(),
-        study_type: diag.study_type || d.study_type || '',
-        study_date: (diag.study_date || d.study_date || '').split('T')[0],
-        findings: diag.findings || d.findings || '',
-        indication: diag.indication || d.indication || '',
-        plan_type: diag.plan_type || d.plan_type || '',
-        surgery_planned: diag.surgery_planned || d.surgery_planned || '',
-        neoadjuvant_chemo: diag.neoadjuvant_chemo || d.neoadjuvant_chemo || '',
+        cancer_type: d.cancer_type || '',
+        stAge: d.stAge || '',
+        grade: d.grade || '',
+        who_classification: d.who_classification || '',
+        diagnosis_date: (d.diagnosis_date || '').split('T')[0],
+        treatment_plan: d.notes || '',
       });
     }
-  }, [diagnosis]);
+  }, [diagnoses]);
 
   const currentStepIndex = STEPS.findIndex((s) => s.id === currentStep);
 
@@ -160,7 +134,7 @@ export default function EditDiagnosisPage() {
     );
   }
 
-  if (!diagnosis) {
+  if (!diagnoses || diagnoses.length === 0) {
     return (
       <div className="min-h-screen p-6">
         <div className="max-w-3xl mx-auto">
@@ -191,8 +165,8 @@ export default function EditDiagnosisPage() {
             <CardDescription>{STEPS[currentStepIndex].description}</CardDescription>
             <FormProgress
               currentStep={currentStepIndex + 1}
-              totalSteps={4}
-              stepNames={['Basic', 'Pathology', 'Reports', 'Treatment']}
+              totalSteps={3}
+              stepNames={['Basic', 'Reports', 'Treatment']}
               className="mt-4"
             />
           </CardHeader>
@@ -207,16 +181,35 @@ export default function EditDiagnosisPage() {
               <BasicStep formData={formData} onChange={setFormData} error={stepErrors.basic} />
             )}
 
-            {currentStep === 'pathology' && (
-              <PathologyStep formData={formData} onChange={setFormData} error={stepErrors.pathology} />
-            )}
-
             {currentStep === 'reports' && (
               <ReportsUploadStep formData={formData} onChange={setFormData} error={stepErrors.reports} patientId={patientId} />
             )}
 
             {currentStep === 'treatment' && (
-              <TreatmentStep formData={formData} onChange={setFormData} error={stepErrors.treatment} />
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-semibold">Treatment Plan</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Enter the complete treatment plan (optional)
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="treatment_plan" className="text-sm font-medium">
+                    Treatment Plan
+                  </Label>
+                  <Textarea
+                    id="treatment_plan"
+                    placeholder="Enter detailed treatment plan including surgery, chemotherapy, radiotherapy, hormonal therapy, targeted therapy, immunotherapy, etc."
+                    value={formData.treatment_plan}
+                    onChange={(e) => setFormData({ ...formData, treatment_plan: e.target.value })}
+                    rows={12}
+                    className="resize-none"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Free-form field for detailed treatment documentation
+                  </p>
+                </div>
+              </div>
             )}
 
             <div className="flex justify-between pt-6 border-t">

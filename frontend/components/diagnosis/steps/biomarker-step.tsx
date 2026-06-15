@@ -82,8 +82,9 @@ export function BiomarkerStep({ formData, onChange, error, patientId }: Biomarke
           onUploadComplete={handleUploadComplete}
           title='Attach Pathology/Biomarker Report'
           description='Capture or upload pathology reports, biomarker studies, and lab results'
-          defaultReportType='PATH_HISTO'
+          defaultReportType='IHC_MARKERS'
           compact={true}
+          categoryFilter={['Pathology', 'Lab']}
         />
       </div>
 
