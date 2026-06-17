@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Upload, X, Camera, Loader2, Video, Check } from 'lucide-react';
 import { useReportTypes } from '@/hooks/use-report-types';
 import { useUploadReport } from '@/hooks/use-reports';

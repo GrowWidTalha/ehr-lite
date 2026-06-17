@@ -23,6 +23,7 @@ import {
 import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
+import type { Report } from '@/lib/db.types';
 
 interface ReportsTabProps {
   patientId: string;
@@ -35,7 +36,7 @@ export function ReportsTab({ patientId }: ReportsTabProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImages, setLightboxImages] = useState<{ url: string; title?: string }[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const handleViewImages = (report: any) => {
     // Extract images from report
@@ -57,7 +58,7 @@ export function ReportsTab({ patientId }: ReportsTabProps) {
     if (!deleteId) return;
 
     try {
-      await deleteReport.mutateAsync(deleteId);
+      await deleteReport.mutateAsync(parseInt(deleteId));
       toast.success('Report deleted successfully');
       setDeleteId(null);
     } catch (error) {
@@ -136,7 +137,7 @@ export function ReportsTab({ patientId }: ReportsTabProps) {
               {categories.map((category) => (
                 <TabsContent key={category} value={category} className="space-y-3">
                   {groupedReports[category]?.length > 0 ? (
-                    groupedReports[category].map((report) => (
+                    groupedReports[category].map((report: Report) => (
                       <ReportCard
                         key={report.id}
                         report={report}

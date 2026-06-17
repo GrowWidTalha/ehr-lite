@@ -23,12 +23,16 @@ interface SurgeryRecord {
   isCancerSurgery: boolean;
   imageUrls: string[]; // preview-only blob/dataURLs — never sent to backend
   imageFiles: File[]; // source of truth for backend upload
+  surgeryDate: string;
+  notes: string;
+  hospitalName: string;
+  surgeonName: string;
 }
 
 interface PastSurgeriesStepProps {
   formData: any;
   onChange: (data: any) => void;
-  onSave?: (surgery: SurgeryRecord) => void;
+  onSave?: (surgery: SurgeryRecord) => void | Promise<void>;
   error?: string | null;
 }
 
@@ -52,6 +56,10 @@ export function PastSurgeriesStep({
           isCancerSurgery: false,
           imageUrls: [],
           imageFiles: [],
+          surgeryDate: "",
+          notes: "",
+          hospitalName: "",
+          surgeonName: "",
         },
       ]
     );
@@ -324,6 +332,10 @@ export function PastSurgeriesStep({
         isCancerSurgery: false,
         imageUrls: [],
         imageFiles: [],
+        surgeryDate: "",
+        notes: "",
+        hospitalName: "",
+        surgeonName: "",
       },
     ]);
   };
@@ -337,6 +349,10 @@ export function PastSurgeriesStep({
           isCancerSurgery: false,
           imageUrls: [],
           imageFiles: [],
+          surgeryDate: "",
+          notes: "",
+          hospitalName: "",
+          surgeonName: "",
         },
       ]);
     } else {

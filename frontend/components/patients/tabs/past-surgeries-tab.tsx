@@ -266,7 +266,7 @@ export function PastSurgeriesTab({ patientId }: PastSurgeriesTabProps) {
                             const surgeryData = surgeries?.find(
                               (s: any) => s.RowID === index + 1,
                             );
-                            if (surgeryData)
+                            if (surgeryData && surgeryData.RowID !== undefined)
                               handleDeleteSurgery(surgeryData.RowID);
                           }}
                           className="text-destructive hover:text-destructive"
