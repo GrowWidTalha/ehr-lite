@@ -2,7 +2,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { reportsApi } from '@/lib/api';
+import { reportsApi, api } from '@/lib/api';
 import type { Report } from '@/lib/db.types';
 
 // Query keys
@@ -30,8 +30,8 @@ export function useReports(patientId: number, type?: string) {
 export function useReportTypes() {
   return useQuery({
     queryKey: [...reportKeys.all, 'types'],
-    queryFn: () => reportsApi.getTypes().then((res) =>
-      res.success ? res.data : []
+    queryFn: () => api<Record<string, any[]>>('/reports/types').then((res) =>
+      res.success ? res.data : {}
     ),
     staleTime: 60 * 60 * 1000, // Cache for 1 hour
   });

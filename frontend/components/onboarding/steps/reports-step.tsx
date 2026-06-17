@@ -59,10 +59,11 @@ export function ReportsStep({ formData, onChange, error }: ReportsStepProps) {
 
   // Set default report type when types are loaded
   useEffect(() => {
-    if (reportTypes && reportTypes.length > 0 && currentReport.type === 'pathology') {
+    const typesArray = Object.values(reportTypes || {}).flat();
+    if (typesArray.length > 0 && currentReport.type === 'pathology') {
       setCurrentReport((prev) => ({
         ...prev,
-        type: reportTypes[0].report_type.trim(),
+        type: typesArray[0].report_type.trim(),
       }));
     }
   }, [reportTypes]);
@@ -241,9 +242,10 @@ export function ReportsStep({ formData, onChange, error }: ReportsStepProps) {
     });
 
     // Reset form for next report
+    const typesArray = Object.values(reportTypes || {}).flat();
     setCurrentReport({
       title: '',
-      type: reportTypes?.[0]?.report_type.trim() || 'pathology',
+      type: typesArray[0]?.report_type.trim() || 'pathology',
       notes: '',
       report_date: '',
       image: null,
@@ -343,7 +345,9 @@ export function ReportsStep({ formData, onChange, error }: ReportsStepProps) {
                   <Label htmlFor="report_type">Report Type</Label>
                   {typesLoading ? (
                     <div className="text-sm text-muted-foreground">Loading report types...</div>
-                  ) : reportTypes && reportTypes.length > 0 ? (
+                  ) : (() => {
+                    const typesArray = Object.values(reportTypes || {}).flat();
+                    return typesArray.length > 0 ? (
                     <Select
                       value={currentReport.type}
                       onValueChange={(value) => setCurrentReport({ ...currentReport, type: value })}
@@ -352,7 +356,7 @@ export function ReportsStep({ formData, onChange, error }: ReportsStepProps) {
                         <SelectValue placeholder="Select report type" />
                       </SelectTrigger>
                       <SelectContent>
-                        {reportTypes
+                        {typesArray
                           .filter((type: any, index: number, self: any[]) =>
                             index === self.findIndex((t) => t.report_type.trim() === type.report_type.trim())
                           )
@@ -365,7 +369,8 @@ export function ReportsStep({ formData, onChange, error }: ReportsStepProps) {
                     </Select>
                   ) : (
                     <div className="text-sm text-destructive">Failed to load report types</div>
-                  )}
+                  );
+                  })()}
                 </div>
 
                 <div className="space-y-2">

@@ -250,7 +250,7 @@ export function ReportForm({ reports, onReportsChange, onUploadError, maxReports
     onReportsChange(reports.filter((_report, i) => i !== index));
   };
 
-  const reportTypesOptions = typesLoading ? [] : (reportTypes || []).map((type) => type.report_type.trim());
+  const reportTypesOptions = typesLoading ? [] : (reportTypes || []).map((type: any) => type.report_type.trim());
 
   return (
     <div className="space-y-4">
@@ -287,7 +287,7 @@ export function ReportForm({ reports, onReportsChange, onUploadError, maxReports
                     <SelectValue placeholder="Select report type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {reportTypesOptions.map((type) => (
+                    {reportTypesOptions.map((type: string) => (
                       <SelectItem key={type} value={type}>
                         {type}
                       </SelectItem>
