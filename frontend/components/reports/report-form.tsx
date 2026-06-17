@@ -56,10 +56,11 @@ export function ReportForm({ reports, onReportsChange, onUploadError, maxReports
 
   // Set default report type when types are loaded
   useEffect(() => {
-    if (reportTypes && reportTypes.length > 0 && currentReport.type === 'pathology') {
+    const typesArray = Object.values(reportTypes || {}).flat();
+    if (typesArray.length > 0 && currentReport.type === 'pathology') {
       setCurrentReport((prev) => ({
         ...prev,
-        type: reportTypes[0].report_type.trim(),
+        type: typesArray[0].report_type.trim(),
       }));
     }
   }, [reportTypes]);
@@ -235,9 +236,10 @@ export function ReportForm({ reports, onReportsChange, onUploadError, maxReports
 
     onReportsChange([...reports, currentReport]);
 
+    const typesArray = Object.values(reportTypes || {}).flat();
     setCurrentReport({
       title: '',
-      type: reportTypes?.[0]?.report_type.trim() || 'pathology',
+      type: typesArray[0]?.report_type.trim() || 'pathology',
       notes: '',
       report_date: '',
       image: null,
@@ -250,7 +252,7 @@ export function ReportForm({ reports, onReportsChange, onUploadError, maxReports
     onReportsChange(reports.filter((_report, i) => i !== index));
   };
 
-  const reportTypesOptions = typesLoading ? [] : (reportTypes || []).map((type: any) => type.report_type.trim());
+  const reportTypesOptions = typesLoading ? [] : Object.values(reportTypes || {}).flat().map((type: any) => type.report_type.trim());
 
   return (
     <div className="space-y-4">
